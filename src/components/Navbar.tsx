@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Github } from 'lucide-react';
@@ -21,7 +20,7 @@ const Navbar = () => {
     }`}>
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold">⚡️ezseo</span>
+          <a href="/" className="text-2xl font-bold hover:text-primary transition-colors">⚡️ezseo</a>
         </div>
         
         <div className="hidden md:flex items-center gap-6">
@@ -30,9 +29,8 @@ const Navbar = () => {
           <a href="#pricing" className="text-sm hover:text-primary transition-colors">Pricing</a>
           <a href="#faq" className="text-sm hover:text-primary transition-colors">FAQ</a>
           <a href="https://github.com" target="_blank" rel="noopener noreferrer" 
-            className="text-sm hover:text-primary transition-colors flex items-center gap-1">
-            <Github className="h-4 w-4" />
-            <span>GitHub</span>
+            className="hover:text-primary transition-colors flex items-center">
+            <Github className="h-5 w-5" />
           </a>
           <Button size="sm">Get Started</Button>
         </div>

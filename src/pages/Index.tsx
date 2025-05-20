@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Terminal from '@/components/Terminal';
@@ -66,201 +65,131 @@ ezseo optimize --ai --git-pr`;
 }`;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-gradient-to-b from-[#0a1820] via-[#0a1920] to-[#051014] text-foreground">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="container pt-32 pb-20 md:pt-40 md:pb-32 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-background z-[-1]"></div>
+      <section className="container pt-12 pb-20 md:pt-20 md:pb-32 relative">
         <div className="flex flex-col items-center justify-center text-center max-w-3xl mx-auto">
-          <div className="flex gap-2 items-center mb-6">
-            <Badge type="license" value="AGPL/Commercial" />
-            <Badge type="downloads" value="10k+" />
-          </div>
+          <div className="mt-[50px]"></div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
             Optimize your site's SEO<br />
             <span className="text-primary">in 30 seconds</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl">
-            The CLI tool built for coders who want powerful SEO without the hassle
+            Want powerful SEO without the hassle?
           </p>
           <div className="flex justify-center mb-16">
-            <Button size="lg" className="group">
-              Get Started
-              <Zap className="ml-2 h-4 w-4 group-hover:animate-pulse" />
-            </Button>
+            <a href="#quickstart"><Button size="lg" className="group">Get Started</Button></a>
           </div>
           
-          {/* Command Display - Updated to a simple rounded box */}
-          <div className="w-full max-w-2xl mx-auto p-6 rounded-xl bg-secondary/20 border border-border shadow-lg">
-            <pre className="text-lg md:text-xl text-primary whitespace-pre-wrap font-mono overflow-auto">
+          {/* Centered Big Command Block */}
+          <div className="flex justify-center mb-16">
+            <pre className="text-2xl md:text-3xl bg-gradient-to-r from-[#FFF59D] to-[#FFE082] bg-clip-text text-transparent whitespace-pre-wrap font-mono overflow-auto text-center drop-shadow-[0_0_16px_rgba(255,255,255,0.25)]">
               <code>
-                {`# Start optimizing your site in 30 seconds
-npm install -g ezseo
-ezseo scan --ai`}
+                {`$ ezseo optimize`}
               </code>
             </pre>
-            <div className="mt-6 bg-success/10 rounded-lg p-4 border border-success/20">
-              <p className="text-lg text-success font-medium">
-                ✨ Website optimized in 30 seconds!
-              </p>
-              <ul className="mt-2 text-muted-foreground space-y-1">
-                <li className="flex items-start">
-                  <span className="mr-2 text-success">✅</span>
-                  Fixed 23 missing alt texts
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2 text-success">✅</span>
-                  Added meta descriptions to 7 pages
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2 text-success">✅</span>
-                  Generated structured data for 3 product pages
-                </li>
+          </div>
+        </div>
+      </section>
+      
+      {/* Features Section (replaced with horizontal 3-step process) */}
+      <section className="container py-10 -mt-32 animate-fade-in-up" id="how-it-works">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+          {/* Step 1 */}
+          <div className="flex flex-col items-center text-center max-w-xs">
+            <TerminalIcon className="h-10 w-10 text-cyan-400 mb-2" />
+            <div className="font-bold text-lg mb-1">Run the command</div>
+            <div className="font-mono text-base bg-black/30 rounded px-2 py-1 text-cyan-200">$ ezseo optimize</div>
+          </div>
+          {/* Arrow */}
+          <div className="hidden md:block text-3xl text-gray-500">→</div>
+          {/* Step 2 */}
+          <div className="flex flex-col items-center text-center max-w-xs">
+            <GitPullRequest className="h-10 w-10 text-green-400 mb-2" />
+            <div className="font-bold text-lg mb-1">ezseo improves your site's SEO</div>
+            <div className="text-base text-gray-400">Automatic fixes & pull requests created</div>
+          </div>
+          {/* Arrow */}
+          <div className="hidden md:block text-3xl text-gray-500">→</div>
+          {/* Step 3 */}
+          <div className="flex flex-col items-center text-center max-w-xs">
+            <BarChartBig className="h-10 w-10 text-yellow-400 mb-2" />
+            <div className="font-bold text-lg mb-1">SEO score skyrockets</div>
+            <div className="text-base text-gray-400">
+              Google Lighthouse: <span className="font-bold text-red-400">78</span> <span className="mx-1">→</span> <span className="font-bold text-green-400">100</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Quickstart Section */}
+      <section id="quickstart" className="container max-w-2xl mx-auto py-20 animate-fade-in-up">
+        <h2 className="text-3xl font-bold text-center mb-10">Quickstart</h2>
+        <ol className="space-y-8">
+          {/* Step 1 */}
+          <li className="flex items-start gap-4">
+            <div className="flex-shrink-0 bg-cyan-700/20 rounded-full p-3">
+              <Download className="h-6 w-6 text-cyan-400" />
+            </div>
+            <div>
+              <div className="font-semibold text-lg mb-1">Install ezseo</div>
+              <pre className="bg-black/40 rounded px-3 py-2 font-mono text-cyan-200 text-base">$ npm install -g ezseo</pre>
+            </div>
+          </li>
+          {/* Step 2 */}
+          <li className="flex items-start gap-4">
+            <div className="flex-shrink-0 bg-green-700/20 rounded-full p-3">
+              <TerminalIcon className="h-6 w-6 text-green-400" />
+            </div>
+            <div>
+              <div className="font-semibold text-lg mb-1">Run the CLI</div>
+              <pre className="bg-black/40 rounded px-3 py-2 font-mono text-green-200 text-base mb-2">$ ezseo optimize</pre>
+              <pre className="bg-black/40 rounded px-3 py-2 font-mono text-green-200 text-base">$ ezseo scan</pre>
+              <div className="text-gray-400 text-sm mt-2">
+                <span className="font-mono">optimize</span> applies fixes automatically.<br />
+                <span className="font-mono">scan</span> only shows suggestions, no changes made.
+              </div>
+            </div>
+          </li>
+          {/* Step 3 */}
+          <li className="flex items-start gap-4">
+            <div className="flex-shrink-0 bg-yellow-700/20 rounded-full p-3">
+              <Zap className="h-6 w-6 text-yellow-400" />
+            </div>
+            <div>
+              <div className="font-semibold text-lg mb-1">See instant results</div>
+              <ul className="list-disc pl-5 text-gray-300 text-base">
+                <li>Meta tags added</li>
+                <li>Alt text fixed</li>
+                <li>robots.txt & sitemap.xml generated</li>
+                <li>SEO issues resolved</li>
               </ul>
             </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Features Section */}
-      <section className="container py-20" id="features">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Developer-First SEO Toolkit</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Optimize your website's SEO without disrupting your development workflow
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <FeatureCard 
-            icon={Bot}
-            title="AI-Powered Analysis"
-            description="Deep SEO analysis of your codebase with actionable suggestions using OpenAI's GPT models."
-          />
-          <FeatureCard 
-            icon={Zap}
-            title="Instant Optimization"
-            description="Auto-apply SEO fixes with a single command, from alt tags to structured data."
-          />
-          <FeatureCard 
-            icon={GitPullRequest}
-            title="GitHub Integration"
-            description="Create pull requests with SEO improvements directly from the command line."
-          />
-          <FeatureCard 
-            icon={FileCheck}
-            title="SEO Asset Generation"
-            description="Auto-generate structured data, sitemaps, and robots.txt files for optimal indexing."
-          />
-          <FeatureCard 
-            icon={TerminalIcon}
-            title="Cross-Platform CLI"
-            description="Works on Windows, macOS, and Linux with support for all major JS/TS frameworks."
-          />
-          <FeatureCard 
-            icon={BarChartBig}
-            title="Impact Metrics"
-            description="Track your SEO improvements with before/after performance metrics."
-          />
-        </div>
-      </section>
-      
-      {/* Commands Section */}
-      <section className="py-20 bg-muted/30" id="commands">
-        <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Just Two Commands</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              That's all it takes to transform your website's SEO
-            </p>
-          </div>
-          
-          <Tabs defaultValue="scan" className="max-w-4xl mx-auto">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="scan">ezseo scan</TabsTrigger>
-              <TabsTrigger value="optimize">ezseo optimize</TabsTrigger>
-            </TabsList>
-            <TabsContent value="scan" className="border rounded-lg p-6 bg-card shadow-md">
-              <h3 className="text-xl font-semibold mb-4">Scan Your Project</h3>
-              <p className="mb-6 text-muted-foreground">
-                One command to identify and fix your SEO issues in seconds
-              </p>
-              
-              {/* Updated Command Display */}
-              <div className="p-6 rounded-xl bg-secondary/20 border border-border shadow-lg">
-                <pre className="text-lg md:text-xl text-primary whitespace-pre-wrap font-mono overflow-auto">
-                  <code>{scanCommand}</code>
-                </pre>
-              </div>
-              
-              <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-md">
-                <h4 className="font-medium mb-2 flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Sample Output
-                </h4>
-                <pre className="text-sm text-muted-foreground">
-                  <code>
-                    {`🔍 Scanning project files...
-✓ Found 127 files to analyze
-⚡ AI Analysis in progress...
-
-✨ Website optimized in 30 seconds!
-✅ Fixed 23 missing alt texts
-✅ Added meta descriptions to 7 pages
-✅ Generated structured data for 3 product pages
-✅ Optimized robots.txt`}
-                  </code>
-                </pre>
-              </div>
-            </TabsContent>
-            <TabsContent value="optimize" className="border rounded-lg p-6 bg-card shadow-md">
-              <h3 className="text-xl font-semibold mb-4">Optimize Your Project</h3>
-              <p className="mb-6 text-muted-foreground">
-                Automatically apply SEO fixes and generate optimized assets for your website.
-              </p>
-              
-              {/* Updated Command Display */}
-              <div className="p-6 rounded-xl bg-secondary/20 border border-border shadow-lg">
-                <pre className="text-lg md:text-xl text-primary whitespace-pre-wrap font-mono overflow-auto">
-                  <code>{optimizeCommand}</code>
-                </pre>
-              </div>
-              
-              <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-md">
-                <h4 className="font-medium mb-2 flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Generated Files
-                </h4>
-                <pre className="text-sm text-muted-foreground">
-                  <code>
-                    {`/seo
-├── structured-data
-│   ├── product.json
-│   ├── article.json
-│   └── faq.json
-├── robots.txt
-└── sitemap.xml`}
-                  </code>
-                </pre>
-              </div>
-            </TabsContent>
-          </Tabs>
-          
-          <div className="max-w-4xl mx-auto mt-16">
-            <h3 className="text-xl font-semibold mb-4">Configuration</h3>
-            <p className="mb-6 text-muted-foreground">
-              Customize ezseo with a simple JSON configuration file in your project root
-            </p>
-            
-            {/* Updated Config Display */}
-            <div className="p-6 rounded-xl bg-secondary/20 border border-border shadow-lg">
-              <pre className="text-lg text-primary whitespace-pre-wrap font-mono overflow-auto">
-                <code>{configExample}</code>
-              </pre>
+          </li>
+          {/* Step 4 */}
+          <li className="flex items-start gap-4">
+            <div className="flex-shrink-0 bg-fuchsia-700/20 rounded-full p-3">
+              <Bot className="h-6 w-6 text-fuchsia-400" />
             </div>
-          </div>
-        </div>
+            <div>
+              <div className="font-semibold text-lg mb-1">Want even more?</div>
+              <pre className="bg-black/40 rounded px-3 py-2 font-mono text-fuchsia-200 text-base inline-block mb-2">$ ezseo optimize <span className="text-fuchsia-400 drop-shadow-[0_0_8px_rgba(200,100,255,0.7)] animate-pulse">-ai</span></pre>
+              <div className="text-fuchsia-200 mb-2">Unlock advanced improvements with AI mode <span className="bg-fuchsia-900/30 text-xs px-2 py-0.5 rounded ml-2">Coming Soon</span></div>
+              <ul className="list-disc pl-5 text-fuchsia-200 text-base space-y-1">
+                <li>Advanced meta</li>
+                <li>Content rewrite</li>
+                <li>Internal linking</li>
+                <li>Accessibility</li>
+                <li>Structured data</li>
+                <li>Keyword optimization</li>
+                <li>Duplicate detection</li>
+                <li>Personalized suggestions</li>
+              </ul>
+            </div>
+          </li>
+        </ol>
       </section>
       
       {/* Pricing Section */}
@@ -270,6 +199,11 @@ ezseo scan --ai`}
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Dual licensing with open source and commercial options
           </p>
+        </div>
+        
+        <div className="flex gap-2 items-center justify-center mb-8 animate-fade-in-up">
+          <Badge type="license" value="AGPL/Commercial" />
+          <Badge type="downloads" value="10k+" />
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -323,7 +257,7 @@ ezseo scan --ai`}
                 Full AI capabilities for individuals and startups
               </p>
             </div>
-            <div className="text-3xl font-bold mb-6">$19<span className="text-lg text-muted-foreground font-normal">/mo</span></div>
+            <div className="text-3xl font-bold mb-6">$10<span className="text-lg text-muted-foreground font-normal">/mo</span></div>
             <ul className="mb-8 space-y-3 flex-grow">
               <li className="flex items-start">
                 <span className="mr-2 text-green-500">✓</span>
@@ -384,61 +318,6 @@ ezseo scan --ai`}
               </li>
             </ul>
             <Button variant="secondary" className="w-full">Contact Sales</Button>
-          </div>
-        </div>
-      </section>
-      
-      {/* FAQ Section */}
-      <section className="py-20 bg-muted/30" id="faq">
-        <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
-          </div>
-          
-          <div className="max-w-3xl mx-auto grid gap-8">
-            <div>
-              <h3 className="text-xl font-semibold mb-2">How does the AI optimization work?</h3>
-              <p className="text-muted-foreground">
-                ezseo analyzes your codebase, identifies SEO issues, and uses OpenAI's models to generate appropriate fixes, 
-                from descriptive alt text to structured data. The AI considers your specific content context to provide 
-                tailored optimizations.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Which frameworks are supported?</h3>
-              <p className="text-muted-foreground">
-                ezseo works with all major JavaScript and TypeScript frameworks, including React, Next.js, Astro, Vue, and plain HTML. 
-                The tool detects your project structure and adapts its analysis and fixes accordingly.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Is my code secure when using the AI features?</h3>
-              <p className="text-muted-foreground">
-                We take security seriously. Code sent to our AI backend is processed securely, not stored longer than needed
-                for analysis, and never used to train AI models. We only process the minimal amount of code necessary to 
-                provide SEO recommendations.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Can I integrate ezseo into my CI/CD pipeline?</h3>
-              <p className="text-muted-foreground">
-                Yes, ezseo includes CI/CD integration options for enterprise customers. You can automate SEO checks and
-                fixes as part of your build process using flags like --dry-run and --yes to control the behavior in 
-                automated environments.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-xl font-semibold mb-2">How is the dual licensing model structured?</h3>
-              <p className="text-muted-foreground">
-                The core CLI and rule-based features are open source under the AGPL license. The AI backend and premium
-                features require a commercial license (Pro or Enterprise subscription), which grants you full usage rights
-                for those components.
-              </p>
-            </div>
           </div>
         </div>
       </section>
