@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -24,6 +25,16 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				code: {
+					background: '#1E293B',
+					foreground: '#F8FAFC',
+					comment: '#94A3B8',
+					string: '#10B981',
+					variable: '#F97316',
+					function: '#3B82F6',
+					keyword: '#8B5CF6',
+					tag: '#EC4899',
+				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'
@@ -84,11 +95,22 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'typing': {
+					from: { width: '0' },
+					to: { width: '100%' }
+				},
+				'blink': {
+					'0%': { opacity: '1' },
+					'50%': { opacity: '0' },
+					'100%': { opacity: '1' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'typing': 'typing 3.5s steps(40, end)',
+				'cursor-blink': 'blink 1s step-end infinite'
 			}
 		}
 	},
