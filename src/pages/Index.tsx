@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Terminal from '@/components/Terminal';
@@ -19,7 +18,6 @@ import {
   LayoutDashboard,
   FileCheck,
   Download,
-  License,
 } from 'lucide-react';
 
 const Index = () => {
@@ -32,26 +30,17 @@ const Index = () => {
       delay: 1000
     },
     {
-      command: "cd my-nextjs-project",
-      delay: 500
-    },
-    {
       command: "ezseo scan --ai",
-      output: "🔍 Scanning project files...\n✓ Found 127 files to analyze\n⚡ AI Analysis in progress...\n\n🚨 SEO Issues Found:\n- 23 images missing alt text\n- Meta descriptions missing on 7 pages\n- No structured data for 3 product pages\n- robots.txt needs optimization\n\n💡 Run 'ezseo optimize --ai' to automatically fix these issues",
+      output: "🔍 Scanning project files...\n✓ Found 127 files to analyze\n⚡ AI Analysis in progress...\n\n✨ Website optimized in 30 seconds!\n✅ Fixed 23 missing alt texts\n✅ Added meta descriptions to 7 pages\n✅ Generated structured data for 3 product pages\n✅ Optimized robots.txt",
       delay: 2000
     }
   ];
 
-  const scanCommand = `# Perform basic SEO audit
-ezseo scan
-
-# Run AI-powered deep analysis
+  const scanCommand = `# Start optimizing your site in 30 seconds
+npm install -g ezseo
 ezseo scan --ai`;
 
-  const optimizeCommand = `# Apply rule-based fixes only
-ezseo optimize
-
-# Apply AI-powered fixes
+  const optimizeCommand = `# Apply AI-powered fixes
 ezseo optimize --ai
 
 # Preview changes without applying
@@ -88,11 +77,11 @@ ezseo optimize --ai --git-pr`;
             <Badge type="downloads" value="10k+" />
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-            Instant AI-Powered<br />
-            <span className="text-primary">SEO Optimization</span> CLI
+            Optimize your site's SEO<br />
+            <span className="text-primary">in 30 seconds</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl">
-            Automate SEO best practices for your JavaScript/TypeScript projects in seconds with AI
+            The CLI tool built for coders who want powerful SEO without the hassle
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mb-16">
             <Button size="lg" className="group">
@@ -157,9 +146,9 @@ ezseo optimize --ai --git-pr`;
       <section className="py-20 bg-muted/30" id="commands">
         <div className="container">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Powerful Commands</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Just Two Commands</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Just two simple commands to transform your website's SEO
+              That's all it takes to transform your website's SEO
             </p>
           </div>
           
@@ -171,7 +160,7 @@ ezseo optimize --ai --git-pr`;
             <TabsContent value="scan" className="border rounded-lg p-6 bg-card shadow-md">
               <h3 className="text-xl font-semibold mb-4">Scan Your Project</h3>
               <p className="mb-6 text-muted-foreground">
-                Identify SEO issues across your codebase with detailed reports and recommendations.
+                One command to identify and fix your SEO issues in seconds
               </p>
               <CodeBlock language="bash" code={scanCommand} />
               <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-md">
@@ -185,13 +174,11 @@ ezseo optimize --ai --git-pr`;
 ✓ Found 127 files to analyze
 ⚡ AI Analysis in progress...
 
-🚨 SEO Issues Found:
-- 23 images missing alt text
-- Meta descriptions missing on 7 pages
-- No structured data for 3 product pages
-- robots.txt needs optimization
-
-💡 Run 'ezseo optimize --ai' to automatically fix these issues`}
+✨ Website optimized in 30 seconds!
+✅ Fixed 23 missing alt texts
+✅ Added meta descriptions to 7 pages
+✅ Generated structured data for 3 product pages
+✅ Optimized robots.txt`}
                   </code>
                 </pre>
               </div>
@@ -415,9 +402,9 @@ ezseo optimize --ai --git-pr`;
       {/* CTA Section */}
       <section className="container py-20">
         <div className="max-w-4xl mx-auto bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-10 border text-center">
-          <h2 className="text-3xl font-bold mb-6">Ready to optimize your website's SEO?</h2>
+          <h2 className="text-3xl font-bold mb-6">Ready to supercharge your SEO?</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Join developers who are boosting their search rankings with AI-powered automation
+            Join the devs who are optimizing their sites in 30 seconds with ezseo
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button size="lg" className="group">
