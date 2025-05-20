@@ -1,73 +1,116 @@
-# Welcome to your Lovable project
+# ezseo
 
-## Project info
+[![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
+[![npm](https://img.shields.io/npm/dt/ezseo.svg)](https://www.npmjs.com/package/ezseo)
+[![GitHub stars](https://img.shields.io/github/stars/yourusername/ezseo.svg)](https://github.com/yourusername/ezseo/stargazers)
 
-**URL**: https://lovable.dev/projects/99044de2-5372-4157-9927-735598db44dc
+> Instant AI-Powered SEO Optimization CLI for JavaScript/TypeScript Projects
 
-## How can I edit this code?
+## 🚀 Features
 
-There are several ways of editing your application.
+- 🤖 AI-powered SEO analysis and optimization
+- 🔍 Deep scanning of React, Next.js, Astro, and plain HTML/JSX/TSX projects
+- 🛠️ Automatic SEO fixes with AI-generated improvements
+- 📊 SEO performance tracking and metrics
+- 🔄 GitHub integration with automated PR creation
+- 📁 Structured `/seo` directory generation
+- ⚡ Cross-platform support
 
-**Use Lovable**
+## 📦 Installation
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/99044de2-5372-4157-9927-735598db44dc) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+npm install -g ezseo
 ```
 
-**Edit a file directly in GitHub**
+## 🎯 Quick Start
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Scan your project for SEO issues:
+```bash
+ezseo scan --ai
+```
 
-**Use GitHub Codespaces**
+2. Apply AI-powered optimizations:
+```bash
+ezseo optimize --ai --model=gpt-4
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🛠️ Commands
 
-## What technologies are used for this project?
+### `ezseo scan`
+Performs an SEO audit of your project.
 
-This project is built with:
+Options:
+- `--ai`: Enable AI-powered deep analysis
+- `--verbose`: Show detailed output
+- `--json`: Output results in JSON format
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### `ezseo optimize`
+Automatically applies SEO fixes to your codebase.
 
-## How can I deploy this project?
+Options:
+- `--ai`: Use AI for generating improvements
+- `--model=<model>`: Select AI model (gpt-4, gpt-3.5)
+- `--git-pr`: Create a Git PR with changes
+- `--dry-run`: Preview changes without applying
+- `--yes`: Skip confirmation prompts
 
-Simply open [Lovable](https://lovable.dev/projects/99044de2-5372-4157-9927-735598db44dc) and click on Share -> Publish.
+## ⚙️ Configuration
 
-## Can I connect a custom domain to my Lovable project?
+Create `.ezseorc.json` in your project root:
 
-Yes, you can!
+```json
+{
+  "aiModel": "gpt-4",
+  "createPRs": true,
+  "seoDirectory": true,
+  "tracking": {
+    "anonymous": true,
+    "searchConsole": false
+  }
+}
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📊 SEO Directory Structure
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+```
+/seo
+├── structured-data/
+│   ├── product.json
+│   ├── article.json
+│   └── faq.json
+├── robots.txt
+└── sitemap.xml
+```
+
+## 🔑 Authentication
+
+1. Run `ezseo auth` to authenticate with GitHub
+2. Follow the prompts to complete OAuth flow
+3. Your API key will be stored securely
+
+## 📈 Analytics
+
+Connect to Google Search Console for SEO performance tracking:
+
+```bash
+ezseo connect --google-search-console
+```
+
+## 📄 License
+
+- Core CLI (Rule-based engine): [AGPL-3.0](LICENSE)
+- AI Backend & Premium Features: Commercial License
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## 📫 Support
+
+- Documentation: [https://docs.ezseo.dev](https://docs.ezseo.dev)
+- Issues: [GitHub Issues](https://github.com/yourusername/ezseo/issues)
+- Email: support@ezseo.dev
