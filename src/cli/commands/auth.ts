@@ -91,10 +91,10 @@ export async function authCommand() {
     
     if (service === 'github') {
       console.log('\nTo create pull requests, run:');
-      console.log(chalk.cyan('ezseo optimize --ai --git-pr'));
+      console.log(chalk.cyan('cliseo optimize --ai --git-pr'));
     } else if (service === 'google') {
       console.log('\nTo connect Search Console, run:');
-      console.log(chalk.cyan('ezseo connect --google-search-console'));
+      console.log(chalk.cyan('cliseo connect --google-search-console'));
     }
     
   } catch (error) {

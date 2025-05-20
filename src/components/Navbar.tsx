@@ -20,14 +20,15 @@ const Navbar = () => {
     }`}>
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <a href="/" className="text-2xl font-bold hover:text-primary transition-colors">⚡️ezseo</a>
+          <a href="/" className="flex items-center gap-2">
+            <img src="/logo.svg" alt="cliseo logo" className="h-8 w-auto" />
+          </a>
         </div>
         
         <div className="hidden md:flex items-center gap-6">
           <a href="#features" className="text-sm hover:text-primary transition-colors">Features</a>
           <a href="#commands" className="text-sm hover:text-primary transition-colors">Commands</a>
           <a href="#pricing" className="text-sm hover:text-primary transition-colors">Pricing</a>
-          <a href="#faq" className="text-sm hover:text-primary transition-colors">FAQ</a>
           <a href="https://github.com" target="_blank" rel="noopener noreferrer" 
             className="hover:text-primary transition-colors flex items-center">
             <Github className="h-5 w-5" />

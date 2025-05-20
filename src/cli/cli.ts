@@ -20,7 +20,7 @@ const program = new Command();
 
 // Setup CLI metadata
 program
-  .name('ezseo')
+  .name('cliseo')
   .description('AI-Powered SEO Optimization CLI')
   .version(packageJson.version);
 

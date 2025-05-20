@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface CodeBlockProps {
@@ -12,7 +11,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ language, code }) => {
     if (language === 'bash' || language === 'sh') {
       return code
         .replace(/(--[a-zA-Z0-9-_]+)/g, '<span class="text-code-variable">$1</span>')
-        .replace(/(ezseo)/g, '<span class="text-code-function">$1</span>')
+        .replace(/(cliseo)/g, '<span class="text-code-function">$1</span>')
         .replace(/(scan|optimize)/g, '<span class="text-code-keyword">$1</span>')
         .replace(/(".*?")/g, '<span class="text-code-string">$1</span>')
         .replace(/(#.*$)/gm, '<span class="text-code-comment">$1</span>');

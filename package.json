@@ -1,10 +1,10 @@
 {
-  "name": "ezseo",
+  "name": "cliseo",
   "version": "0.1.0",
-  "description": "Instant AI-Powered SEO Optimization CLI",
+  "description": "Instant AI-Powered SEO Optimization CLI for Developers",
   "type": "module",
   "bin": {
-    "ezseo": "./dist/cli/cli.js"
+    "cliseo": "./dist/cli/cli.js"
   },
   "scripts": {
     "dev": "vite",
@@ -105,7 +105,8 @@
     "cli",
     "react",
     "nextjs",
-    "typescript"
+    "typescript",
+    "cliseo"
   ],
   "author": "Your Name",
   "license": "AGPL-3.0"

@@ -4,6 +4,7 @@ import Terminal from '@/components/Terminal';
 import CodeBlock from '@/components/CodeBlock';
 import Badge from '@/components/Badge';
 import FeatureCard from '@/components/FeatureCard';
+import { CommandDisplay } from '@/components/CommandDisplay';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -25,29 +26,29 @@ const Index = () => {
   
   const terminalCommands = [
     {
-      command: "npm install -g ezseo",
-      output: "Successfully installed ezseo v1.0.0",
+      command: "npm install -g cliseo",
+      output: "Successfully installed cliseo v1.0.0",
       delay: 1000
     },
     {
-      command: "ezseo scan --ai",
+      command: "cliseo scan --ai",
       output: "🔍 Scanning project files...\n✓ Found 127 files to analyze\n⚡ AI Analysis in progress...\n\n✨ Website optimized in 30 seconds!\n✅ Fixed 23 missing alt texts\n✅ Added meta descriptions to 7 pages\n✅ Generated structured data for 3 product pages\n✅ Optimized robots.txt",
       delay: 2000
     }
   ];
 
   const scanCommand = `# Start optimizing your site in 30 seconds
-npm install -g ezseo
-ezseo scan --ai`;
+npm install -g cliseo
+cliseo scan --ai`;
 
   const optimizeCommand = `# Apply AI-powered fixes
-ezseo optimize --ai
+cliseo optimize --ai
 
 # Preview changes without applying
-ezseo optimize --ai --dry-run
+cliseo optimize --ai --dry-run
 
 # Create a PR with fixes
-ezseo optimize --ai --git-pr`;
+cliseo optimize --ai --git-pr`;
 
   const configExample = `{
   "ai": {
@@ -64,8 +65,17 @@ ezseo optimize --ai --git-pr`;
   }
 }`;
 
+  // Add a smooth scroll handler
+  const handleScrollToQuickstart = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    const el = document.getElementById('quickstart');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a1820] via-[#0a1920] to-[#051014] text-foreground">
+    <div className="min-h-screen bg-gradient-to-b from-[#050a12] via-[#060b13] to-[#010308] text-foreground">
       <Navbar />
       
       {/* Hero Section */}
@@ -80,14 +90,14 @@ ezseo optimize --ai --git-pr`;
             Want powerful SEO without the hassle?
           </p>
           <div className="flex justify-center mb-16">
-            <a href="#quickstart"><Button size="lg" className="group">Get Started</Button></a>
+            <Button size="lg" className="group" onClick={handleScrollToQuickstart}>Get Started</Button>
           </div>
           
           {/* Centered Big Command Block */}
           <div className="flex justify-center mb-16">
             <pre className="text-2xl md:text-3xl bg-gradient-to-r from-[#FFF59D] to-[#FFE082] bg-clip-text text-transparent whitespace-pre-wrap font-mono overflow-auto text-center drop-shadow-[0_0_16px_rgba(255,255,255,0.25)]">
               <code>
-                {`$ ezseo optimize`}
+                {`$ cliseo optimize`}
               </code>
             </pre>
           </div>
@@ -101,14 +111,14 @@ ezseo optimize --ai --git-pr`;
           <div className="flex flex-col items-center text-center max-w-xs">
             <TerminalIcon className="h-10 w-10 text-cyan-400 mb-2" />
             <div className="font-bold text-lg mb-1">Run the command</div>
-            <div className="font-mono text-base bg-black/30 rounded px-2 py-1 text-cyan-200">$ ezseo optimize</div>
+            <div className="font-mono text-base bg-black/30 rounded px-2 py-1 text-cyan-200">$ cliseo optimize</div>
           </div>
           {/* Arrow */}
           <div className="hidden md:block text-3xl text-gray-500">→</div>
           {/* Step 2 */}
           <div className="flex flex-col items-center text-center max-w-xs">
             <GitPullRequest className="h-10 w-10 text-green-400 mb-2" />
-            <div className="font-bold text-lg mb-1">ezseo improves your site's SEO</div>
+            <div className="font-bold text-lg mb-1">cliseo improves your site's SEO</div>
             <div className="text-base text-gray-400">Automatic fixes & pull requests created</div>
           </div>
           {/* Arrow */}
@@ -133,9 +143,9 @@ ezseo optimize --ai --git-pr`;
             <div className="flex-shrink-0 bg-cyan-700/20 rounded-full p-3">
               <Download className="h-6 w-6 text-cyan-400" />
             </div>
-            <div>
-              <div className="font-semibold text-lg mb-1">Install ezseo</div>
-              <pre className="bg-black/40 rounded px-3 py-2 font-mono text-cyan-200 text-base">$ npm install -g ezseo</pre>
+            <div className="w-full">
+              <div className="font-semibold text-lg mb-1">Install cliseo</div>
+              <CommandDisplay command="npm install -g cliseo" />
             </div>
           </li>
           {/* Step 2 */}
@@ -143,13 +153,13 @@ ezseo optimize --ai --git-pr`;
             <div className="flex-shrink-0 bg-green-700/20 rounded-full p-3">
               <TerminalIcon className="h-6 w-6 text-green-400" />
             </div>
-            <div>
+            <div className="w-full">
               <div className="font-semibold text-lg mb-1">Run the CLI</div>
-              <pre className="bg-black/40 rounded px-3 py-2 font-mono text-green-200 text-base mb-2">$ ezseo optimize</pre>
-              <pre className="bg-black/40 rounded px-3 py-2 font-mono text-green-200 text-base">$ ezseo scan</pre>
+              <CommandDisplay command="cliseo optimize" className="mb-2" />
+              <CommandDisplay command="cliseo scan" />
               <div className="text-gray-400 text-sm mt-2">
                 <span className="font-mono">optimize</span> applies fixes automatically.<br />
-                <span className="font-mono">scan</span> only shows suggestions, no changes made.
+                <span className="font-mono">scan</span> shows suggestions without making changes.
               </div>
             </div>
           </li>
@@ -173,9 +183,9 @@ ezseo optimize --ai --git-pr`;
             <div className="flex-shrink-0 bg-fuchsia-700/20 rounded-full p-3">
               <Bot className="h-6 w-6 text-fuchsia-400" />
             </div>
-            <div>
+            <div className="w-full">
               <div className="font-semibold text-lg mb-1">Want even more?</div>
-              <pre className="bg-black/40 rounded px-3 py-2 font-mono text-fuchsia-200 text-base inline-block mb-2">$ ezseo optimize <span className="text-fuchsia-400 drop-shadow-[0_0_8px_rgba(200,100,255,0.7)] animate-pulse">-ai</span></pre>
+              <CommandDisplay command="cliseo optimize -ai" /><br></br>
               <div className="text-fuchsia-200 mb-2">Unlock advanced improvements with AI mode <span className="bg-fuchsia-900/30 text-xs px-2 py-0.5 rounded ml-2">Coming Soon</span></div>
               <ul className="list-disc pl-5 text-fuchsia-200 text-base space-y-1">
                 <li>Advanced meta</li>
@@ -237,9 +247,8 @@ ezseo optimize --ai --git-pr`;
                 Community support
               </li>
             </ul>
-            <Button variant="outline" className="w-full">
-              <Github className="mr-2 h-4 w-4" />
-              Clone Repository
+            <Button variant="outline" className="w-full" onClick={handleScrollToQuickstart}>
+              Get Started
             </Button>
           </div>
           
@@ -327,12 +336,12 @@ ezseo optimize --ai --git-pr`;
         <div className="max-w-4xl mx-auto bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-10 border text-center">
           <h2 className="text-3xl font-bold mb-6">Ready to supercharge your SEO?</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Join the devs who are optimizing their sites in 30 seconds with ezseo
+            Join the devs who are optimizing their sites in 30 seconds with cliseo
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button size="lg" className="group">
               <Download className="mr-2 h-4 w-4" />
-              Install ezseo Now
+              Install cliseo Now
             </Button>
             <Button size="lg" variant="outline">Read Documentation</Button>
           </div>
@@ -345,13 +354,15 @@ ezseo optimize --ai --git-pr`;
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-6 md:mb-0">
               <div className="flex items-center">
-                <span className="text-2xl font-bold mr-2">⚡️ezseo</span>
-                <div className="flex gap-2">
+                <a href="/" className="flex items-center gap-2">
+                  <img src="/logo.svg" alt="cliseo logo" className="h-8 w-auto" />
+                </a>
+                <div className="flex gap-2 ml-2">
                   <Badge type="license" value="AGPL/Commercial" />
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                © 2025 ezseo. All rights reserved.
+                © 2025 cliseo. All rights reserved.
               </p>
             </div>
             <div className="flex gap-8">

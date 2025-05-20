@@ -124,7 +124,7 @@ export async function scanCommand(options: ScanOptions) {
     if (options.ai) {
       if (!config.openaiApiKey) {
         spinner.fail('OpenAI API key not found!');
-        console.log('Run `ezseo auth` to set up your API key.');
+        console.log('Run `cliseo auth` to set up your API key.');
         process.exit(1);
       }
       

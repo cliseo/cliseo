@@ -3,8 +3,8 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { Config } from '../types/index.js';
 
-const CONFIG_FILE = '.ezseorc.json';
-const GLOBAL_CONFIG_FILE = join(homedir(), '.ezseorc');
+const CONFIG_FILE = '.cliseorc.json';
+const GLOBAL_CONFIG_FILE = join(homedir(), '.cliseorc');
 
 const defaultConfig: Config = {
   aiModel: 'gpt-4',

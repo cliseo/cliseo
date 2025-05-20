@@ -9,7 +9,7 @@ async function connectGoogleSearchConsole() {
   
   if (!config.googleApiKey) {
     console.log(chalk.red('\n❌ Google API key not found'));
-    console.log('Run', chalk.cyan('ezseo auth'), 'to set up your Google API key first.\n');
+    console.log('Run', chalk.cyan('cliseo auth'), 'to set up your Google API key first.\n');
     process.exit(1);
   }
 

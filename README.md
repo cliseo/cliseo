@@ -1,8 +1,8 @@
-# ezseo
+# cliseo
 
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
-[![npm](https://img.shields.io/npm/dt/ezseo.svg)](https://www.npmjs.com/package/ezseo)
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/ezseo.svg)](https://github.com/yourusername/ezseo/stargazers)
+[![npm](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
+[![GitHub stars](https://img.shields.io/github/stars/yourusername/cliseo.svg)](https://github.com/yourusername/cliseo/stargazers)
 
 > Instant AI-Powered SEO Optimization CLI for JavaScript/TypeScript Projects
 
@@ -19,24 +19,24 @@
 ## 📦 Installation
 
 ```bash
-npm install -g ezseo
+npm install -g cliseo
 ```
 
 ## 🎯 Quick Start
 
 1. Scan your project for SEO issues:
 ```bash
-ezseo scan --ai
+cliseo scan --ai
 ```
 
 2. Apply AI-powered optimizations:
 ```bash
-ezseo optimize --ai --model=gpt-4
+cliseo optimize --ai --model=gpt-4
 ```
 
 ## 🛠️ Commands
 
-### `ezseo scan`
+### `cliseo scan`
 Performs an SEO audit of your project.
 
 Options:
@@ -44,7 +44,7 @@ Options:
 - `--verbose`: Show detailed output
 - `--json`: Output results in JSON format
 
-### `ezseo optimize`
+### `cliseo optimize`
 Automatically applies SEO fixes to your codebase.
 
 Options:
@@ -56,7 +56,7 @@ Options:
 
 ## ⚙️ Configuration
 
-Create `.ezseorc.json` in your project root:
+Create `.cliseorc.json` in your project root:
 
 ```json
 {
@@ -84,7 +84,7 @@ Create `.ezseorc.json` in your project root:
 
 ## 🔑 Authentication
 
-1. Run `ezseo auth` to authenticate with GitHub
+1. Run `cliseo auth` to authenticate with GitHub
 2. Follow the prompts to complete OAuth flow
 3. Your API key will be stored securely
 
@@ -93,7 +93,7 @@ Create `.ezseorc.json` in your project root:
 Connect to Google Search Console for SEO performance tracking:
 
 ```bash
-ezseo connect --google-search-console
+cliseo connect --google-search-console
 ```
 
 ## 📄 License
@@ -111,6 +111,6 @@ ezseo connect --google-search-console
 
 ## 📫 Support
 
-- Documentation: [https://docs.ezseo.dev](https://docs.ezseo.dev)
-- Issues: [GitHub Issues](https://github.com/yourusername/ezseo/issues)
-- Email: support@ezseo.dev
+- Documentation: [https://docs.cliseo.dev](https://docs.cliseo.dev)
+- Issues: [GitHub Issues](https://github.com/yourusername/cliseo/issues)
+- Email: support@cliseo.dev
