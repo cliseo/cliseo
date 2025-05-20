@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Terminal from '@/components/Terminal';
@@ -83,18 +84,41 @@ ezseo optimize --ai --git-pr`;
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl">
             The CLI tool built for coders who want powerful SEO without the hassle
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 mb-16">
+          <div className="flex justify-center mb-16">
             <Button size="lg" className="group">
               Get Started
               <Zap className="ml-2 h-4 w-4 group-hover:animate-pulse" />
             </Button>
-            <Button size="lg" variant="outline">
-              <Github className="mr-2 h-4 w-4" />
-              View on GitHub
-            </Button>
           </div>
-          <div className="w-full">
-            <Terminal commands={terminalCommands} />
+          
+          {/* Command Display - Updated to a simple rounded box */}
+          <div className="w-full max-w-2xl mx-auto p-6 rounded-xl bg-secondary/20 border border-border shadow-lg">
+            <pre className="text-lg md:text-xl text-primary whitespace-pre-wrap font-mono overflow-auto">
+              <code>
+                {`# Start optimizing your site in 30 seconds
+npm install -g ezseo
+ezseo scan --ai`}
+              </code>
+            </pre>
+            <div className="mt-6 bg-success/10 rounded-lg p-4 border border-success/20">
+              <p className="text-lg text-success font-medium">
+                ✨ Website optimized in 30 seconds!
+              </p>
+              <ul className="mt-2 text-muted-foreground space-y-1">
+                <li className="flex items-start">
+                  <span className="mr-2 text-success">✅</span>
+                  Fixed 23 missing alt texts
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2 text-success">✅</span>
+                  Added meta descriptions to 7 pages
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2 text-success">✅</span>
+                  Generated structured data for 3 product pages
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -162,7 +186,14 @@ ezseo optimize --ai --git-pr`;
               <p className="mb-6 text-muted-foreground">
                 One command to identify and fix your SEO issues in seconds
               </p>
-              <CodeBlock language="bash" code={scanCommand} />
+              
+              {/* Updated Command Display */}
+              <div className="p-6 rounded-xl bg-secondary/20 border border-border shadow-lg">
+                <pre className="text-lg md:text-xl text-primary whitespace-pre-wrap font-mono overflow-auto">
+                  <code>{scanCommand}</code>
+                </pre>
+              </div>
+              
               <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-md">
                 <h4 className="font-medium mb-2 flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -188,7 +219,14 @@ ezseo optimize --ai --git-pr`;
               <p className="mb-6 text-muted-foreground">
                 Automatically apply SEO fixes and generate optimized assets for your website.
               </p>
-              <CodeBlock language="bash" code={optimizeCommand} />
+              
+              {/* Updated Command Display */}
+              <div className="p-6 rounded-xl bg-secondary/20 border border-border shadow-lg">
+                <pre className="text-lg md:text-xl text-primary whitespace-pre-wrap font-mono overflow-auto">
+                  <code>{optimizeCommand}</code>
+                </pre>
+              </div>
+              
               <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-md">
                 <h4 className="font-medium mb-2 flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -214,7 +252,13 @@ ezseo optimize --ai --git-pr`;
             <p className="mb-6 text-muted-foreground">
               Customize ezseo with a simple JSON configuration file in your project root
             </p>
-            <CodeBlock language="json" code={configExample} />
+            
+            {/* Updated Config Display */}
+            <div className="p-6 rounded-xl bg-secondary/20 border border-border shadow-lg">
+              <pre className="text-lg text-primary whitespace-pre-wrap font-mono overflow-auto">
+                <code>{configExample}</code>
+              </pre>
+            </div>
           </div>
         </div>
       </section>
