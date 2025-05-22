@@ -2,19 +2,23 @@
 
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 [![npm](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/cliseo.svg)](https://github.com/yourusername/cliseo/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/ryanjhermes/cliseo.svg)](https://github.com/ryanjhermes/cliseo/stargazers)
 
-> Instant AI-Powered SEO Optimization CLI for JavaScript/TypeScript Projects
+> Free SEO Optimization CLI for JavaScript/TypeScript Projects (AI features coming soon!)
 
 ## 🚀 Features
 
+### Current Features
+- 🔍 Deep scanning of React, Next.js, and plain HTML/JSX/TSX projects
+- 🛠️ Automatic SEO fixes for common issues
+- 📁 SEO file generation (robots.txt, sitemap.xml)
+- ⚡ Cross-platform support
+
+### Coming Soon
 - 🤖 AI-powered SEO analysis and optimization
-- 🔍 Deep scanning of React, Next.js, Astro, and plain HTML/JSX/TSX projects
-- 🛠️ Automatic SEO fixes with AI-generated improvements
 - 📊 SEO performance tracking and metrics
 - 🔄 GitHub integration with automated PR creation
-- 📁 Structured `/seo` directory generation
-- ⚡ Cross-platform support
+- 📈 Google Search Console integration
 
 ## 📦 Installation
 
@@ -26,12 +30,12 @@ npm install -g cliseo
 
 1. Scan your project for SEO issues:
 ```bash
-cliseo scan --ai
+cliseo scan
 ```
 
-2. Apply AI-powered optimizations:
+2. Apply optimizations:
 ```bash
-cliseo optimize --ai --model=gpt-4
+cliseo optimize
 ```
 
 ## 🛠️ Commands
@@ -40,7 +44,6 @@ cliseo optimize --ai --model=gpt-4
 Performs an SEO audit of your project.
 
 Options:
-- `--ai`: Enable AI-powered deep analysis
 - `--verbose`: Show detailed output
 - `--json`: Output results in JSON format
 
@@ -48,9 +51,6 @@ Options:
 Automatically applies SEO fixes to your codebase.
 
 Options:
-- `--ai`: Use AI for generating improvements
-- `--model=<model>`: Select AI model (gpt-4, gpt-3.5)
-- `--git-pr`: Create a Git PR with changes
 - `--dry-run`: Preview changes without applying
 - `--yes`: Skip confirmation prompts
 
@@ -60,12 +60,9 @@ Create `.cliseorc.json` in your project root:
 
 ```json
 {
-  "aiModel": "gpt-4",
-  "createPRs": true,
   "seoDirectory": true,
   "tracking": {
-    "anonymous": true,
-    "searchConsole": false
+    "anonymous": true
   }
 }
 ```
@@ -77,29 +74,29 @@ Create `.cliseorc.json` in your project root:
 ├── structured-data/
 │   ├── product.json
 │   ├── article.json
-│   └── faq.json
 ├── robots.txt
 └── sitemap.xml
 ```
 
-## 🔑 Authentication
+## 🔍 What Gets Optimized
 
-1. Run `cliseo auth` to authenticate with GitHub
-2. Follow the prompts to complete OAuth flow
-3. Your API key will be stored securely
+### React/Next.js Projects
+- Meta tag management with react-helmet
+- Image alt text optimization
+- Link accessibility improvements
+- Schema.org markup injection
+- Semantic HTML structure
 
-## 📈 Analytics
-
-Connect to Google Search Console for SEO performance tracking:
-
-```bash
-cliseo connect --google-search-console
-```
+### Static HTML
+- Title tag optimization
+- Meta description management
+- Viewport configuration
+- Image alt attributes
+- Basic SEO structure
 
 ## 📄 License
 
-- Core CLI (Rule-based engine): [AGPL-3.0](LICENSE)
-- AI Backend & Premium Features: Commercial License
+[AGPL-3.0](LICENSE)
 
 ## 🤝 Contributing
 
@@ -112,5 +109,9 @@ cliseo connect --google-search-console
 ## 📫 Support
 
 - Documentation: [https://docs.cliseo.dev](https://docs.cliseo.dev)
-- Issues: [GitHub Issues](https://github.com/yourusername/cliseo/issues)
+- Issues: [GitHub Issues](https://github.com/ryanjhermes/cliseo/issues)
 - Email: support@cliseo.dev
+
+## 🚧 Development Status
+
+This project is actively maintained. AI features are in development and will be released in future versions. The current version focuses on providing reliable, rule-based SEO optimizations.

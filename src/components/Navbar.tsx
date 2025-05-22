@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Github } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -20,16 +21,16 @@ const Navbar = () => {
     }`}>
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <a href="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <img src="/logo.svg" alt="cliseo logo" className="h-8 w-auto" />
-          </a>
+          </Link>
         </div>
         
         <div className="hidden md:flex items-center gap-6">
           <a href="#features" className="text-sm hover:text-primary transition-colors">Features</a>
-          <a href="#commands" className="text-sm hover:text-primary transition-colors">Commands</a>
           <a href="#pricing" className="text-sm hover:text-primary transition-colors">Pricing</a>
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer" 
+          <a href="/docs" className="text-sm hover:text-primary transition-colors">Documentation</a>
+          <a href="https://github.com/ryanjhermes/cliseo" target="_blank" rel="noopener noreferrer" 
             className="hover:text-primary transition-colors flex items-center">
             <Github className="h-5 w-5" />
           </a>
