@@ -22,7 +22,7 @@ const Navbar = () => {
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.svg" alt="cliseo logo" className="h-8 w-auto" />
+            <img src="/logo.png" alt="cliseo logo" className="h-8 w-auto" />
           </Link>
         </div>
         
@@ -30,6 +30,7 @@ const Navbar = () => {
           <a href="#features" className="text-sm hover:text-primary transition-colors">Features</a>
           <a href="#pricing" className="text-sm hover:text-primary transition-colors">Pricing</a>
           <a href="/docs" className="text-sm hover:text-primary transition-colors">Documentation</a>
+          <Link to="/blog" className="text-sm hover:text-primary transition-colors">Blog</Link>
           <a href="https://github.com/ryanjhermes/cliseo" target="_blank" rel="noopener noreferrer" 
             className="hover:text-primary transition-colors flex items-center">
             <Github className="h-5 w-5" />

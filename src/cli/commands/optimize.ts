@@ -356,7 +356,99 @@ async function addReactMetaManagement(filePath: string): Promise<{ changed: bool
     return { changed, newContent: content, fixes };
   }
 
-  // Add react-helmet import and usage
+  try {
+    // Use Babel to parse and modify the code safely
+    const ast = babel.parse(content, {
+      sourceType: 'module',
+      plugins: ['jsx', 'typescript'],
+    });
+
+    // Flag to track if we modified the AST
+    let astModified = false;
+
+    // Add import statement if it doesn't exist
+    let helmetImportExists = false;
+    traverse.default(ast, {
+      ImportDeclaration(path) {
+        if (path.node.source.value === 'react-helmet') {
+          helmetImportExists = true;
+        }
+      }
+    });
+
+    if (!helmetImportExists) {
+      // Add the import at the top level with other imports
+      let lastImportIndex = -1;
+      
+      traverse.default(ast, {
+        ImportDeclaration(path) {
+          lastImportIndex = Math.max(lastImportIndex, path.node.loc?.end.line || 0);
+        }
+      });
+
+      if (lastImportIndex > 0) {
+        // Add the import after the last import
+        const helmetImport = babel.template.default.ast(`import { Helmet } from "react-helmet";`);
+        ast.program.body.splice(lastImportIndex, 0, helmetImport);
+        astModified = true;
+      }
+    }
+
+    // Extract component name from file path
+    const componentName = filePath.split('/').pop()?.replace(/\.[jt]sx$/, '') || 'Page';
+
+    // Try to find the return statement in the component
+    let helmetAdded = false;
+
+    traverse.default(ast, {
+      ReturnStatement(path) {
+        // Skip if we already added the Helmet
+        if (helmetAdded) return;
+
+        // Check if the return statement contains JSX
+        const returnArg = path.node.argument;
+        if (t.isJSXElement(returnArg)) {
+          // Get the first JSX element
+          const jsxElement = returnArg;
+          
+          // Check if it's a fragment or a div that we can add Helmet to
+          if (
+            (jsxElement.openingElement.name.type === 'JSXIdentifier' && 
+             (jsxElement.openingElement.name.name === 'div' || 
+              jsxElement.openingElement.name.name === 'Fragment')) ||
+            (jsxElement.openingElement.name.type === 'JSXMemberExpression' && 
+             jsxElement.openingElement.name.property.name === 'Fragment')
+          ) {
+            // Create the Helmet JSX element
+            const helmetJsx = babel.template.default.ast(`
+              <Helmet>
+                <title>${componentName}</title>
+                <meta name="description" content="${componentName} page" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+              </Helmet>
+            `, { plugins: ['jsx'] });
+
+            // Add the Helmet as the first child
+            if (jsxElement.children && jsxElement.children.length) {
+              jsxElement.children.unshift(helmetJsx.expression);
+              helmetAdded = true;
+              astModified = true;
+              fixes.push('Added react-helmet with meta tags');
+            }
+          }
+        }
+      }
+    });
+
+    // If we modified the AST, generate the new code
+    if (astModified) {
+      const output = generate.default(ast, {}, content);
+      changed = true;
+      return { changed, newContent: output.code, fixes };
+    }
+
+    // If we couldn't modify the AST with traversal, fall back to manual string manipulation
+    if (!helmetImportExists) {
   let newContent = content;
   
   // Add import statement after other imports
@@ -370,31 +462,28 @@ async function addReactMetaManagement(filePath: string): Promise<{ changed: bool
     newContent = `import { Helmet } from "react-helmet";\n${newContent}`;
   }
   
-  // Extract component name from file path
-  const componentName = filePath.split('/').pop()?.replace(/\.[jt]sx$/, '') || 'Page';
-  
-  // Find the first JSX element after return statement
-  const componentMatch = newContent.match(/(?:const|function)\s+\w+\s*=\s*(?:\(\)\s*=>|\([^)]*\)\s*=>|\([^)]*\)\s*{[^}]*return)\s*\(\s*<([^>]+)>/s);
-  if (componentMatch) {
-    const openingTag = componentMatch[0];
-    const insertIndex = openingTag.lastIndexOf('<') + componentMatch[1].length + 1;
-    const indent = openingTag.match(/^\s*/)?.[0] || '';
-    const nextIndent = indent + '  ';
-    
-    // Add Helmet component right after the first opening tag
-    newContent = newContent.slice(0, insertIndex) + '>\n' +
-      `${nextIndent}<Helmet>\n` +
-      `${nextIndent}  <title>${componentName}</title>\n` +
-      `${nextIndent}  <meta name="description" content="${componentName} page" />\n` +
-      `${nextIndent}  <meta name="viewport" content="width=device-width, initial-scale=1" />\n` +
-      `${nextIndent}</Helmet>` +
-      newContent.slice(insertIndex + 1);
-    
+      // Try to insert the Helmet component safely - look for a common pattern
+      const returnRegex = /return\s*\(\s*<([^>]+)>/;
+      const match = newContent.match(returnRegex);
+      
+      if (match) {
+        const insertPoint = newContent.indexOf(match[0]) + match[0].length;
+        const helmetJsx = `\n  <Helmet>\n    <title>${componentName}</title>\n    <meta name="description" content="${componentName} page" />\n    <meta name="viewport" content="width=device-width, initial-scale=1" />\n  </Helmet>\n  `;
+        
+        newContent = newContent.slice(0, insertPoint) + helmetJsx + newContent.slice(insertPoint);
     changed = true;
     fixes.push('Added react-helmet with meta tags');
   }
 
   return { changed, newContent, fixes };
+    }
+  } catch (error) {
+    console.error('Error while adding React Helmet:', error);
+    // If there's an error, return the original content
+    return { changed: false, newContent: content, fixes };
+  }
+
+  return { changed, newContent: content, fixes };
 }
 
 // Helper function to find the closing tag of a JSX element
@@ -437,12 +526,90 @@ async function fixReactAltText(filePath: string): Promise<{ changed: boolean, ne
   const fixes: string[] = [];
   let changed = false;
 
+  try {
+    // Get component/file name for smarter alt text
+    const componentName = filePath.split('/').pop()?.replace(/\.[jt]sx$/, '') || '';
+
+    // Use Babel to parse and modify the code safely
+    const ast = babel.parse(content, {
+      sourceType: 'module',
+      plugins: ['jsx', 'typescript'],
+    });
+
+    let altTextAdded = 0;
+
+    // Find img tags without alt attribute using AST traversal
+    traverse.default(ast, {
+      JSXOpeningElement(path) {
+        if (path.node.name.type === 'JSXIdentifier' && path.node.name.name === 'img') {
+          // Check if there's already an alt attribute
+          const hasAlt = path.node.attributes.some(attr => 
+            t.isJSXAttribute(attr) && attr.name.name === 'alt'
+          );
+
+          if (!hasAlt) {
+            // Try to find src attribute to generate meaningful alt text
+            const srcAttr = path.node.attributes.find(attr => 
+              t.isJSXAttribute(attr) && attr.name.name === 'src'
+            );
+            
+            let altText = `${componentName} image`;
+
+            if (srcAttr && t.isJSXAttribute(srcAttr)) {
+              if (t.isStringLiteral(srcAttr.value)) {
+                // For static src, use the filename
+                const srcPath = srcAttr.value.value;
+                const fileName = srcPath.split('/').pop()?.split('.')[0] || '';
+                if (fileName) altText = fileName;
+              } else if (t.isJSXExpressionContainer(srcAttr.value)) {
+                // For dynamic src (expressions), use the expression as alt text
+                if (t.isIdentifier(srcAttr.value.expression)) {
+                  // Add alt={srcVariable}
+                  path.node.attributes.push(
+                    t.jsxAttribute(
+                      t.jsxIdentifier('alt'),
+                      t.jsxExpressionContainer(srcAttr.value.expression)
+                    )
+                  );
+                  altTextAdded++;
+                  fixes.push(`Added dynamic alt text to image using src variable`);
+                  return;
+                }
+              }
+            }
+
+            // Add static alt text if we couldn't extract from src
+            path.node.attributes.push(
+              t.jsxAttribute(
+                t.jsxIdentifier('alt'),
+                t.stringLiteral(altText)
+              )
+            );
+            altTextAdded++;
+            fixes.push(`Added alt text to image: ${altText}`);
+          }
+        }
+      }
+    });
+
+    if (altTextAdded > 0) {
+      const output = generate.default(ast, {}, content);
+      changed = true;
+      return { changed, newContent: output.code, fixes };
+    }
+
+    return { changed: false, newContent: content, fixes };
+  } catch (error) {
+    console.error('Error fixing alt text:', error);
+    
+    // Fallback to regex-based approach if AST parsing fails
+    let newContent = content;
+
   // Get component/file name for smarter alt text
   const componentName = filePath.split('/').pop()?.replace(/\.[jt]sx$/, '') || '';
 
   // Find img tags without alt attribute
   const imgRegex = /<img([^>]*)>/g;
-  let newContent = content;
   let match;
 
   while ((match = imgRegex.exec(content)) !== null) {
@@ -471,12 +638,12 @@ async function fixReactAltText(filePath: string): Promise<{ changed: boolean, ne
       altText = fileName || `${componentName} image`;
     }
 
-    // Create new img tag with alt attribute
+      // Create new img tag with alt attribute - simpler version to reduce errors
     const newImgTag = imgTag.replace(
-      /(<img[^>]*)>/,
+        '<img',
       altText.includes('${') ?
-        `$1 alt={${altText.slice(2, -1)}}/>` :
-        `$1 alt="${altText}"/>`
+          `<img alt={${altText.slice(2, -1)}}` :
+          `<img alt="${altText}"`
     );
 
     newContent = newContent.replace(imgTag, newImgTag);
@@ -485,6 +652,7 @@ async function fixReactAltText(filePath: string): Promise<{ changed: boolean, ne
   }
 
   return { changed, newContent, fixes };
+  }
 }
 
 // Fix link accessibility issues
@@ -492,6 +660,73 @@ async function fixLinkAccessibility(filePath: string): Promise<{ changed: boolea
   const content = await readFile(filePath, 'utf-8');
   const fixes: string[] = [];
   let changed = false;
+
+  try {
+    // Use Babel to parse and modify the code safely
+    const ast = babel.parse(content, {
+      sourceType: 'module',
+      plugins: ['jsx', 'typescript'],
+    });
+
+    let linksFixed = 0;
+    const nonDescriptiveText = ['click here', 'here', 'read more', 'learn more', 'more', 'link'];
+
+    // Find link elements with non-descriptive text
+    traverse.default(ast, {
+      JSXElement(path) {
+        if (path.node.openingElement.name.type !== 'JSXIdentifier') return;
+        
+        const tagName = path.node.openingElement.name.name;
+        
+        if (tagName !== 'Link' && tagName !== 'a') return;
+        
+        // Check for href/to attribute
+        let urlAttr = path.node.openingElement.attributes.find(attr => 
+          t.isJSXAttribute(attr) && 
+          (attr.name.name === 'href' || attr.name.name === 'to')
+        );
+        
+        if (!urlAttr || !t.isJSXAttribute(urlAttr)) return;
+        
+        // Extract URL
+        let url = '';
+        if (t.isStringLiteral(urlAttr.value)) {
+          url = urlAttr.value.value;
+        } else {
+          return; // Skip dynamic URLs for now
+        }
+        
+        // Check if the link has non-descriptive text
+        if (path.node.children.length === 1 && 
+            t.isJSXText(path.node.children[0])) {
+          const linkText = path.node.children[0].value.trim().toLowerCase();
+          
+          if (nonDescriptiveText.includes(linkText)) {
+            // Extract better text from URL
+            const pathParts = url.split(/[/?_-]/).filter(Boolean);
+            const lastPart = pathParts[pathParts.length - 1] || '';
+            const betterText = lastPart.charAt(0).toUpperCase() + lastPart.slice(1);
+            
+            // Replace the text
+            path.node.children[0] = t.jsxText(betterText);
+            linksFixed++;
+            fixes.push(`Improved link text: "${linkText}" → "${betterText}"`);
+          }
+        }
+      }
+    });
+
+    if (linksFixed > 0) {
+      const output = generate.default(ast, {}, content);
+      changed = true;
+      return { changed, newContent: output.code, fixes };
+    }
+
+    return { changed: false, newContent: content, fixes };
+  } catch (error) {
+    console.error('Error fixing link accessibility:', error);
+    
+    // Fallback to regex-based approach
   let newContent = content;
 
   // Fix non-descriptive link text
@@ -524,6 +759,7 @@ async function fixLinkAccessibility(filePath: string): Promise<{ changed: boolea
   }
 
   return { changed, newContent, fixes };
+  }
 }
 
 // Add schema.org markup
@@ -542,10 +778,7 @@ async function addSchemaMarkup(filePath: string): Promise<{ changed: boolean, ne
     return { changed, newContent: content, fixes };
   }
 
-  let newContent = content;
-  const fileName = filePath.toLowerCase();
-  let schema = {};
-
+  try {
   // Extract component name and title
   const componentName = filePath.split('/').pop()?.replace(/\.[jt]sx$/, '') || '';
   const title = componentName.replace(/([A-Z])/g, ' $1').trim();
@@ -560,9 +793,12 @@ async function addSchemaMarkup(filePath: string): Promise<{ changed: boolean, ne
   }
 
   // Get the current URL
-  const url = `https://yourdomain.com${fileName.includes('index') ? '/' : `/${componentName.toLowerCase()}`}`;
+    const url = `https://yourdomain.com${filePath.includes('index') ? '/' : `/${componentName.toLowerCase()}`}`;
 
   // Determine page type and create appropriate schema
+    const fileName = filePath.toLowerCase();
+    let schema = {};
+
   if (fileName.includes('blog') || fileName.includes('article')) {
     schema = {
       '@context': 'https://schema.org',
@@ -606,77 +842,142 @@ async function addSchemaMarkup(filePath: string): Promise<{ changed: boolean, ne
     };
   }
 
-  // Create the schema script with proper JSX escaping
-  const schemaJson = JSON.stringify(schema, null, 2).replace(/`/g, '\\`');
-  const schemaScript = `<script type="application/ld+json">{\`${schemaJson}\`}</script>`;
+    // Use Babel to parse the code
+    const ast = babel.parse(content, {
+      sourceType: 'module',
+      plugins: ['jsx', 'typescript'],
+    });
 
-  // First, check if Helmet is already imported
-  const hasHelmetImport = content.includes('import { Helmet }');
-  
-  // Find all complete import statements
-  const importRegex = /^import\s+.*?;$/gm;
-  const imports = Array.from(new Set(content.match(importRegex) || []));
-  
-  // Find the component's return statement
-  const returnRegex = /return\s*\(\s*(?:<[\s\S]*$)/m;
-  const returnMatch = content.match(returnRegex);
+    // Flag to track if we modified the AST
+    let astModified = false;
 
-  if (!returnMatch) {
-    return { changed, newContent: content, fixes };
-  }
+    // Add Helmet import if needed
+    let helmetImportExists = false;
+    traverse.default(ast, {
+      ImportDeclaration(path) {
+        if (path.node.source.value === 'react-helmet') {
+          helmetImportExists = true;
+        }
+      }
+    });
 
-  // Split content at the return statement
-  const beforeReturn = content.slice(0, returnMatch.index);
-  let afterReturn = content.slice(returnMatch.index!);
+    if (!helmetImportExists) {
+      // Add the import at the top level with other imports
+      let lastImportIndex = -1;
+      
+      traverse.default(ast, {
+        ImportDeclaration(path) {
+          lastImportIndex = Math.max(lastImportIndex, path.node.loc?.end.line || 0);
+        }
+      });
 
-  // Add Helmet import if needed
-  if (!hasHelmetImport) {
-    imports.push('import { Helmet } from "react-helmet";');
-  }
-
-  // Find the first JSX element
-  const jsxMatch = afterReturn.match(/^\s*return\s*\(\s*(<[^>]*>)/);
-  if (jsxMatch) {
-    const [fullMatch, firstTag] = jsxMatch;
-    const indent = fullMatch.match(/^\s*/)?.[0] || '';
-    const helmetComponent = `${indent}<Helmet>\n${schemaScript}\n${indent}</Helmet>\n${indent}`;
-
-    // If already wrapped in fragment, add after opening
-    if (firstTag === '<>') {
-      const openingTagEnd = afterReturn.indexOf('<>') + 2;
-      afterReturn = 
-        afterReturn.slice(0, openingTagEnd) + 
-        '\n' + helmetComponent +
-        afterReturn.slice(openingTagEnd);
-    } else {
-      // Wrap in fragment and add Helmet
-      afterReturn = afterReturn.replace(
-        /return\s*\(\s*/,
-        `return (\n${indent}<>\n${helmetComponent}`
-      );
-      // Add closing fragment before the last closing parenthesis
-      const lastParen = afterReturn.lastIndexOf(')');
-      afterReturn = 
-        afterReturn.slice(0, lastParen) +
-        `\n${indent}</>\n${indent}` +
-        afterReturn.slice(lastParen);
+      if (lastImportIndex > 0) {
+        // Add the import after the last import
+        const helmetImport = babel.template.default.ast(`import { Helmet } from "react-helmet";`);
+        ast.program.body.splice(lastImportIndex, 0, helmetImport);
+        astModified = true;
+      }
     }
-    changed = true;
+
+    // Create the schema script
+    const schemaJson = JSON.stringify(schema, null, 2);
+    
+    // Add schema to the return statement with Helmet
+    let schemaAdded = false;
+    
+    traverse.default(ast, {
+      ReturnStatement(path) {
+        // Skip if we already added the schema
+        if (schemaAdded) return;
+
+        // Check if the return statement contains JSX
+        const returnArg = path.node.argument;
+        if (t.isJSXElement(returnArg)) {
+          // Get the first JSX element
+          const jsxElement = returnArg;
+          
+          // Create a template for the Helmet with schema
+          const helmetTemplate = babel.template.default.ast(`
+            <Helmet>
+              <script type="application/ld+json">
+                {\`${schemaJson.replace(/`/g, '\\`')}\`}
+              </script>
+            </Helmet>
+          `, { plugins: ['jsx'] });
+
+          // Check if we need to wrap in a fragment
+          const needsFragment = 
+            !t.isJSXFragment(jsxElement) && 
+            !(jsxElement.openingElement.name.type === 'JSXIdentifier' && 
+              jsxElement.openingElement.name.name === 'div');
+          
+          if (needsFragment) {
+            // Create a new fragment with our Helmet and the original element
+            const fragment = t.jsxFragment(
+              t.jsxOpeningFragment(),
+              t.jsxClosingFragment(),
+              [helmetTemplate.expression, jsxElement]
+            );
+            
+            // Replace the return argument with our fragment
+            path.get('argument').replaceWith(fragment);
+          } else {
+            // Just add the Helmet as the first child
+            if (jsxElement.children) {
+              jsxElement.children.unshift(helmetTemplate.expression);
+    }
+          }
+          
+          schemaAdded = true;
+          astModified = true;
     fixes.push(`Added ${schema['@type']} schema markup`);
   }
+      }
+    });
 
-  // Reconstruct the file with unique imports
-  if (changed) {
-    newContent = [
-      ...Array.from(new Set(imports)), // Remove duplicate imports
-      '',
-      beforeReturn.trim(),
-      '',
-      afterReturn.trim()
-    ].join('\n');
+    // If we modified the AST, generate the new code
+    if (astModified) {
+      const output = generate.default(ast, {}, content);
+      changed = true;
+      return { changed, newContent: output.code, fixes };
+    }
+    
+    // If we couldn't modify with AST, fall back to the previous implementation
+    let newContent = content;
+    
+    // Add Helmet import if needed
+    if (!helmetImportExists) {
+      const lastImportMatch = content.match(/^import .+?;[\r\n]*/gm);
+      if (lastImportMatch) {
+        const lastImportIndex = content.lastIndexOf(lastImportMatch[lastImportMatch.length - 1]) + lastImportMatch[lastImportMatch.length - 1].length;
+        newContent = content.slice(0, lastImportIndex) + 
+          `import { Helmet } from "react-helmet";\n` +
+          content.slice(lastImportIndex);
+      } else {
+        newContent = `import { Helmet } from "react-helmet";\n${newContent}`;
+      }
+    }
+    
+    // Create the schema script
+    const schemaScript = `<script type="application/ld+json">{\`${schemaJson.replace(/`/g, '\\`')}\`}</script>`;
+    
+    // Try to add the Helmet with schema in a safer way
+    const returnPattern = /return\s*\(\s*(?:<[^>]*>)/;
+    const match = newContent.match(returnPattern);
+    if (match) {
+      const insertPoint = match.index! + match[0].length;
+      const helmetElement = `\n  <Helmet>\n    ${schemaScript}\n  </Helmet>\n  `;
+      
+      newContent = newContent.slice(0, insertPoint) + helmetElement + newContent.slice(insertPoint);
+      changed = true;
+      fixes.push(`Added ${schema['@type']} schema markup`);
   }
 
   return { changed, newContent, fixes };
+  } catch (error) {
+    console.error('Error adding schema markup:', error);
+    return { changed: false, newContent: content, fixes };
+  }
 }
 
 // Fix semantic HTML issues
@@ -684,11 +985,82 @@ async function fixSemanticHtml(filePath: string): Promise<{ changed: boolean, ne
   const content = await readFile(filePath, 'utf-8');
   const fixes: string[] = [];
   let changed = false;
+  
+  try {
+    // Use Babel to parse and modify the code safely
+    const ast = babel.parse(content, {
+      sourceType: 'module',
+      plugins: ['jsx', 'typescript'],
+    });
+
+    // Track changes
+    let semanticElementsAdded = 0;
+
+    // Traverse the AST to find potential div elements to replace
+    traverse.default(ast, {
+      JSXOpeningElement(path) {
+        if (path.node.name.type !== 'JSXIdentifier' || path.node.name.name !== 'div') {
+          return;
+        }
+
+        // Check if this div should be a semantic element
+        const classAttr = path.node.attributes.find(attr => 
+          t.isJSXAttribute(attr) && 
+          attr.name.name === 'className'
+        );
+
+        if (!classAttr || !t.isJSXAttribute(classAttr) || !t.isStringLiteral(classAttr.value)) {
+          return;
+        }
+
+        const className = classAttr.value.value.toLowerCase();
+        let semanticTag = null;
+
+        // Determine if this div should be a semantic element
+        if (className.includes('nav') || className.includes('navigation')) {
+          semanticTag = 'nav';
+        } else if (className.includes('main') || className.includes('content-main')) {
+          semanticTag = 'main';
+        } else if (className.includes('header') || className.includes('banner')) {
+          semanticTag = 'header';
+        } else if (className.includes('footer')) {
+          semanticTag = 'footer';
+        } else if (className.includes('aside') || className.includes('sidebar')) {
+          semanticTag = 'aside';
+        }
+
+        // Replace div with semantic element if found
+        if (semanticTag) {
+          path.node.name = t.jsxIdentifier(semanticTag);
+          
+          // Also need to update the closing tag
+          const jsxElement = path.findParent(path => path.isJSXElement());
+          if (jsxElement && t.isJSXElement(jsxElement.node) && 
+              t.isJSXClosingElement(jsxElement.node.closingElement) &&
+              t.isJSXIdentifier(jsxElement.node.closingElement.name) &&
+              jsxElement.node.closingElement.name.name === 'div') {
+            jsxElement.node.closingElement.name = t.jsxIdentifier(semanticTag);
+          }
+          
+          semanticElementsAdded++;
+          fixes.push(`Replaced div with semantic ${semanticTag} element`);
+        }
+      }
+    });
+
+    if (semanticElementsAdded > 0) {
+      const output = generate.default(ast, {}, content);
+      changed = true;
+      return { changed, newContent: output.code, fixes };
+    }
+
+    // If no changes made with AST, fall back to safer regex approach
   let newContent = content;
 
   // Replace navigation divs with nav, ensuring closing tags match
-  const navDivRegex = /<div([^>]*?)(?:nav|navigation).*?>[\s\S]*?<\/div>/gi;
-  newContent = newContent.replace(navDivRegex, (match, attributes) => {
+    // Only replace if the regex pattern is clear and unlikely to cause issues
+    const navDivRegex = /<div([^>]*?)(?:class|className)=["']([^"']*(?:nav|navigation)[^"']*)["']([^>]*?)>[\s\S]*?<\/div>/gi;
+    newContent = newContent.replace(navDivRegex, (match, before, className, after) => {
     if (!match.includes('<nav')) {
       changed = true;
       fixes.push('Replaced div with semantic nav element');
@@ -698,8 +1070,8 @@ async function fixSemanticHtml(filePath: string): Promise<{ changed: boolean, ne
   });
 
   // Replace main content divs with main
-  const mainDivRegex = /<div([^>]*?)(?:main|content-main|main-content).*?>[\s\S]*?<\/div>/gi;
-  newContent = newContent.replace(mainDivRegex, (match, attributes) => {
+    const mainDivRegex = /<div([^>]*?)(?:class|className)=["']([^"']*(?:main|content-main|main-content)[^"']*)["']([^>]*?)>[\s\S]*?<\/div>/gi;
+    newContent = newContent.replace(mainDivRegex, (match, before, className, after) => {
     if (!match.includes('<main')) {
       changed = true;
       fixes.push('Replaced div with semantic main element');
@@ -709,6 +1081,22 @@ async function fixSemanticHtml(filePath: string): Promise<{ changed: boolean, ne
   });
 
   return { changed, newContent, fixes };
+  } catch (error) {
+    console.error('Error fixing semantic HTML:', error);
+    return { changed: false, newContent: content, fixes };
+  }
+}
+
+// Helper function to get error message safely
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  } else if (typeof error === 'string') {
+    return error;
+  } else if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+  return String(error);
 }
 
 export async function optimizeCommand(options: OptimizeOptions) {
@@ -728,6 +1116,7 @@ export async function optimizeCommand(options: OptimizeOptions) {
 
     const modifiedFiles: string[] = [];
     const summary: Record<string, string[]> = {};
+    const errors: Record<string, string> = {};
 
     spinner.text = 'Analyzing files...';
 
@@ -744,6 +1133,9 @@ export async function optimizeCommand(options: OptimizeOptions) {
     }
 
     for (const file of files) {
+      try {
+        spinner.text = `Analyzing ${file}...`;
+        
       if (options.ai && openai) {
         // AI optimizations (existing code)
         let optimizations: SeoIssue[] = [];
@@ -776,86 +1168,169 @@ export async function optimizeCommand(options: OptimizeOptions) {
           summary[file] = optimizations.map(opt => opt.message);
         }
       } else if (file.endsWith('.tsx') || file.endsWith('.jsx')) {
+          try {
         // React-specific optimizations
         let content = await readFile(file, 'utf-8');
+            let originalContent = content; // Keep a copy of the original
         let changed = false;
         let fixes: string[] = [];
+            let fileModified = false;
 
         // Add meta tag management
+            try {
         const metaResult = await addReactMetaManagement(file);
         if (metaResult.changed) {
           content = metaResult.newContent;
           changed = true;
+                fileModified = true;
           fixes = fixes.concat(metaResult.fixes);
+              }
+            } catch (metaError) {
+              console.error(`Error adding meta management to ${file}:`, metaError);
+              errors[file] = `Failed to add meta management: ${getErrorMessage(metaError)}`;
         }
 
         // Fix alt text
+            try {
         const altResult = await fixReactAltText(file);
         if (altResult.changed) {
           content = altResult.newContent;
           changed = true;
+                fileModified = true;
           fixes = fixes.concat(altResult.fixes);
+              }
+            } catch (altError) {
+              console.error(`Error fixing alt text in ${file}:`, altError);
+              errors[file] = `Failed to fix alt text: ${getErrorMessage(altError)}`;
         }
 
         // Fix link accessibility
+            try {
         const linkResult = await fixLinkAccessibility(file);
         if (linkResult.changed) {
           content = linkResult.newContent;
           changed = true;
+                fileModified = true;
           fixes = fixes.concat(linkResult.fixes);
+              }
+            } catch (linkError) {
+              console.error(`Error fixing link accessibility in ${file}:`, linkError);
+              errors[file] = `Failed to fix link accessibility: ${getErrorMessage(linkError)}`;
         }
 
         // Add schema markup
+            try {
         const schemaResult = await addSchemaMarkup(file);
         if (schemaResult.changed) {
           content = schemaResult.newContent;
           changed = true;
+                fileModified = true;
           fixes = fixes.concat(schemaResult.fixes);
+              }
+            } catch (schemaError) {
+              console.error(`Error adding schema markup to ${file}:`, schemaError);
+              errors[file] = `Failed to add schema markup: ${getErrorMessage(schemaError)}`;
         }
 
         // Fix semantic HTML
+            try {
         const semanticResult = await fixSemanticHtml(file);
         if (semanticResult.changed) {
           content = semanticResult.newContent;
           changed = true;
+                fileModified = true;
           fixes = fixes.concat(semanticResult.fixes);
+              }
+            } catch (semanticError) {
+              console.error(`Error fixing semantic HTML in ${file}:`, semanticError);
+              errors[file] = `Failed to fix semantic HTML: ${getErrorMessage(semanticError)}`;
         }
 
         if (changed) {
           spinner.text = `Optimizing ${file}...`;
+              
+              // Verify code is valid before writing
+              try {
+                const ast = babel.parse(content, {
+                  sourceType: 'module',
+                  plugins: ['jsx', 'typescript'],
+                });
+                
+                if (ast) {
           await writeFile(file, content);
           modifiedFiles.push(file);
           summary[file] = fixes;
+                } else {
+                  // If parsing fails, don't write the file
+                  errors[file] = 'Generated invalid code that failed to parse';
+                  console.error(`Error: Generated invalid code for ${file}, skipping...`);
+                }
+              } catch (parseError) {
+                // If there's a parsing error, don't write the file
+                errors[file] = `Generated invalid code: ${getErrorMessage(parseError)}`;
+                console.error(`Error: Generated invalid code for ${file}, skipping...`);
+                
+                // Diagnostic info
+                console.debug('Parse error details:', parseError);
+              }
+            }
+          } catch (reactError) {
+            errors[file] = `Failed to process React file: ${getErrorMessage(reactError)}`;
+            console.error(`Error processing React file ${file}:`, reactError);
         }
       } else {
-        // Regular HTML optimizations (existing code)
+          // Regular HTML optimizations
+          try {
         const { changed, newContent, fixes } = await optimizeStaticSeo(file);
         if (changed) {
           await writeFile(file, newContent);
           modifiedFiles.push(file);
           summary[file] = fixes;
         }
+          } catch (htmlError) {
+            errors[file] = `Failed to optimize HTML: ${getErrorMessage(htmlError)}`;
+            console.error(`Error optimizing HTML file ${file}:`, htmlError);
+          }
+        }
+      } catch (fileError) {
+        errors[file] = `Failed to process file: ${getErrorMessage(fileError)}`;
+        console.error(`Error processing file ${file}:`, fileError);
       }
     }
 
     // Ensure robots.txt and sitemap.xml exist
     spinner.text = 'Checking SEO files...';
+    try {
     const { robotsCreated, sitemapCreated } = await ensureSeoFiles();
 
+      if (Object.keys(errors).length > 0) {
+        spinner.warn('SEO optimizations completed with some errors!');
+      } else {
     spinner.succeed('SEO optimizations complete!');
+      }
 
     // Output summary
     if (modifiedFiles.length > 0) {
       console.log(chalk.bold('\nOptimized files:'));
       for (const file of modifiedFiles) {
         console.log(chalk.green(`✔ ${file}`));
+          if (summary[file]) {
         summary[file].forEach(fix => {
           console.log(chalk.gray(`  - ${fix}`));
         });
+          }
       }
     } else {
       console.log(chalk.yellow('No HTML/JSX/TSX files needed changes.'));
     }
+
+      // Output errors if any
+      if (Object.keys(errors).length > 0) {
+        console.log(chalk.bold('\nErrors:'));
+        for (const [file, errorMsg] of Object.entries(errors)) {
+          console.log(chalk.red(`✘ ${file}: ${errorMsg}`));
+        }
+      }
 
     if (robotsCreated) {
       console.log(chalk.green('✔ Created robots.txt'));
@@ -865,6 +1340,10 @@ export async function optimizeCommand(options: OptimizeOptions) {
     }
     if (!robotsCreated && !sitemapCreated) {
       console.log(chalk.gray('robots.txt and sitemap.xml already exist.'));
+      }
+    } catch (seoFilesError) {
+      spinner.warn('SEO file generation had issues');
+      console.error('Error creating SEO files:', seoFilesError);
     }
 
   } catch (error) {

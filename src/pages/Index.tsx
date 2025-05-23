@@ -323,7 +323,7 @@ cliseo optimize --ai --git-pr`;
                   Full AI capabilities for individuals and startups
                 </p>
               </div>
-              <div className="text-3xl font-bold mb-6">$10<span className="text-lg text-muted-foreground font-normal">/mo</span></div>
+              <div className="text-3xl font-bold mb-6">$9<span className="text-lg text-muted-foreground font-normal">/mo</span></div>
               <ul className="mb-8 space-y-3 flex-grow">
                 <li className="flex items-start">
                   <span className="mr-2 text-green-500">✓</span>
@@ -383,7 +383,7 @@ cliseo optimize --ai --git-pr`;
                   Priority support
                 </li>
               </ul>
-              <Button variant="secondary" className="w-full">Contact Sales</Button>
+              <Button variant="secondary" className="w-full">Join the Waitlist</Button>
             </div>
           </div>
         </motion.section>
@@ -417,7 +417,7 @@ cliseo optimize --ai --git-pr`;
               <div className="mb-6 md:mb-0">
                 <div className="flex items-center">
                   <a href="/" className="flex items-center gap-2">
-                    <img src="/logo.svg" alt="cliseo logo" className="h-8 w-auto" />
+                    <img src="/logo.png" alt="cliseo logo" className="h-8 w-auto" />
                   </a>
                   <div className="flex gap-2 ml-2">
                     <Badge type="license" value="AGPL/Commercial" />
@@ -439,7 +439,8 @@ cliseo optimize --ai --git-pr`;
                   <h3 className="font-semibold mb-2">Resources</h3>
                   <ul className="space-y-1">
                     <li><a href="#" className="text-sm text-muted-foreground hover:text-primary">Documentation</a></li>
-                    <li><a href="#" className="text-sm text-muted-foreground hover:text-primary">Blog</a></li>
+                    <li><a href="/blog" className="text-sm text-muted-foreground hover:text-primary">Blog</a></li>
+
                   </ul>
                 </div>
                 <div>
