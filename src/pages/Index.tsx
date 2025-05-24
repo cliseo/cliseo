@@ -8,6 +8,7 @@ import FeatureCard from '@/components/FeatureCard';
 import { CommandDisplay } from '@/components/CommandDisplay';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CompatibilityChecker from '@/components/CompatibilityChecker';
 import { 
   FileCode, 
   Zap, 
@@ -153,7 +154,7 @@ cliseo optimize --ai --git-pr`;
             {/* Step 1 */}
             <div className="flex flex-col items-center text-center max-w-xs">
               <TerminalIcon className="h-10 w-10 text-cyan-400 mb-2" />
-              <div className="font-bold text-lg mb-1">Run the command</div>
+              <p className="font-bold text-lg mb-1 select-all">Run the command</p>
               <div className="font-mono text-base bg-black/30 rounded px-2 py-1 text-cyan-200">$ cliseo optimize</div>
             </div>
             {/* Arrow */}
@@ -161,7 +162,7 @@ cliseo optimize --ai --git-pr`;
             {/* Step 2 */}
             <div className="flex flex-col items-center text-center max-w-xs">
               <GitPullRequest className="h-10 w-10 text-green-400 mb-2" />
-              <div className="font-bold text-lg mb-1">cliseo improves your site's SEO</div>
+              <p className="font-bold text-lg mb-1 select-all">cliseo improves your site's SEO</p>
               <div className="text-base text-gray-400">Automatic fixes & pull requests created</div>
             </div>
             {/* Arrow */}
@@ -169,14 +170,31 @@ cliseo optimize --ai --git-pr`;
             {/* Step 3 */}
             <div className="flex flex-col items-center text-center max-w-xs">
               <BarChartBig className="h-10 w-10 text-yellow-400 mb-2" />
-              <div className="font-bold text-lg mb-1">SEO score skyrockets</div>
+              <p className="font-bold text-lg mb-1 select-all">SEO score skyrockets</p>
               <div className="text-base text-gray-400">
-                Google Lighthouse: <span className="font-bold text-red-400">78</span> <span className="mx-1">→</span> <span className="font-bold text-green-400">100</span>
+                Google Lighthouse: <span className="font-bold text-red-400 select-all">78</span> <span className="mx-1">→</span> <span className="font-bold text-green-400 select-all">100</span>
               </div>
             </div>
           </div>
         </motion.section>
-        
+
+        {/* Why SEO Matters Section */}
+        <motion.section
+          className="container py-10 text-center max-w-3xl mx-auto mt-8"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: 'easeOut', delay: 0.2 }}
+        >
+          <h2 className="text-3xl font-bold mb-6">Why would I want to improve my SEO?</h2>
+          <p className="text-2xl mb-6">
+            SEO helps search engines understand your website's content. Sites that follow best practices are more likely to show up in search results, whether it's Google, Perplexity, Bing, or Brave. The higher you rank, the more traffic your site recieves.
+          </p>
+          <blockquote className="border-l-4 border-primary pl-4 italic text-m text-muted-foreground">
+            "If you don't capture the clicks available in your niche, your competitors will" -Semrush
+          </blockquote>
+        </motion.section>
+
         {/* Quickstart Section */}
         <motion.section
           id="quickstart"
@@ -252,6 +270,23 @@ cliseo optimize --ai --git-pr`;
           </ol>
         </motion.section>
         
+        {/* Compatibility Checker Section */}
+        <motion.section
+          className="container py-20"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: 'easeOut', delay: 0.3 }}
+        >
+          <div className="text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Is My Site Compatible?</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              We support all major web frameworks including React, Vue, Angular, Next.js, Nuxt.js, and Svelte. Check your site's compatibility below.
+            </p>
+          </div>
+          <CompatibilityChecker />
+        </motion.section>
+        
         {/* Pricing Section */}
         <motion.section
           className="container py-20"
@@ -323,7 +358,7 @@ cliseo optimize --ai --git-pr`;
                   Full AI capabilities for individuals and startups
                 </p>
               </div>
-              <div className="text-3xl font-bold mb-6">$9<span className="text-lg text-muted-foreground font-normal">/mo</span></div>
+              <div className="text-3xl font-bold mb-6">$9.99<span className="text-lg text-muted-foreground font-normal">/mo</span></div>
               <ul className="mb-8 space-y-3 flex-grow">
                 <li className="flex items-start">
                   <span className="mr-2 text-green-500">✓</span>
@@ -396,22 +431,24 @@ cliseo optimize --ai --git-pr`;
           viewport={{ once: true }}
           transition={{ duration: 0.7, ease: 'easeOut', delay: 0.4 }}
         >
-          <div className="max-w-4xl mx-auto bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-10 border text-center">
-            <h2 className="text-3xl font-bold mb-6">Ready to supercharge your SEO?</h2>
-            <p className="text-xl mb-8 max-w-2xl mx-auto">
-              Join the devs who are optimizing their sites quickly with cliseo
+          <div className="max-w-4xl mx-auto bg-black/40 backdrop-blur-sm rounded-2xl p-10 border border-white/10 text-center shadow-[0_0_50px_-12px_rgba(255,255,255,0.15)] ring-1 ring-white/10">
+            <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-[#33ff33] to-[#a4c2f4] bg-clip-text text-transparent">Ready to supercharge your SEO?</h2>
+            <p className="text-xl mb-8 max-w-2xl mx-auto text-gray-300">
+              Join thousands of developers optimizing their sites with cliseo
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button size="lg" className="group" onClick={handleScrollToQuickstart}>
                 Get Started
               </Button>
-              <Button size="lg" variant="outline">Read Documentation</Button>
+              <Button size="lg" variant="outline" onClick={() => window.location.href = '/docs'}>
+                View Documentation
+              </Button>
             </div>
           </div>
         </motion.section>
         
         {/* Footer */}
-        <footer className="border-t py-12">
+        <footer className="py-12">
           <div className="container">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div className="mb-6 md:mb-0">
@@ -447,7 +484,7 @@ cliseo optimize --ai --git-pr`;
                   <h3 className="font-semibold mb-2">Connect</h3>
                   <ul className="space-y-1">
                     <li><a href="https://github.com/ryanjhermes/cliseo" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary">GitHub</a></li>
-                    <li><a href="#" className="text-sm text-muted-foreground hover:text-primary">Twitter</a></li>
+                    <li><a href="#" className="text-sm text-muted-foreground hover:text-primary">Reddit</a></li>
                   </ul>
                 </div>
               </div>
