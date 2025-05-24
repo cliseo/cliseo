@@ -1,9 +1,11 @@
 import { writeFile, access } from 'fs/promises';
+import * as cheerio from 'cheerio';
 import { join, dirname, resolve } from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
 import { glob } from 'glob';
 import fs from 'fs';
+import { html } from 'node_modules/cheerio/dist/esm/static';
 
 // --- Find project root (where package.json is) ---
 function findProjectRoot(startDir = process.cwd()): string {
@@ -104,6 +106,37 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
   return { robotsCreated, sitemapCreated };
 }
 
+// add meta tags to all HTML files //
+async function addMetaTagsToHtmlFiles() {
+  const root = findProjectRoot();
+  const htmlFiles = await glob('**/*.html', { cwd: root, absolute: true });
+
+  for(const file of htmlFiles) {
+    const content = await fs.promises.readFile(file, 'utf-8');
+    const $ = cheerio.load(content);
+
+    const head = $('head');
+    if(head.length === 0) continue; 
+
+    if ($('meta[name="description"]').length === 0) {
+      head.append('<meta name="description" content="Your default description here">');
+    }
+
+    if ($('meta[name="keywords"]').length === 0) {
+      head.append('\n<meta name="keywords" content="keyword1, keyword2, keyword3">');
+    }
+
+    if ($('meta[name="author"]').length === 0) {
+      head.append('\n<meta name="author" content="Your Name">');
+    }
+
+    await fs.promises.writeFile(file, $.html());
+
+  }
+}
+
+
+// --- Main function to optimize SEO files --- //
 export async function optimizeCommand() {
   const spinner = ora('Preparing SEO files...').start();
 
@@ -122,6 +155,17 @@ export async function optimizeCommand() {
     if (!robotsCreated && !sitemapCreated) {
       console.log(chalk.gray('robots.txt and sitemap.xml already exist.'));
     }
+
+    spinner.text = 'Adding meta tags to HTML files...';
+    await addMetaTagsToHtmlFiles();
+    spinner.succeed('Meta tags added to HTML files!');
+
+    console.log(chalk.green('✔ SEO optimization complete!'));
+    console.log(chalk.gray('You can now customize your robots.txt and sitemap.xml files.'));
+    console.log(chalk.yellow('Make sure to update the URLs in sitemap.xml to match your site.'));
+    console.log(chalk.yellow('You can also customize the meta tags in your HTML files.'));
+    console.log(chalk.blue('For more information, visit: https://cliseo.com/seo-guide'));
+    console.log(chalk.green('Happy optimizing!'));
   } catch (error) {
     spinner.fail('SEO file generation failed!');
     console.error(error);
