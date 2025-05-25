@@ -9,7 +9,10 @@ import { html } from 'node_modules/cheerio/dist/esm/static';
 import { injectHelmetInReact } from './optimize-react.js';
 
 
-// --- Find project root (where package.json is) ---
+
+/**
+ * Finds the project root directory
+ */
 function findProjectRoot(startDir = process.cwd()): string {
   let dir = resolve(startDir);
   while (dir !== dirname(dir)) {
@@ -19,7 +22,10 @@ function findProjectRoot(startDir = process.cwd()): string {
   return process.cwd(); // fallback
 }
 
-// --- New: Create robots.txt and sitemap.xml if missing in project root ---
+
+/**
+ * Ensures the existence of SEO files
+ */
 async function ensureSeoFiles() {
   let robotsCreated = false;
   let sitemapCreated = false;
@@ -109,7 +115,9 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
 }
 
 
-// add meta tags and canonical link to all HTML files //
+/**
+ * * Adds meta tags to HTML files in the project.
+ */
 async function addMetaTagsToHtmlFiles() {
   const root = findProjectRoot();
   const htmlFiles = await glob('**/*.html', { cwd: root, absolute: true });
@@ -146,9 +154,10 @@ async function addMetaTagsToHtmlFiles() {
 // --- TODO: Ensure pages have <title> tags --- //
 // --- TODO: Inject Open Graph and Twitter meta tags --- //
 // --- TODO: Add structured data (application/ld+json) --- //
-// --- TODO: Auto-update sitemap.xml with routes/pages DEPENDENT ON FRAMEWORK --- //
 
-// REACT CODE //
+/**
+ * * Detects if the project is a React project and if react-helmet is installed.
+ */
 async function detectReactAndHelmet() {
   const root = findProjectRoot();
   try {
@@ -170,7 +179,10 @@ async function detectReactAndHelmet() {
 }
 
 
-// --- Main function to optimize SEO files --- //
+
+/**
+ * * Main function to optimize SEO for the project.
+ */
 export async function optimizeCommand() {
   const spinner = ora('Preparing SEO files...').start();
 
@@ -200,7 +212,7 @@ export async function optimizeCommand() {
       try {
         await injectHelmetInReact();
         spinner.text = 'react-helmet injected successfully!';
-        console.log(chalk.green('✔ Injected react-helmet into React components!'));
+        console.log(chalk.green('\n✔ Injected react-helmet into React components!'));
       } catch (err) {
         spinner.text = 'Failed to inject react-helmet.';
         console.error(err);
@@ -209,9 +221,8 @@ export async function optimizeCommand() {
       
 
     console.log(chalk.green('✔ SEO optimization complete!'));
-    console.log(chalk.gray('You can now customize your robots.txt and sitemap.xml files.'));
-    console.log(chalk.yellow('Make sure to update the URLs in sitemap.xml to match your site.'));
-    console.log(chalk.yellow('You can also customize the meta tags in your HTML files.'));
+    console.log(chalk.magentaBright('Make sure to update the URLs in sitemap.xml to match your site.'));
+    console.log(chalk.magentaBright('Ensure to update modified HTML and React files with your actual content.'));
     console.log(chalk.blue('For more information, visit: https://cliseo.com/seo-guide'));
     console.log(chalk.green('Happy optimizing!'));
   } catch (error) {

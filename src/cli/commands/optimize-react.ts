@@ -7,6 +7,29 @@ import * as t from '@babel/types';
 import _traverse from "@babel/traverse";
 const traverse = _traverse.default;
 
+
+/**
+ * Determines if a given file path is likely a React "page" component
+ * based on common naming or folder conventions.
+ * 
+ * @param {string} filePath - Absolute or relative path to the file
+ * @returns {boolean} - True if the file is likely a page component
+ */
+function isLikelyPageFile(filePath) {
+  const normalized = filePath.replace(/\\/g, '/'); 
+  return (
+    /\/(pages|routes|views)\//.test(normalized) || 
+    /(Page|Screen|Route)\.(jsx?|tsx?)$/.test(path.basename(filePath))
+  );
+}
+
+/**
+ * Recursively walks up the directory tree to find the project root.
+ * Assumes the root contains a `package.json`.
+ * 
+ * @param {string} [startDir=process.cwd()] - Directory to start search from
+ * @returns {string} - Project root directory path
+ */
 function findProjectRoot(startDir = process.cwd()) {
   let dir = path.resolve(startDir);
   while (dir !== path.dirname(dir)) {
@@ -18,6 +41,9 @@ function findProjectRoot(startDir = process.cwd()) {
 
 const helmetImportName = 'Helmet';
 
+/** 
+ * A reusable JSX tree for default SEO metadata via `react-helmet`
+ */
 const helmetJSXElement = t.jsxElement(
   t.jsxOpeningElement(t.jsxIdentifier('Helmet'), [], false),
   t.jsxClosingElement(t.jsxIdentifier('Helmet')),
@@ -54,8 +80,16 @@ const helmetJSXElement = t.jsxElement(
   false
 );
 
+
+/**
+ * Parses and transforms a React component file by injecting Helmet metadata.
+ * 
+ * - Detects if the file is already using `react-helmet`
+ * - Adds an import and JSX element if not present
+ * 
+ * @param {string} file - Absolute path to the source file
+ */
 async function transformFile(file) {
-  console.log(`\nProcessing file: ${file}`);
 
   const code = await fs.readFile(file, 'utf-8');
 
@@ -78,20 +112,17 @@ async function transformFile(file) {
 
   traverse(ast, {
     Program(path) {
-      console.log('Visiting Program node: checking imports...');
       for (const node of path.node.body) {
         if (
           t.isImportDeclaration(node) &&
           node.source.value === 'react-helmet'
         ) {
           helmetImported = true;
-          console.log('Found existing react-helmet import.');
           break;
         }
       }
 
       if (!helmetImported) {
-        console.log('No react-helmet import found, adding import.');
         const importDecl = t.importDeclaration(
           [t.importSpecifier(t.identifier(helmetImportName), t.identifier(helmetImportName))],
           t.stringLiteral('react-helmet')
@@ -102,23 +133,21 @@ async function transformFile(file) {
       }
     },
 
+    /**
+     * Handles standard function components (e.g. `function Home() { return (...) }`)
+     */
     FunctionDeclaration(path) {
-      console.log(`Found FunctionDeclaration: ${path.node.id?.name || '[anonymous]'}`);
 
       if (modified) {
-        console.log('File already modified; skipping further changes.');
         return;
       }
 
       path.traverse({
         ReturnStatement(returnPath) {
-          console.log(`Visiting ReturnStatement inside FunctionDeclaration ${path.node.id?.name || '[anonymous]'}`);
           const arg = returnPath.node.argument;
-          console.log('ReturnStatement argument type:', arg?.type);
 
           if (t.isJSXElement(arg)) {
             const tagName = getJSXElementName(arg.openingElement.name);
-            console.log('JSXElement root tag:', tagName);
 
             const hasHelmet =
               tagName === 'Helmet' ||
@@ -127,21 +156,21 @@ async function transformFile(file) {
               );
 
             if (hasHelmet) {
-              console.log('Helmet already present inside returned JSX; skipping insertion.');
             } else {
-              console.log('Inserting Helmet into function component JSX.');
               arg.children.unshift(helmetJSXElement);
               modified = true;
               returnPath.stop();
               path.stop();
             }
-          } else {
-            console.log('Return argument is not a JSXElement; skipping.');
           }
         }
       });
     },
-
+    
+    /**
+     * Handles arrow or named function expressions assigned to variables
+     * (e.g. `const Home = () => { return (...) }`)
+     */
     VariableDeclarator(path) {
       if (modified) return;
 
@@ -149,42 +178,33 @@ async function transformFile(file) {
         t.isIdentifier(path.node.id) &&
         (t.isArrowFunctionExpression(path.node.init) || t.isFunctionExpression(path.node.init))
       ) {
-        console.log(`Found variable declarator for function component: ${path.node.id.name}`);
 
         const func = path.node.init;
 
         if (func.body && t.isJSXElement(func.body)) {
-          console.log('Arrow function concise body returning JSXElement.');
           const hasHelmet = func.body.openingElement.name.name === 'Helmet' || func.body.children.some(child =>
             t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet');
 
           if (hasHelmet) {
-            console.log('Helmet already present inside returned JSX; skipping insertion.');
           } else {
-            console.log('Inserting Helmet into concise arrow function JSX.');
             func.body.children.unshift(helmetJSXElement);
             modified = true;
           }
         } else if (func.body && t.isBlockStatement(func.body)) {
-          console.log('Arrow/function expression with block body; searching return statements.');
 
           path.get('init').traverse({
             ReturnStatement(returnPath) {
               const arg = returnPath.node.argument;
-              console.log('ReturnStatement argument type:', arg?.type);
 
               if (t.isJSXElement(arg)) {
                 const tagName = getJSXElementName(arg.openingElement.name);
-                console.log('JSXElement root tag:', tagName);
 
                 const hasHelmet = tagName === 'Helmet' || arg.children.some(child =>
                   t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet'
                 );
 
                 if (hasHelmet) {
-                  console.log('Helmet already present in return JSX; skipping insertion.');
                 } else {
-                  console.log('Inserting Helmet into return JSX in function block body.');
                   arg.children.unshift(helmetJSXElement);
                   modified = true;
                   returnPath.stop();
@@ -196,10 +216,12 @@ async function transformFile(file) {
       }
     },
 
+    /**
+     * Handles class components with a render() method
+     */
     ClassDeclaration(path) {
       if (modified) return;
 
-      console.log(`Found ClassDeclaration: ${path.node.id?.name || '[anonymous]'}`);
 
       const body = path.node.body.body;
       const renderMethod = body.find(
@@ -210,40 +232,32 @@ async function transformFile(file) {
       );
 
       if (renderMethod) {
-        console.log('Found render() method in class component.');
 
         path.get('body').get('body').forEach(methodPath => {
           if (methodPath.node.key.name === 'render') {
             methodPath.traverse({
               ReturnStatement(returnPath) {
-                console.log('Visiting ReturnStatement inside render method.');
                 const arg = returnPath.node.argument;
 
                 if (t.isJSXElement(arg)) {
                   const tagName = getJSXElementName(arg.openingElement.name);
-                  console.log('JSXElement root tag in render return:', tagName);
 
                   const hasHelmet = tagName === 'Helmet' || arg.children.some(child =>
                     t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet');
 
                   if (hasHelmet) {
-                    console.log('Helmet already present in render return JSX; skipping.');
                   } else {
-                    console.log('Inserting Helmet into render return JSX.');
                     arg.children.unshift(helmetJSXElement);
                     modified = true;
                     returnPath.stop();
                     path.stop();
                   }
                 } else {
-                  console.log('Render return is not a JSXElement; skipping.');
                 }
               }
             });
           }
         });
-      } else {
-        console.log('No render method found in class component.');
       }
     },
   });
@@ -255,19 +269,21 @@ async function transformFile(file) {
       generatorOpts: { retainLines: true, compact: false },
     });
     await fs.writeFile(file, output.code, 'utf-8');
-    console.log(`Injected Helmet into ${path.relative(findProjectRoot(), file)}`);
-  } else {
-    console.log(`No modifications necessary for file: ${file}`);
   }
 }
 
-
+/**
+ * Injects Helmet metadata into all relevant React page files in the project.
+ * This skips files that don’t appear to be top-level page components.
+ */
 export async function injectHelmetInReact() {
   const root = findProjectRoot();
   const srcDir = path.join(root, 'src');
   const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: srcDir, absolute: true });
 
   for (const file of files) {
+    if (!isLikelyPageFile(file)) continue;
+
     try {
       await transformFile(file);
     } catch (err) {
@@ -277,6 +293,12 @@ export async function injectHelmetInReact() {
 }
 
 
+/**
+ * Helper function to get the name of a JSX element (or nested member expression).
+ * 
+ * @param {t.JSXIdentifier | t.JSXMemberExpression} node - JSX node to extract name from
+ * @returns {string | null} - The extracted name or null
+ */
 function getJSXElementName(node) {
   if (!node) return null;
   if (node.type === 'JSXIdentifier') return node.name;
