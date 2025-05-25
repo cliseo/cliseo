@@ -41,44 +41,88 @@ function findProjectRoot(startDir = process.cwd()) {
 
 const helmetImportName = 'Helmet';
 
-/** 
- * A reusable JSX tree for default SEO metadata via `react-helmet`
- */
+const schemaObject = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Your Site Name",
+  "url": "https://yourdomain.com",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://yourdomain.com/search?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+};
+
 const helmetJSXElement = t.jsxElement(
   t.jsxOpeningElement(t.jsxIdentifier('Helmet'), [], false),
   t.jsxClosingElement(t.jsxIdentifier('Helmet')),
   [
+    // title element
     t.jsxElement(
       t.jsxOpeningElement(t.jsxIdentifier('title'), [], false),
       t.jsxClosingElement(t.jsxIdentifier('title')),
       [t.jsxText('Your Site Title')],
       false
     ),
+
+    // meta description
     t.jsxElement(
       t.jsxOpeningElement(
         t.jsxIdentifier('meta'),
-        [t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('description')),
-         t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('Default description for this page'))],
+        [
+          t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('description')),
+          t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('Default description for this page'))
+        ],
         true
       ),
       null,
       [],
       true
     ),
+
+    // canonical link
     t.jsxElement(
       t.jsxOpeningElement(
         t.jsxIdentifier('link'),
-        [t.jsxAttribute(t.jsxIdentifier('rel'), t.stringLiteral('canonical')),
-         t.jsxAttribute(t.jsxIdentifier('href'), t.stringLiteral('https://yourdomain.com/current-page'))],
+        [
+          t.jsxAttribute(t.jsxIdentifier('rel'), t.stringLiteral('canonical')),
+          t.jsxAttribute(t.jsxIdentifier('href'), t.stringLiteral('https://yourdomain.com/current-page'))
+        ],
         true
       ),
       null,
       [],
       true
     ),
+
+    // schema script tag with dangerouslySetInnerHTML
+    t.jsxElement(
+      t.jsxOpeningElement(
+        t.jsxIdentifier('script'),
+        [
+          t.jsxAttribute(t.jsxIdentifier('type'), t.stringLiteral('application/ld+json')),
+          t.jsxAttribute(
+            t.jsxIdentifier('dangerouslySetInnerHTML'),
+            t.jsxExpressionContainer(
+              t.objectExpression([
+                t.objectProperty(
+                  t.identifier('__html'),
+                  t.stringLiteral(JSON.stringify(schemaObject, null, 2))
+                )
+              ])
+            )
+          )
+        ],
+        true
+      ),
+      null,
+      [],
+      true
+    )
   ],
   false
 );
+
 
 
 /**
