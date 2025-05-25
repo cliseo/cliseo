@@ -15,8 +15,6 @@
     "cli": "node dist/cli.js"
   },
   "dependencies": {
-    "@babel/generator": "^7.27.1",
-    "@babel/traverse": "^7.27.1",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -81,10 +79,15 @@
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",
+    "@babel/generator": "^7.27.1",
+    "@babel/parser": "^7.27.2",
     "@babel/plugin-syntax-jsx": "^7.27.1",
     "@babel/plugin-transform-react-jsx": "^7.27.1",
+    "@babel/plugin-transform-typescript": "^7.27.1",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
+    "@babel/traverse": "^7.27.1",
+    "@babel/types": "^7.27.1",
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
     "@types/inquirer": "^9.0.8",

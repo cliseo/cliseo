@@ -1,4 +1,4 @@
-import { writeFile, access } from 'fs/promises';
+import { writeFile, access, readFile } from 'fs/promises';
 import * as cheerio from 'cheerio';
 import { join, dirname, resolve } from 'path';
 import chalk from 'chalk';
@@ -6,6 +6,8 @@ import ora from 'ora';
 import { glob } from 'glob';
 import fs from 'fs';
 import { html } from 'node_modules/cheerio/dist/esm/static';
+import { injectHelmetInReact } from './optimize-react.js';
+
 
 // --- Find project root (where package.json is) ---
 function findProjectRoot(startDir = process.cwd()): string {
@@ -106,7 +108,8 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
   return { robotsCreated, sitemapCreated };
 }
 
-// add meta tags to all HTML files //
+
+// add meta tags and canonical link to all HTML files //
 async function addMetaTagsToHtmlFiles() {
   const root = findProjectRoot();
   const htmlFiles = await glob('**/*.html', { cwd: root, absolute: true });
@@ -130,8 +133,39 @@ async function addMetaTagsToHtmlFiles() {
       head.append('\n<meta name="author" content="Your Name">');
     }
 
+    if ($('link[rel="canonical"]').length === 0) {
+      head.append('\n<link rel="canonical" href="https://yourdomain.com/">');
+    }
+
     await fs.promises.writeFile(file, $.html());
 
+  }
+}
+
+// --- TODO: Ensure image tags have alt attributes --- //
+// --- TODO: Ensure pages have <title> tags --- //
+// --- TODO: Inject Open Graph and Twitter meta tags --- //
+// --- TODO: Add structured data (application/ld+json) --- //
+// --- TODO: Auto-update sitemap.xml with routes/pages DEPENDENT ON FRAMEWORK --- //
+
+// REACT CODE //
+async function detectReactAndHelmet() {
+  const root = findProjectRoot();
+  try {
+    const pkgJson = await readFile(join(root, 'package.json'), 'utf-8');
+    const pkg = JSON.parse(pkgJson);
+
+    const deps = {
+      ...pkg.dependencies,
+      ...pkg.devDependencies
+    };
+
+    const isReact = !!deps.react;
+    const hasHelmet = !!deps['react-helmet'] || !!deps['react-helmet-async'];
+
+    return { isReact, hasHelmet };
+  } catch {
+    return { isReact: false, hasHelmet: false };
   }
 }
 
@@ -159,6 +193,20 @@ export async function optimizeCommand() {
     spinner.text = 'Adding meta tags to HTML files...';
     await addMetaTagsToHtmlFiles();
     spinner.succeed('Meta tags added to HTML files!');
+
+    const { isReact, hasHelmet } = await detectReactAndHelmet();
+    if (isReact && !hasHelmet) {
+      spinner.text = 'React detected but Helmet not found. Installing react-helmet...';
+      try {
+        await injectHelmetInReact();
+        spinner.text = 'react-helmet injected successfully!';
+        console.log(chalk.green('✔ Injected react-helmet into React components!'));
+      } catch (err) {
+        spinner.text = 'Failed to inject react-helmet.';
+        console.error(err);
+      }
+    }
+      
 
     console.log(chalk.green('✔ SEO optimization complete!'));
     console.log(chalk.gray('You can now customize your robots.txt and sitemap.xml files.'));
