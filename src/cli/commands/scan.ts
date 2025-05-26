@@ -8,6 +8,7 @@ import OpenAI from 'openai';
 import { loadConfig } from '../utils/config.js';
 import { ScanOptions, SeoIssue, ScanResult } from '../types/index.js';
 import fs from 'fs';
+import { file } from '@babel/types';
 
 // Find project root (where package.json is)
 function findProjectRoot(startDir = process.cwd()): string {
@@ -70,7 +71,7 @@ const basicSeoRules = {
 // Check if a file is a page component that needs meta tag management
 function isPageComponent(filePath: string): boolean {
   // Skip entry point files
-  if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx')) {
+  if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx') || filePath.endsWith('App.tsx')) {
     return false;
   }
 

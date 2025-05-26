@@ -20,6 +20,12 @@ module.exports = {
         isTSX: true,
         allExtensions: true
       }
+    ],
+    [
+      '@babel/plugin-proposal-decorators',
+      {
+        legacy: true
+      }
     ]
   ]
 }; 

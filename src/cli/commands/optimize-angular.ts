@@ -1,11 +1,148 @@
 import fs from 'fs/promises';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { glob } from 'glob';
+import { parseDocument } from 'htmlparser2';
+import { DomUtils } from 'htmlparser2';
+import { default as render } from 'dom-serializer';
 import * as babel from '@babel/core';
 import * as t from '@babel/types';
 import { generate } from '@babel/generator';
 import _traverse from '@babel/traverse';
 const traverse = _traverse.default;
+
+
+function updateNgModuleImports(componentArg: t.ObjectExpression) {
+  // Find the 'imports' property, narrowing type to ObjectProperty
+  const importsProp = componentArg.properties.find(
+    (p): p is t.ObjectProperty =>
+      t.isObjectProperty(p) &&
+      t.isIdentifier(p.key, { name: 'imports' })
+  );
+
+  if (importsProp) {
+    // importsProp.value must be an ArrayExpression to add new imports
+    if (t.isArrayExpression(importsProp.value)) {
+      // Example: add NgOptimizedImage to the imports array if not already there
+      const hasNgOptimizedImage = importsProp.value.elements.some(el =>
+        t.isIdentifier(el, { name: 'NgOptimizedImage' })
+      );
+
+      if (!hasNgOptimizedImage) {
+        importsProp.value.elements.push(t.identifier('NgOptimizedImage'));
+      }
+    }
+  } else {
+    // No imports property found — create one
+    const newImportsProp = t.objectProperty(
+      t.identifier('imports'),
+      t.arrayExpression([t.identifier('NgOptimizedImage')])
+    );
+    componentArg.properties.push(newImportsProp);
+  }
+}
+
+export function optimizeAngularImages() {
+  const files = glob.sync('src/app/**/*.html');
+
+  files.forEach((file) => {
+    const original = readFileSync(file, 'utf8');
+    const dom = parseDocument(original);
+    let updated = false;
+
+    // Modify <img> tags
+    DomUtils.findAll(elem => {
+      if (elem.name === 'img' && elem.attribs && elem.attribs.src) {
+        const src = elem.attribs.src;
+
+        if (elem.attribs['ngOptimizedImage']) return false;
+
+        delete elem.attribs.src;
+        elem.attribs['ngOptimizedImage'] = '';
+        elem.attribs['[src]'] = `'${src}'`;
+        updated = true;
+      }
+    }, dom.children);
+
+    if (updated) {
+      // Write updated HTML
+      const output = render(dom, { encodeEntities: 'utf8' });
+      writeFileSync(file, output, 'utf8');
+      console.log(`Updated ${file} with ngOptimizedImage.`);
+
+      // Attempt to locate associated .ts file
+      const tsFile = file.replace(/\.html$/, '.ts');
+      if (existsSync(tsFile)) {
+        const tsCode = readFileSync(tsFile, 'utf8');
+        const ast = babel.parseSync(tsCode, {
+          sourceType: 'module',
+          plugins: [
+            '@babel/plugin-syntax-typescript',
+            ['@babel/plugin-proposal-decorators', { legacy: true }],
+          ],
+        });
+
+        let tsUpdated = false;
+
+        traverse(ast, {
+          Program(path) {
+            const hasNgOptimizedImageImport = path.node.body.some(
+              (n) =>
+                t.isImportDeclaration(n) &&
+                n.source.value === '@angular/common' &&
+                n.specifiers.some(
+                  (s) =>
+                    t.isImportSpecifier(s) &&
+                    t.isIdentifier(s.imported) && s.imported.name === 'NgOptimizedImage'
+                )
+            );
+
+            if (!hasNgOptimizedImageImport) {
+              path.node.body.unshift(
+                t.importDeclaration(
+                  [
+                    t.importSpecifier(
+                      t.identifier('NgOptimizedImage'),
+                      t.identifier('NgOptimizedImage')
+                    ),
+                  ],
+                  t.stringLiteral('@angular/common')
+                )
+              );
+              tsUpdated = true;
+            }
+          },
+          ClassDeclaration(path) {
+            const decorators = path.node.decorators;
+            if (!decorators) return;
+
+            decorators.forEach(decorator => {
+              if (
+                t.isDecorator(decorator) &&
+                t.isCallExpression(decorator.expression) &&
+                t.isIdentifier(decorator.expression.callee, { name: 'Component' })
+              ) {
+                const componentArg = decorator.expression.arguments[0];
+                if (!t.isObjectExpression(componentArg)) return;
+
+                // Find imports property or create it
+                updateNgModuleImports(componentArg);
+                tsUpdated = true;
+              }
+            });
+          }
+        });
+
+        if (tsUpdated) {
+          const updatedCode = generate(ast, {
+            retainLines: true,
+            quotes: 'single',
+          }).code;
+          writeFileSync(tsFile, updatedCode, 'utf8');
+        }
+      }
+    }
+  });
+}
 
 export async function optimizeAngularComponents() {
   const files = glob.sync('src/app/**/*.ts');
@@ -21,6 +158,12 @@ export async function optimizeAngularComponents() {
           {
             isTSX: true,
             allExtensions: true,
+          },
+        ],
+        [
+          '@babel/plugin-proposal-decorators',
+          {
+            legacy: true,
           },
         ],
       ],
@@ -100,7 +243,7 @@ export async function optimizeAngularComponents() {
         code
       );
       writeFileSync(file, output.code, 'utf-8');
-      console.log(`✅ Updated ${file} with Angular SEO optimizations.`);
+      console.log(`Updated ${file} with Angular SEO optimizations.`);
     }
   });
 }

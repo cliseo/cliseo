@@ -7,7 +7,7 @@ import { glob } from 'glob';
 import fs from 'fs';
 import { html } from 'node_modules/cheerio/dist/esm/static';
 import { injectHelmetInReact } from './optimize-react.js';
-import { optimizeAngularComponents } from './optimize-angular.js';
+import { optimizeAngularComponents, optimizeAngularImages } from './optimize-angular.js';
 
 
 
@@ -248,6 +248,7 @@ export async function optimizeCommand() {
       spinner.text = 'Angular detected. Optimizing Angular components...';
       try {
         await optimizeAngularComponents();
+        await optimizeAngularImages();
         spinner.succeed('Angular components optimized successfully!');
         console.log(chalk.green('\n✔ Optimized Angular components!'));
       } catch (err) {
@@ -259,7 +260,7 @@ export async function optimizeCommand() {
 
     console.log(chalk.green('✔ SEO optimization complete!'));
     console.log(chalk.magentaBright('Make sure to update the URLs in sitemap.xml to match your site.'));
-    console.log(chalk.magentaBright('Ensure to update modified HTML and React files with your actual content.'));
+    console.log(chalk.magentaBright('Ensure to update modified files with your actual content.'));
     console.log(chalk.blue('For more information, visit: https://cliseo.com/seo-guide'));
     console.log(chalk.green('Happy optimizing!'));
   } catch (error) {
