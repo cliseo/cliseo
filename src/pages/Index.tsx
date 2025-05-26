@@ -106,7 +106,7 @@ cliseo optimize --ai --git-pr`;
           {JSON.stringify(schemaData)}
         </script>
       </Helmet>
-      <div className="min-h-screen bg-gradient-to-b from-[#050a12] via-[#060b13] to-[#010308] text-foreground">
+      <div className="min-h-screen bg-gradient-to-b from-[#050a12] via-[#060b13] to-[#010308] text-foreground before:fixed before:inset-0 before:bg-[linear-gradient(to_right,#ffffff15_1px,transparent_1px),linear-gradient(to_bottom,#ffffff15_1px,transparent_1px)] before:bg-[size:4rem_4rem] before:pointer-events-none before:z-0 before:content-[''] before:shadow-[0_0_15px_rgba(255,255,255,0.07)] before:[transform:perspective(500px)_rotateX(45deg)_scale(2.5)] before:origin-[50%_100%]">
         <Navbar />
         
         {/* Hero Section */}
