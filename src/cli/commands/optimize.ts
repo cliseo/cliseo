@@ -7,6 +7,7 @@ import { glob } from 'glob';
 import fs from 'fs';
 import { html } from 'node_modules/cheerio/dist/esm/static';
 import { injectHelmetInReact } from './optimize-react.js';
+import { optimizeAngularComponents } from './optimize-angular.js';
 
 
 
@@ -178,6 +179,27 @@ async function detectReactAndHelmet() {
   }
 }
 
+/**
+ * * Detects if the project is a React project and if react-helmet is installed.
+ */
+async function detectAngular() {
+  const root = findProjectRoot();
+  try {
+    const pkgJson = await readFile(join(root, 'package.json'), 'utf-8');
+    const pkg = JSON.parse(pkgJson);
+
+    const deps = {
+      ...pkg.dependencies,
+      ...pkg.devDependencies
+    };
+
+    const isAngular = !!deps['@angular/core'] || !!deps['@angular/platform-browser'];
+
+    return { isAngular };
+  } catch {
+    return { isAngular: false };
+  }
+}
 
 
 /**
@@ -206,6 +228,7 @@ export async function optimizeCommand() {
     await addMetaTagsToHtmlFiles();
     spinner.succeed('Meta tags added to HTML files!');
 
+    // React optimizations
     const { isReact, hasHelmet } = await detectReactAndHelmet();
     if (isReact && !hasHelmet) {
       spinner.text = 'React detected but Helmet not found. Installing react-helmet...';
@@ -215,6 +238,20 @@ export async function optimizeCommand() {
         console.log(chalk.green('\n✔ Injected react-helmet into React components!'));
       } catch (err) {
         spinner.text = 'Failed to inject react-helmet.';
+        console.error(err);
+      }
+    }
+
+    //Angular optimizations
+    const { isAngular } = await detectAngular();
+    if (isAngular) {
+      spinner.text = 'Angular detected. Optimizing Angular components...';
+      try {
+        await optimizeAngularComponents();
+        spinner.succeed('Angular components optimized successfully!');
+        console.log(chalk.green('\n✔ Optimized Angular components!'));
+      } catch (err) {
+        spinner.fail('Failed to optimize Angular components.');
         console.error(err);
       }
     }

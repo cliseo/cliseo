@@ -7,7 +7,7 @@ import { generate } from '@babel/generator';
 import _traverse from '@babel/traverse';
 const traverse = _traverse.default;
 
-function optimizeAngularComponents() {
+export async function optimizeAngularComponents() {
   const files = glob.sync('src/app/**/*.ts');
 
   files.forEach((file) => {
