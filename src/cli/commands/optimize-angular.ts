@@ -10,6 +10,21 @@ import { generate } from '@babel/generator';
 import _traverse from '@babel/traverse';
 const traverse = _traverse.default;
 
+/**
+ * Checks if the given component argument is a standalone Angular component.
+ * 
+ * @param {t.ObjectExpression} componentArg - The object expression representing the component's metadata.
+ * @returns {boolean} - True if the component is standalone, false otherwise.
+ */
+function isStandaloneComponent(componentArg: t.ObjectExpression): boolean {
+  return componentArg.properties.some(
+    (prop) =>
+      t.isObjectProperty(prop) &&
+      t.isIdentifier(prop.key, { name: 'standalone' }) &&
+      t.isBooleanLiteral(prop.value, { value: true })
+  );
+}
+
 
 function updateNgModuleImports(componentArg: t.ObjectExpression) {
   // Find the 'imports' property, narrowing type to ObjectProperty
@@ -115,7 +130,7 @@ export function optimizeAngularImages() {
             const decorators = path.node.decorators;
             if (!decorators) return;
 
-            decorators.forEach(decorator => {
+            decorators.forEach((decorator) => {
               if (
                 t.isDecorator(decorator) &&
                 t.isCallExpression(decorator.expression) &&
@@ -124,9 +139,10 @@ export function optimizeAngularImages() {
                 const componentArg = decorator.expression.arguments[0];
                 if (!t.isObjectExpression(componentArg)) return;
 
-                // Find imports property or create it
-                updateNgModuleImports(componentArg);
-                tsUpdated = true;
+                if (isStandaloneComponent(componentArg)) {
+                  updateNgModuleImports(componentArg); // only if standalone
+                  tsUpdated = true;
+                }
               }
             });
           }
