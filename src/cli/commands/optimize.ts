@@ -151,11 +151,6 @@ async function addMetaTagsToHtmlFiles() {
   }
 }
 
-// --- TODO: Ensure image tags have alt attributes --- //
-// --- TODO: Ensure pages have <title> tags --- //
-// --- TODO: Inject Open Graph and Twitter meta tags --- //
-// --- TODO: Add structured data (application/ld+json) --- //
-
 /**
  * * Detects if the project is a React project and if react-helmet is installed.
  */
@@ -201,6 +196,42 @@ async function detectAngular() {
   }
 }
 
+/**
+ * * Adds alt attributes to images in HTML files.
+ */
+async function addImagesAltAttributes() {
+  const root = findProjectRoot();
+  const htmlFiles = await glob('**/*.html', { cwd: root, absolute: true });
+
+  for (const file of htmlFiles) {
+    // read HTML file for images
+    const content = await fs.promises.readFile(file, 'utf-8');
+    const $ = cheerio.load(content);
+
+    let modified = false;
+
+    const images = $('img');
+
+    for (const img of images.toArray()) {
+      // Check if alt attribute is missing
+      if (!$(img).attr('alt')) {
+        // Set a default alt text
+        $(img).attr('alt', 'Image description');
+        modified = true;
+      }
+      
+    }
+    if(modified) {
+        console.log(`Modified ${file}: Added alt attribute to image(s)`);
+        await fs.promises.writeFile(file, $.html());
+    }
+  }
+}
+
+
+
+// --- TODO: Ensure pages have <title> tags --- //
+// --- TODO: Add structured data (application/ld+json) --- //
 
 /**
  * * Main function to optimize SEO for the project.
@@ -224,9 +255,10 @@ export async function optimizeCommand() {
       console.log(chalk.gray('robots.txt and sitemap.xml already exist.'));
     }
 
-    spinner.text = 'Adding meta tags to HTML files...';
+    spinner.text = 'Adding proper tags to HTML files...';
     await addMetaTagsToHtmlFiles();
-    spinner.succeed('Meta tags added to HTML files!');
+    await addImagesAltAttributes();
+    spinner.succeed('Tags added to HTML files!');
 
     // React optimizations
     const { isReact, hasHelmet } = await detectReactAndHelmet();

@@ -25,7 +25,11 @@ function isStandaloneComponent(componentArg: t.ObjectExpression): boolean {
   );
 }
 
-
+/**
+ * Updates the NgModule imports to include NgOptimizedImage if necessary.
+ * 
+ * @param componentArg - The object expression representing the component's metadata.
+ */
 function updateNgModuleImports(componentArg: t.ObjectExpression) {
   // Find the 'imports' property, narrowing type to ObjectProperty
   const importsProp = componentArg.properties.find(
@@ -56,6 +60,11 @@ function updateNgModuleImports(componentArg: t.ObjectExpression) {
   }
 }
 
+/**
+ * Optimizes Angular images by converting <img> tags to use ngOptimizedImage.
+ * It also updates the associated TypeScript files to import NgOptimizedImage
+ * and adds it to the component's imports if necessary.
+ */
 export function optimizeAngularImages() {
   const files = glob.sync('src/app/**/*.html');
 
@@ -148,7 +157,7 @@ export function optimizeAngularImages() {
           }
         });
 
-        if (tsUpdated) {
+        if (tsUpdated) { 
           const updatedCode = generate(ast, {
             retainLines: true,
             quotes: 'single',
@@ -160,6 +169,9 @@ export function optimizeAngularImages() {
   });
 }
 
+/**
+ * Optimizes Angular components by ensuring they import Title and Meta services
+ **/
 export async function optimizeAngularComponents() {
   const files = glob.sync('src/app/**/*.ts');
 

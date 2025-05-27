@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Image Gallery</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    header {
+      background-color: #333;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      padding: 2rem;
+    }
+    .gallery img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+    }
+    .gallery img:hover {
+      transform: scale(1.03);
+    }
+    footer {
+      text-align: center;
+      padding: 1rem;
+      background-color: #333;
+      color: white;
+    }
+  </style>
+<meta name="description" content="Your default description here">
+<meta name="keywords" content="keyword1, keyword2, keyword3">
+<meta name="author" content="Your Name">
+<link rel="canonical" href="https://yourdomain.com/"></head>
+<body>
+  <header>
+    <h1>My Image Gallery</h1>
+  </header>
+
+  <main>
+    <section class="gallery">
+      <img src="images/photo1.jpg" alt="Image description">
+      <img src="images/photo2.jpg" alt="Image description">
+      <img src="images/photo3.jpg" alt="Image description">
+      <img src="images/photo4.jpg" alt="Image description">
+      <!-- Add more images as needed -->
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 Your Name. All rights reserved.</p>
+  </footer>
+
+</body></html>
