@@ -307,7 +307,7 @@ async function transformFile(file) {
   });
 
   if (modified) {
-    console.log(`Modifications made in file: ${file}, generating new code...`);
+    console.log(` • Modifications made in file: ${file}, generating new code...`);
     const output = babel.transformFromAstSync(ast, code, {
       plugins: ['@babel/plugin-syntax-jsx', '@babel/plugin-syntax-typescript'],
       generatorOpts: { retainLines: true, compact: false },

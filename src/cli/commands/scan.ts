@@ -13,7 +13,12 @@ import fs from 'fs';
 import { file } from '@babel/types';
 import { is } from 'node_modules/cheerio/dist/esm/api/traversing.js';
 
-// Find project root (where package.json is)
+/** 
+ * Find project root (where package.json is)
+ * 
+ * @param startDir - Directory to start search from
+ * @returns Path to project root directory
+ */
 function findProjectRoot(startDir = process.cwd()): string {
   let dir = resolve(startDir);
   while (dir !== dirname(dir)) {
@@ -23,6 +28,12 @@ function findProjectRoot(startDir = process.cwd()): string {
   return process.cwd(); // fallback
 }
 
+/**
+ * Scans project for framework type.
+ * 
+ * @param projectRoot - Path to project root directory
+ * @returns Detected framework: 'angular', 'react', 'vue', or 'unknown'.
+ */
 function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'unknown' {
   const packageJsonPath = path.join(projectRoot, 'package.json');
   if (!existsSync(packageJsonPath)) return 'unknown';
@@ -37,8 +48,11 @@ function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'un
   return 'unknown';
 }
 
-
-// Check for required SEO files
+/**
+ * Scans project for required SEO files (robots.txt, sitemap.xml).
+ * 
+ * @returns List of SEO issues found.
+ */
 async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
   const issues: SeoIssue[] = [];
   const root = findProjectRoot();
@@ -70,7 +84,7 @@ async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
   return issues;
 }
 
-// Basic SEO rules for non-AI scan
+/* Basic SEO rules for scan */
 const basicSeoRules = {
   missingTitle: (doc: cheerio.CheerioAPI) => !doc('title').length,
   missingMetaDescription: (doc: cheerio.CheerioAPI) => !doc('meta[name="description"]').length,
@@ -86,7 +100,12 @@ const basicSeoRules = {
   },
 };
 
-// Check if a file is a page component that needs meta tag management
+/**
+ * Checks if a file is a page component that needs meta tag management
+ * 
+ * @param filePath - Path to file to scan
+ * @returns True if the file is a page component, false otherwise.
+*/
 function isPageComponent(filePath: string): boolean {
   // Skip entry point files
   if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx') || filePath.endsWith('App.tsx')) {
@@ -109,7 +128,12 @@ function isPageComponent(filePath: string): boolean {
   return pagePatterns.some(pattern => pattern.test(filePath));
 }
 
-// Check for missing schema.org markup
+/**
+ * Checks file for missing schema.org markup
+ * 
+ * @param filePath - Path to file to scan
+ * @returns List of SEO issues found.
+ */
 async function checkSchemaMarkup(filePath: string): Promise<SeoIssue[]> {
   const issues: SeoIssue[] = [];
   const content = await readFile(filePath, 'utf-8');
@@ -153,6 +177,12 @@ async function checkSchemaMarkup(filePath: string): Promise<SeoIssue[]> {
   return issues;
 }
 
+/**
+ * Checks React component for SEO issues.
+ * 
+ * @param filePath - Path to React component file to scan.
+ * @returns List of SEO issues found.
+ */
 async function scanReactComponent(filePath: string): Promise<SeoIssue[]> {
   const issues: SeoIssue[] = [];
   const content = await readFile(filePath, 'utf-8');
@@ -275,6 +305,12 @@ async function scanReactComponent(filePath: string): Promise<SeoIssue[]> {
   return issues;
 }
 
+/**
+ * Checks Angular component for SEO issues.
+ * 
+ * @param filePath - Path to Angular component file to scan.
+ * @returns List of SEO issues found.
+ */
 async function scanAngularComponent(filePath: string): Promise<SeoIssue[]> {
   const issues: SeoIssue[] = [];
   const content = await readFile(filePath, 'utf-8');
@@ -295,10 +331,29 @@ async function scanAngularComponent(filePath: string): Promise<SeoIssue[]> {
       fix: 'Consider using @angular/platform-browser, to manage title and meta tags in standalone components',
     });
   } 
+  else if (content.includes('<img') && !content.includes('ngOptimizedImage')) {
+    issues.push({
+      type: 'warning',
+      message: 'Image without ngOptimizedImage directive',
+      file: filePath,
+      fix: 'Add ngOptimizedImage directive to optimize images for SEO',
+    });
+  }
+
   return issues;
 }
 
+/**
+ * Checks file for basic SEO tags (title, meta description, alt tags, viewport).
+ * 
+ * @param filePath - Path to file to scan
+ * @returns List of SEO issues found
+ */
 async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
+
+  const framework = detectFramework(findProjectRoot());
+  // Skip HTML files for popular frameworks (we assume they handle SEO through components)
+  if (framework != 'unknown') return [];
 
   if (!filePath.endsWith('.html')) return [];
 
@@ -387,6 +442,11 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
 //   }
 // }
 
+/**
+ * Main function to scan project for SEO issues.
+ * 
+ * @param options - Scan options including AI flag and JSON output
+ */
 export async function scanCommand(options: ScanOptions) {
   const spinner = ora('Scanning project for SEO issues...').start();
   const config = await loadConfig();

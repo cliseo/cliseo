@@ -9,10 +9,11 @@ import { html } from 'node_modules/cheerio/dist/esm/static';
 import { injectHelmetInReact } from './optimize-react.js';
 import { optimizeAngularComponents, optimizeAngularImages } from './optimize-angular.js';
 
-
-
 /**
  * Finds the project root directory
+ * 
+ * @param startDir - Directory to start searching from (default: current working directory)
+ * @returns Path to the project root directory
  */
 function findProjectRoot(startDir = process.cwd()): string {
   let dir = resolve(startDir);
@@ -22,7 +23,6 @@ function findProjectRoot(startDir = process.cwd()): string {
   }
   return process.cwd(); // fallback
 }
-
 
 /**
  * Ensures the existence of SEO files
@@ -114,7 +114,6 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
 
   return { robotsCreated, sitemapCreated };
 }
-
 
 /**
  * * Adds meta tags to HTML files in the project.
@@ -266,8 +265,7 @@ export async function optimizeCommand() {
       spinner.text = 'React detected but Helmet not found. Installing react-helmet...';
       try {
         await injectHelmetInReact();
-        spinner.text = 'react-helmet injected successfully!';
-        console.log(chalk.green('\n✔ Injected react-helmet into React components!'));
+        spinner.succeed('Injected react-helmet into React components!');
       } catch (err) {
         spinner.text = 'Failed to inject react-helmet.';
         console.error(err);
@@ -282,7 +280,6 @@ export async function optimizeCommand() {
         await optimizeAngularComponents();
         await optimizeAngularImages();
         spinner.succeed('Angular components optimized successfully!');
-        console.log(chalk.green('\n✔ Optimized Angular components!'));
       } catch (err) {
         spinner.fail('Failed to optimize Angular components.');
         console.error(err);
@@ -290,13 +287,13 @@ export async function optimizeCommand() {
     }
       
 
-    console.log(chalk.green('✔ SEO optimization complete!'));
+    console.log(chalk.green('\n✔ SEO optimization complete!\n'));
     console.log(chalk.magentaBright('Make sure to update the URLs in sitemap.xml to match your site.'));
     console.log(chalk.magentaBright('Ensure to update modified files with your actual content.'));
     console.log(chalk.blue('For more information, visit: https://cliseo.com/seo-guide'));
-    console.log(chalk.green('Happy optimizing!'));
+    console.log(chalk.whiteBright('Happy optimizing!\n\n'));
   } catch (error) {
-    spinner.fail('SEO file generation failed!');
+    spinner.fail('SEO file generation failed!\n\n');
     console.error(error);
     process.exit(1);
   }

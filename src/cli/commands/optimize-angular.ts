@@ -66,9 +66,10 @@ function updateNgModuleImports(componentArg: t.ObjectExpression) {
  * and adds it to the component's imports if necessary.
  */
 export function optimizeAngularImages() {
-  const files = glob.sync('src/app/**/*.html');
+  const files = glob.sync('src/app/pages/**/*.html');
 
   files.forEach((file) => {
+    console.log(`Processing ${file}...`);
     const original = readFileSync(file, 'utf8');
     const dom = parseDocument(original);
     let updated = false;
@@ -81,6 +82,7 @@ export function optimizeAngularImages() {
         if (elem.attribs['ngOptimizedImage']) return false;
 
         delete elem.attribs.src;
+        console.log(` • Converting <img src="${src}"> to ngOptimizedImage in ${file}`);
         elem.attribs['ngOptimizedImage'] = '';
         elem.attribs['[src]'] = `'${src}'`;
         updated = true;
@@ -91,7 +93,7 @@ export function optimizeAngularImages() {
       // Write updated HTML
       const output = render(dom, { encodeEntities: 'utf8' });
       writeFileSync(file, output, 'utf8');
-      console.log(`Updated ${file} with ngOptimizedImage.`);
+      console.log(` • Updated ${file} with ngOptimizedImage.`);
 
       // Attempt to locate associated .ts file
       const tsFile = file.replace(/\.html$/, '.ts');
@@ -423,7 +425,7 @@ export async function optimizeAngularComponents() {
         code
       );
       writeFileSync(file, output.code, 'utf-8');
-      console.log(`Updated ${file} with Angular SEO optimizations.`);
+      console.log(` • Updated ${file} with Angular SEO optimizations.`);
     }
   });
 }
