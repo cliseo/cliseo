@@ -8,37 +8,6 @@ import _traverse from "@babel/traverse";
 const traverse = _traverse.default;
 
 
-/**
- * Determines if a given file path is likely a React "page" component
- * based on common naming or folder conventions.
- * 
- * @param {string} filePath - Absolute or relative path to the file
- * @returns {boolean} - True if the file is likely a page component
- */
-function isLikelyPageFile(filePath) {
-  const normalized = filePath.replace(/\\/g, '/'); 
-  return (
-    /\/(pages|routes|views)\//.test(normalized) || 
-    /(Page|Screen|Route)\.(jsx?|tsx?)$/.test(path.basename(filePath))
-  );
-}
-
-/**
- * Recursively walks up the directory tree to find the project root.
- * Assumes the root contains a `package.json`.
- * 
- * @param {string} [startDir=process.cwd()] - Directory to start search from
- * @returns {string} - Project root directory path
- */
-function findProjectRoot(startDir = process.cwd()) {
-  let dir = path.resolve(startDir);
-  while (dir !== path.dirname(dir)) {
-    if (existsSync(path.join(dir, 'package.json'))) return dir;
-    dir = path.dirname(dir);
-  }
-  return process.cwd();
-}
-
 const helmetImportName = 'Helmet';
 
 const schemaObject = {
@@ -123,7 +92,36 @@ const helmetJSXElement = t.jsxElement(
   false
 );
 
+/**
+ * Determines if a given file path is likely a React "page" component
+ * based on common naming or folder conventions.
+ * 
+ * @param {string} filePath - Absolute or relative path to the file
+ * @returns {boolean} - True if the file is likely a page component
+ */
+function isLikelyPageFile(filePath) {
+  const normalized = filePath.replace(/\\/g, '/'); 
+  return (
+    /\/(pages|routes|views)\//.test(normalized) || 
+    /(Page|Screen|Route)\.(jsx?|tsx?)$/.test(path.basename(filePath))
+  );
+}
 
+/**
+ * Recursively walks up the directory tree to find the project root.
+ * Assumes the root contains a `package.json`.
+ * 
+ * @param {string} [startDir=process.cwd()] - Directory to start search from
+ * @returns {string} - Project root directory path
+ */
+function findProjectRoot(startDir = process.cwd()) {
+  let dir = path.resolve(startDir);
+  while (dir !== path.dirname(dir)) {
+    if (existsSync(path.join(dir, 'package.json'))) return dir;
+    dir = path.dirname(dir);
+  }
+  return process.cwd();
+}
 
 /**
  * Parses and transforms a React component file by injecting Helmet metadata.
@@ -173,7 +171,6 @@ async function transformFile(file) {
         );
         path.node.body.unshift(importDecl);
         helmetImported = true;
-        modified = true;
       }
     },
 
@@ -202,9 +199,9 @@ async function transformFile(file) {
             if (hasHelmet) {
             } else {
               arg.children.unshift(helmetJSXElement);
-              modified = true;
               returnPath.stop();
               path.stop();
+              modified = true;
             }
           }
         }
@@ -252,6 +249,8 @@ async function transformFile(file) {
                   arg.children.unshift(helmetJSXElement);
                   modified = true;
                   returnPath.stop();
+                  modified = true;
+
                 }
               }
             }
@@ -295,6 +294,7 @@ async function transformFile(file) {
                     modified = true;
                     returnPath.stop();
                     path.stop();
+                    modified = true;
                   }
                 } else {
                 }
@@ -335,7 +335,6 @@ export async function injectHelmetInReact() {
     }
   }
 }
-
 
 /**
  * Helper function to get the name of a JSX element (or nested member expression).

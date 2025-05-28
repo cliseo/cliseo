@@ -12,4 +12,7 @@ AboutComponent implements OnInit {
   constructor(private titleService: Title, private metaService: Meta) {}
 
   // No OnInit, no SEO logic yet
-  ngOnInit(): void {this.titleService.setTitle("Example Page");this.metaService.updateTag({ name: "description", content: "This is an example page for SEO." });}}
+  ngOnInit(): void {
+    this.titleService.setTitle("Example Page");
+    this.metaService.updateTag({ name: "description", content: "This is an example page for SEO." });
+  }}

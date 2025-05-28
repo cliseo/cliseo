@@ -1,10 +1,12 @@
 import { writeFile, access, readFile } from 'fs/promises';
+import { readFileSync, existsSync } from 'fs';
 import * as cheerio from 'cheerio';
 import { join, dirname, resolve } from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
 import { glob } from 'glob';
 import fs from 'fs';
+import path from 'path';
 import { html } from 'node_modules/cheerio/dist/esm/static';
 import { injectHelmetInReact } from './optimize-react.js';
 import { optimizeAngularComponents, optimizeAngularImages } from './optimize-angular.js';
@@ -151,48 +153,24 @@ async function addMetaTagsToHtmlFiles() {
 }
 
 /**
- * * Detects if the project is a React project and if react-helmet is installed.
+ * Scans project for framework type.
+ * 
+ * @param projectRoot - Path to project root directory
+ * @returns Detected framework: 'angular', 'react', 'vue', or 'unknown'.
  */
-async function detectReactAndHelmet() {
-  const root = findProjectRoot();
-  try {
-    const pkgJson = await readFile(join(root, 'package.json'), 'utf-8');
-    const pkg = JSON.parse(pkgJson);
+function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'next.js' | 'unknown' {
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  if (!existsSync(packageJsonPath)) return 'unknown';
 
-    const deps = {
-      ...pkg.dependencies,
-      ...pkg.devDependencies
-    };
+  const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
-    const isReact = !!deps.react;
-    const hasHelmet = !!deps['react-helmet'] || !!deps['react-helmet-async'];
+  if ('@angular/core' in deps) return 'angular';
+  if ('react' in deps || 'react-dom' in deps) return 'react';
+  if ('vue' in deps) return 'vue';
+  if ('next' in deps) return 'next.js';
 
-    return { isReact, hasHelmet };
-  } catch {
-    return { isReact: false, hasHelmet: false };
-  }
-}
-
-/**
- * * Detects if the project is a React project and if react-helmet is installed.
- */
-async function detectAngular() {
-  const root = findProjectRoot();
-  try {
-    const pkgJson = await readFile(join(root, 'package.json'), 'utf-8');
-    const pkg = JSON.parse(pkgJson);
-
-    const deps = {
-      ...pkg.dependencies,
-      ...pkg.devDependencies
-    };
-
-    const isAngular = !!deps['@angular/core'] || !!deps['@angular/platform-browser'];
-
-    return { isAngular };
-  } catch {
-    return { isAngular: false };
-  }
+  return 'unknown';
 }
 
 /**
@@ -259,9 +237,12 @@ export async function optimizeCommand() {
     await addImagesAltAttributes();
     spinner.succeed('Tags added to HTML files!');
 
+    const framework = detectFramework(findProjectRoot());
+    const frameWorkColor = framework === 'angular' ? chalk.red : framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
+    console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
+
     // React optimizations
-    const { isReact, hasHelmet } = await detectReactAndHelmet();
-    if (isReact && !hasHelmet) {
+    if (framework === 'react') {
       spinner.text = 'React detected but Helmet not found. Installing react-helmet...';
       try {
         await injectHelmetInReact();
@@ -273,8 +254,7 @@ export async function optimizeCommand() {
     }
 
     //Angular optimizations
-    const { isAngular } = await detectAngular();
-    if (isAngular) {
+    if (framework === 'angular') {
       spinner.text = 'Angular detected. Optimizing Angular components...';
       try {
         await optimizeAngularComponents();
@@ -284,6 +264,15 @@ export async function optimizeCommand() {
         spinner.fail('Failed to optimize Angular components.');
         console.error(err);
       }
+    }
+
+    // Vue optimizations
+    if (framework === 'vue') {
+      console.log(chalk.bgRedBright('Cliseo does not currently support the Vue framework. \nWe recommend implementing @vueuse/head for SEO optimizations in Vue projects.'));
+    }
+
+    if (framework === 'next.js') {
+      console.log(chalk.bgRedBright('Cliseo does not currently support the Next.js framework.'));
     }
       
 
