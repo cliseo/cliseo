@@ -174,7 +174,7 @@ async function detectReactAndHelmet() {
 }
 
 /**
- * * Detects if the project is a React project and if react-helmet is installed.
+ * * Detects if the project is an Angular project and if platform-browser is installed.
  */
 async function detectAngular() {
   const root = findProjectRoot();

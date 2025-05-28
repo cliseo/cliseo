@@ -123,8 +123,6 @@ const helmetJSXElement = t.jsxElement(
   false
 );
 
-
-
 /**
  * Parses and transforms a React component file by injecting Helmet metadata.
  * 
@@ -335,7 +333,6 @@ export async function injectHelmetInReact() {
     }
   }
 }
-
 
 /**
  * Helper function to get the name of a JSX element (or nested member expression).
