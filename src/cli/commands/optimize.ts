@@ -258,7 +258,6 @@ export async function optimizeCommand() {
       spinner.text = 'Angular detected. Optimizing Angular components...';
       try {
         await optimizeAngularComponents();
-        await optimizeAngularImages();
         spinner.succeed('Angular components optimized successfully!');
       } catch (err) {
         spinner.fail('Failed to optimize Angular components.');

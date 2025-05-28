@@ -9,6 +9,7 @@ import * as t from '@babel/types';
 import { generate } from '@babel/generator';
 import _traverse from '@babel/traverse';
 const traverse = _traverse.default;
+import prettier from 'prettier';
 
 /**
  * Checks if the given component argument is a standalone Angular component.
@@ -65,120 +66,131 @@ function updateNgModuleImports(componentArg: t.ObjectExpression) {
  * It also updates the associated TypeScript files to import NgOptimizedImage
  * and adds it to the component's imports if necessary.
  */
-export function optimizeAngularImages() {
-  const files = glob.sync('src/app/pages/**/*.html');
+export async function optimizeAngularImages(file) {
 
-  files.forEach((file) => {
-    console.log(`Processing ${file}...`);
-    const original = readFileSync(file, 'utf8');
-    const dom = parseDocument(original);
-    let updated = false;
+  console.log(`Processing ${file}...`);
+  const original = readFileSync(file, 'utf8');
+  const dom = parseDocument(original);
+  let updated = false;
 
-    // Modify <img> tags
-    DomUtils.findAll(elem => {
-      if (elem.name === 'img' && elem.attribs && elem.attribs.src) {
-        const src = elem.attribs.src;
+  // Modify <img> tags
+  DomUtils.findAll(elem => {
+    if (elem.name === 'img' && elem.attribs && elem.attribs.src) {
+      const src = elem.attribs.src;
 
-        if (elem.attribs['ngOptimizedImage']) return false;
+      if (elem.attribs['ngOptimizedImage']) return false;
 
-        delete elem.attribs.src;
-        console.log(` • Converting <img src="${src}"> to ngOptimizedImage in ${file}`);
-        elem.attribs['ngOptimizedImage'] = '';
-        elem.attribs['[src]'] = `'${src}'`;
-        updated = true;
-      }
-    }, dom.children);
-
-    if (updated) {
-      // Write updated HTML
-      const output = render(dom, { encodeEntities: 'utf8' });
-      writeFileSync(file, output, 'utf8');
-      console.log(` • Updated ${file} with ngOptimizedImage.`);
-
-      // Attempt to locate associated .ts file
-      const tsFile = file.replace(/\.html$/, '.ts');
-      if (existsSync(tsFile)) {
-        const tsCode = readFileSync(tsFile, 'utf8');
-        const ast = babel.parseSync(tsCode, {
-          sourceType: 'module',
-          plugins: [
-            '@babel/plugin-syntax-typescript',
-            ['@babel/plugin-proposal-decorators', { legacy: true }],
-          ],
-        });
-
-        let tsUpdated = false;
-
-        traverse(ast, {
-          Program(path) {
-            const hasNgOptimizedImageImport = path.node.body.some(
-              (n) =>
-                t.isImportDeclaration(n) &&
-                n.source.value === '@angular/common' &&
-                n.specifiers.some(
-                  (s) =>
-                    t.isImportSpecifier(s) &&
-                    t.isIdentifier(s.imported) && s.imported.name === 'NgOptimizedImage'
-                )
-            );
-
-            if (!hasNgOptimizedImageImport) {
-              path.node.body.unshift(
-                t.importDeclaration(
-                  [
-                    t.importSpecifier(
-                      t.identifier('NgOptimizedImage'),
-                      t.identifier('NgOptimizedImage')
-                    ),
-                  ],
-                  t.stringLiteral('@angular/common')
-                )
-              );
-              tsUpdated = true;
-            }
-          },
-          ClassDeclaration(path) {
-            const decorators = path.node.decorators;
-            if (!decorators) return;
-
-            decorators.forEach((decorator) => {
-              if (
-                t.isDecorator(decorator) &&
-                t.isCallExpression(decorator.expression) &&
-                t.isIdentifier(decorator.expression.callee, { name: 'Component' })
-              ) {
-                const componentArg = decorator.expression.arguments[0];
-                if (!t.isObjectExpression(componentArg)) return;
-
-                if (isStandaloneComponent(componentArg)) {
-                  updateNgModuleImports(componentArg); // only if standalone
-                  tsUpdated = true;
-                }
-              }
-            });
-          }
-        });
-
-        if (tsUpdated) { 
-          const updatedCode = generate(ast, {
-            retainLines: true,
-            quotes: 'single',
-          }).code;
-          writeFileSync(tsFile, updatedCode, 'utf8');
-        }
-      }
+      delete elem.attribs.src;
+      console.log(` • Converting <img src="${src}"> to ngOptimizedImage in ${file}`);
+      elem.attribs['ngOptimizedImage'] = '';
+      elem.attribs['[src]'] = `'${src}'`;
+      updated = true;
     }
-  });
+  }, dom.children);
+
+  // TS file variables
+  let ast = null;
+  let tsUpdated = false;
+  let tsFile = null;
+
+  if (updated) {
+    // Write updated HTML
+    const output = render(dom, { encodeEntities: 'utf8' });
+    writeFileSync(file, output, 'utf8');
+    console.log(` • Updated ${file} with ngOptimizedImage.`);
+
+    // Attempt to locate associated .ts file
+    tsFile = file.replace(/\.html$/, '.ts');
+    if (existsSync(tsFile)) {
+      const tsCode = readFileSync(tsFile, 'utf8');
+      ast = babel.parseSync(tsCode, {
+        sourceType: 'module',
+        plugins: [
+          '@babel/plugin-syntax-typescript',
+          ['@babel/plugin-proposal-decorators', { legacy: true }],
+        ],
+      });
+      traverse(ast, {
+        Program(path) {
+          const hasNgOptimizedImageImport = path.node.body.some(
+            (n) =>
+              t.isImportDeclaration(n) &&
+              n.source.value === '@angular/common' &&
+              n.specifiers.some(
+                (s) =>
+                  t.isImportSpecifier(s) &&
+                  t.isIdentifier(s.imported) && s.imported.name === 'NgOptimizedImage'
+              )
+          );
+
+          if (!hasNgOptimizedImageImport) {
+            path.node.body.unshift(
+              t.importDeclaration(
+                [
+                  t.importSpecifier(
+                    t.identifier('NgOptimizedImage'),
+                    t.identifier('NgOptimizedImage')
+                  ),
+                ],
+                t.stringLiteral('@angular/common')
+              )
+            );
+            tsUpdated = true;
+          }
+        },
+        ClassDeclaration(path) {
+          const decorators = path.node.decorators;
+          if (!decorators) return;
+
+          decorators.forEach((decorator) => {
+            if (
+              t.isDecorator(decorator) &&
+              t.isCallExpression(decorator.expression) &&
+              t.isIdentifier(decorator.expression.callee, { name: 'Component' })
+            ) {
+              const componentArg = decorator.expression.arguments[0];
+              if (!t.isObjectExpression(componentArg)) return;
+
+              if (isStandaloneComponent(componentArg)) {
+                updateNgModuleImports(componentArg); // only if standalone
+                tsUpdated = true;
+              }
+            }
+          });
+        }
+      });
+    }
+  }
+  if (tsUpdated) { 
+    const updatedCode = generate(ast, {
+      retainLines: true,
+      quotes: 'single',
+    }).code;
+
+    // Format the updated TypeScript code
+    const formattedCode = await prettier.format(updatedCode, {
+      parser: 'babel-ts',
+      semi: true,
+      singleQuote: false,
+      jsxSingleQuote: false,
+      trailingComma: 'none',
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+    });
+    
+    writeFileSync(tsFile, formattedCode, 'utf8');
+  }
 }
 
 /**
- * Optimizes Angular components by ensuring they import Title and Meta services
- **/
-export async function optimizeAngularComponents() {
-  const files = glob.sync('src/app/pages/**/*.component.ts');
-
-  files.forEach((file) => {
-    const code = readFileSync(file, 'utf-8');
+ * Transforms Angular component files to ensure they implement OnInit, and Title and Meta services are injected.
+ * 
+ * @param file - The path to the Angular component file to transform.
+ */
+async function transformAngularComponents(file) {
+  console.log(`Processing ${file}...`);
+  const code = readFileSync(file, 'utf-8');
     const ast = babel.parseSync(code, {
       sourceType: 'module',
       plugins: [
@@ -418,14 +430,54 @@ export async function optimizeAngularComponents() {
         ast,
         {
           retainLines: true,
+          compact: false,
+          minified: false,
+          decoratorsBeforeExport: true,
+          retainFunctionParens: true,
           quotes: 'single',
           jsonCompatibleStrings: true,
           jsescOption: { minimal: true },
         },
         code
       );
-      writeFileSync(file, output.code, 'utf-8');
+        const formatted = await prettier.format(output.code, {
+          parser: 'babel-ts', // or 'babel' if you're not using TypeScript
+          semi: true,
+          singleQuote: false,
+          jsxSingleQuote: false,
+          trailingComma: 'none',
+          printWidth: 80,
+          tabWidth: 2,
+          useTabs: false,
+        });
+      writeFileSync(file, formatted, 'utf-8');
       console.log(` • Updated ${file} with Angular SEO optimizations.`);
     }
-  });
+  }
+
+/**
+ * Optimizes Angular project components by ensuring proper title tags, meta tags, and image optimizations.
+ **/
+export async function optimizeAngularComponents() {
+  const htmlFiles = glob.sync('src/app/pages/**/*.html');
+
+  for (const file of htmlFiles) {
+    try {
+      await optimizeAngularImages(file);
+    } catch (err) {
+      console.error(`Error processing ${file}:`, err);
+    }
+  }
+
+  const tsFiles = glob.sync('src/app/pages/**/*.component.ts');
+
+  for (const file of tsFiles) {
+    try {
+      await transformAngularComponents(file);
+    } catch (err) {
+      console.error(`Error processing ${file}:`, err);
+    }
+  }
 }
+
+
