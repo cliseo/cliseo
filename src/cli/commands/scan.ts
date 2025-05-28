@@ -4,10 +4,14 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { readFile } from 'fs/promises';
 import { join, dirname, resolve } from 'path';
+import path from 'path';
+import { readFileSync, existsSync } from 'fs';
 import OpenAI from 'openai';
 import { loadConfig } from '../utils/config.js';
 import { ScanOptions, SeoIssue, ScanResult } from '../types/index.js';
 import fs from 'fs';
+import { file } from '@babel/types';
+import { is } from 'node_modules/cheerio/dist/esm/api/traversing.js';
 
 // Find project root (where package.json is)
 function findProjectRoot(startDir = process.cwd()): string {
@@ -18,6 +22,21 @@ function findProjectRoot(startDir = process.cwd()): string {
   }
   return process.cwd(); // fallback
 }
+
+function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'unknown' {
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  if (!existsSync(packageJsonPath)) return 'unknown';
+
+  const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+
+  if ('@angular/core' in deps) return 'angular';
+  if ('react' in deps || 'react-dom' in deps) return 'react';
+  if ('vue' in deps) return 'vue';
+
+  return 'unknown';
+}
+
 
 // Check for required SEO files
 async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
@@ -70,7 +89,7 @@ const basicSeoRules = {
 // Check if a file is a page component that needs meta tag management
 function isPageComponent(filePath: string): boolean {
   // Skip entry point files
-  if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx')) {
+  if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx') || filePath.endsWith('App.tsx')) {
     return false;
   }
 
@@ -256,10 +275,32 @@ async function scanReactComponent(filePath: string): Promise<SeoIssue[]> {
   return issues;
 }
 
-async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
-  if (filePath.endsWith('.tsx') || filePath.endsWith('.jsx')) {
-    return scanReactComponent(filePath);
+async function scanAngularComponent(filePath: string): Promise<SeoIssue[]> {
+  const issues: SeoIssue[] = [];
+  const content = await readFile(filePath, 'utf-8');
+
+  if (filePath.endsWith('app.component.ts') && !(content.includes('titleService: Title') || content.includes('metaService: Meta'))) {
+    issues.push({
+      type: 'warning',
+      message: 'No title and meta management found for app component',
+      file: filePath,
+      fix: 'Consider using @angular/platform-browser, to manage title and meta tags in standalone components',
+    });
   }
+  else if (content.includes('standalone: true') && !(content.includes('titleService: Title') || content.includes('metaService: Meta'))) {
+    issues.push({
+      type: 'warning',
+      message: 'No title and meta management found for standalone component',
+      file: filePath,
+      fix: 'Consider using @angular/platform-browser, to manage title and meta tags in standalone components',
+    });
+  } 
+  return issues;
+}
+
+async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
+
+  if (!filePath.endsWith('.html')) return [];
 
   const issues: SeoIssue[] = [];
   const content = await readFile(filePath, 'utf-8');
@@ -309,42 +350,42 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
   return issues;
 }
 
-async function performAiScan(filePath: string, openai: OpenAI): Promise<SeoIssue[]> {
-  const content = await readFile(filePath, 'utf-8');
+// async function performAiScan(filePath: string, openai: OpenAI): Promise<SeoIssue[]> {
+//   const content = await readFile(filePath, 'utf-8');
   
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: "You are an SEO expert. Analyze the HTML content and provide specific SEO improvements."
-        },
-        {
-          role: "user",
-          content: `Analyze this HTML for SEO issues and provide specific fixes:\n\n${content}`
-        }
-      ]
-    });
+//   try {
+//     const completion = await openai.chat.completions.create({
+//       model: "gpt-4",
+//       messages: [
+//         {
+//           role: "system",
+//           content: "You are an SEO expert. Analyze the HTML content and provide specific SEO improvements."
+//         },
+//         {
+//           role: "user",
+//           content: `Analyze this HTML for SEO issues and provide specific fixes:\n\n${content}`
+//         }
+//       ]
+//     });
 
-    const analysis = completion.choices[0].message.content;
+//     const analysis = completion.choices[0].message.content;
     
-    // Parse AI response into structured issues
-    // This is a simplified version - you'd want more robust parsing
-    return analysis.split('\n')
-      .filter(line => line.trim())
-      .map(issue => ({
-        type: 'ai-suggestion',
-        message: issue,
-        file: filePath,
-        fix: issue
-      }));
+//     // Parse AI response into structured issues
+//     // This is a simplified version - you'd want more robust parsing
+//     return analysis.split('\n')
+//       .filter(line => line.trim())
+//       .map(issue => ({
+//         type: 'ai-suggestion',
+//         message: issue,
+//         file: filePath,
+//         fix: issue
+//       }));
 
-  } catch (error) {
-    console.error('Error during AI analysis:', error);
-    return [];
-  }
-}
+//   } catch (error) {
+//     console.error('Error during AI analysis:', error);
+//     return [];
+//   }
+// }
 
 export async function scanCommand(options: ScanOptions) {
   const spinner = ora('Scanning project for SEO issues...').start();
@@ -352,22 +393,22 @@ export async function scanCommand(options: ScanOptions) {
   
   try {
     // Find all HTML/JSX/TSX files
-    const files = await glob('**/*.{html,jsx,tsx}', {
+    const files = await glob('**/*.{html,jsx,tsx,ts}', {
       ignore: ['node_modules/**', 'dist/**', 'build/**'],
     });
 
-    let openai;
-    if (options.ai) {
-      if (!config.openaiApiKey) {
-        spinner.fail('OpenAI API key not found!');
-        console.log('Run `cliseo auth` to set up your API key.');
-        process.exit(1);
-      }
+    // let openai;
+    // if (options.ai) {
+    //   if (!config.openaiApiKey) {
+    //     spinner.fail('OpenAI API key not found!');
+    //     console.log('Run `cliseo auth` to set up your API key.');
+    //     process.exit(1);
+    //   }
       
-      openai = new OpenAI({
-        apiKey: config.openaiApiKey
-      });
-    }
+    //   openai = new OpenAI({
+    //     apiKey: config.openaiApiKey
+    //   });
+    // }
 
     const results: ScanResult[] = [];
 
@@ -380,24 +421,39 @@ export async function scanCommand(options: ScanOptions) {
       });
     }
 
-    // Scan all files
-    for (const file of files) {
-      const basicIssues = await scanReactComponent(file);
-      let aiIssues: SeoIssue[] = [];
-      
-      if (options.ai && openai) {
-        aiIssues = await performAiScan(file, openai);
-      }
+    const framework = detectFramework(findProjectRoot());
 
-      if (basicIssues.length > 0 || aiIssues.length > 0) {
-        results.push({
-          file,
-          issues: [...basicIssues, ...aiIssues],
-        });
-      }
+    // Scan all files
+   for (const file of files) {
+    const basicIssues = await performBasicScan(file);
+
+    let frameworkIssues: SeoIssue[] = [];
+
+    if (framework === 'react') {
+      frameworkIssues = await scanReactComponent(file);
+    } else if (framework === 'angular') {
+      frameworkIssues = await scanAngularComponent(file); 
+    } else if (framework === 'vue') {
+      //frameworkIssues = await scanVueComponent(file);
     }
 
+    // let aiIssues: SeoIssue[] = [];
+    // if (options.ai && openai) {
+    //   aiIssues = await performAiScan(file, openai);
+    // }
+
+    if (basicIssues.length > 0 || frameworkIssues.length > 0 /* || aiIssues.length > 0 */) {
+      results.push({
+        file,
+        issues: [...basicIssues, ...frameworkIssues /*, ...aiIssues */],
+      });
+    }
+  }
+
+
     spinner.succeed('Scan complete!');
+    const frameWorkColor = framework === 'angular' ? chalk.red : framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
+    console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
 
     // Output results
     if (options.json) {
