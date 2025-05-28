@@ -1,5 +1,4 @@
-import { Title, Meta } from "@angular/platform-browser";import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AboutComponent } from './about.component';
 
 describe('AboutComponent', () => {

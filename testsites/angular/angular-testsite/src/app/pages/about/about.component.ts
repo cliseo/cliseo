@@ -1,11 +1,12 @@
-import { Title, Meta } from "@angular/platform-browser";
-import { Component } from '@angular/core';
+import { Title, Meta } from "@angular/platform-browser";import { Component, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-about',
-  standalone: true,
-
   templateUrl: './about.component.html',
-  styleUrl: './about.component.scss'
+  styleUrls: ['./about.component.scss']
 })export class
-AboutComponent {}
+AboutComponent implements OnInit {
+  constructor(private titleService: Title, private metaService: Meta) {}
+
+  // No OnInit, no SEO logic yet
+  ngOnInit(): void {this.titleService.setTitle("Example Page");this.metaService.updateTag({ name: "description", content: "This is an example page for SEO." });}}
