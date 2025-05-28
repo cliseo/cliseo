@@ -4,6 +4,7 @@ import path from 'path';
 import { glob } from 'glob';
 import * as babel from '@babel/core';
 import * as t from '@babel/types';
+import prettier from 'prettier';
 import _traverse from "@babel/traverse";
 const traverse = _traverse.default;
 
@@ -309,10 +310,22 @@ async function transformFile(file) {
   if (modified) {
     console.log(` • Modifications made in file: ${file}, generating new code...`);
     const output = babel.transformFromAstSync(ast, code, {
-      plugins: ['@babel/plugin-syntax-jsx', '@babel/plugin-syntax-typescript'],
-      generatorOpts: { retainLines: true, compact: false },
-    });
-    await fs.writeFile(file, output.code, 'utf-8');
+  plugins: ['@babel/plugin-syntax-jsx', '@babel/plugin-syntax-typescript'],
+  generatorOpts: { retainLines: true, compact: false },
+  });
+
+  const formatted = await prettier.format(output.code, {
+    parser: 'babel-ts', // or 'babel' if you're not using TypeScript
+    semi: true,
+    singleQuote: false,
+    jsxSingleQuote: false,
+    trailingComma: 'none',
+    printWidth: 80,
+    tabWidth: 2,
+    useTabs: false,
+  });
+
+  await fs.writeFile(file, formatted, 'utf-8');
   }
 }
 
