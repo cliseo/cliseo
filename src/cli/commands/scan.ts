@@ -34,7 +34,7 @@ function findProjectRoot(startDir = process.cwd()): string {
  * @param projectRoot - Path to project root directory
  * @returns Detected framework: 'angular', 'react', 'vue', or 'unknown'.
  */
-function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'unknown' {
+function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'next.js' | 'unknown' {
   const packageJsonPath = path.join(projectRoot, 'package.json');
   if (!existsSync(packageJsonPath)) return 'unknown';
 
@@ -44,10 +44,10 @@ function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'un
   if ('@angular/core' in deps) return 'angular';
   if ('react' in deps || 'react-dom' in deps) return 'react';
   if ('vue' in deps) return 'vue';
+  if ('next' in deps) return 'next.js';
 
   return 'unknown';
 }
-
 /**
  * Scans project for required SEO files (robots.txt, sitemap.xml).
  * 
