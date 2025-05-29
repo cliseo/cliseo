@@ -333,7 +333,7 @@ async function transformFile(file) {
  * Injects Helmet metadata into all relevant React page files in the project.
  * This skips files that don’t appear to be top-level page components.
  */
-export async function injectHelmetInReact() {
+export async function optimizeReactComponents() {
   const root = findProjectRoot();
   const srcDir = path.join(root, 'src');
   const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: srcDir, absolute: true });

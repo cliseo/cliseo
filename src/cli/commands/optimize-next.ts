@@ -264,7 +264,12 @@ const headNode = () =>
   );
 const seoHeadJSXElement = headNode();
 
-// Utility
+/**
+ * Gets the name of a JSX element from its identifier.
+ * 
+ * @param name - The name of the JSX element
+ * @returns {string} - The name of the JSX element as a string
+ */
 function getJSXElementName(name) {
   return t.isJSXIdentifier(name) ? name.name : '';
 }
@@ -440,6 +445,9 @@ export async function injectHeadTags(file) {
   }
 }
 
+/**
+ * Optimizes Next.js components by injecting SEO-friendly <Head> tags.
+ */
 export async function optimizeNextComponents() {
   const root = findProjectRoot();
   const srcDir = path.join(root, 'src');

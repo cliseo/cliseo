@@ -7,7 +7,7 @@ import ora from 'ora';
 import { glob } from 'glob';
 import fs from 'fs';
 import path from 'path';
-import { injectHelmetInReact } from './optimize-react.js';
+import { optimizeReactComponents } from './optimize-react.js';
 import { optimizeAngularComponents } from './optimize-angular.js';
 import { optimizeNextComponents } from './optimize-next.js';
 
@@ -245,7 +245,7 @@ export async function optimizeCommand() {
     if (framework === 'react') {
       spinner.text = 'React detected but Helmet not found. Installing react-helmet...';
       try {
-        await injectHelmetInReact();
+        await optimizeReactComponents();
         spinner.succeed('Injected react-helmet into React components!');
       } catch (err) {
         spinner.text = 'Failed to inject react-helmet.';
