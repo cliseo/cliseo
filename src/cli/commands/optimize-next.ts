@@ -298,6 +298,7 @@ export async function transformFile(file) {
 
   let headImported = false;
   let imageImported = false;
+  let linkImported = false
   let modified = false;
 
   traverse(ast, {
@@ -315,6 +316,12 @@ export async function transformFile(file) {
         ) {
           imageImported = true;
         }
+        if (
+        t.isImportDeclaration(node) &&
+        node.source.value === 'next/link'
+        ){
+            linkImported = true;
+        }
       }
 
       if (!headImported) {
@@ -329,6 +336,14 @@ export async function transformFile(file) {
         const importDecl = t.importDeclaration(
           [t.importDefaultSpecifier(t.identifier('Image'))],
           t.stringLiteral('next/image')
+        );
+        path.node.body.unshift(importDecl);
+        imageImported = true;
+      }
+      if (!linkImported) {
+        const importDecl = t.importDeclaration(
+          [t.importDefaultSpecifier(t.identifier('Link'))],
+          t.stringLiteral('next/link')
         );
         path.node.body.unshift(importDecl);
         imageImported = true;
@@ -351,8 +366,6 @@ export async function transformFile(file) {
             if (!hasHead) {
               arg.children.unshift(seoHeadJSXElement);
               modified = true;
-              returnPath.stop();
-              path.stop();
             }
           }
         },
@@ -392,7 +405,6 @@ export async function transformFile(file) {
                 if (!hasHead) {
                   arg.children.unshift(seoHeadJSXElement);
                   modified = true;
-                  returnPath.stop();
                 }
               }
             },
@@ -426,7 +438,6 @@ export async function transformFile(file) {
                   if (!hasHead) {
                     arg.children.unshift(seoHeadJSXElement);
                     modified = true;
-                    returnPath.stop();
                   }
                 }
               },
@@ -466,6 +477,37 @@ export async function transformFile(file) {
             );
         }
         modified = true;
+      }
+
+      // Check if the tag is an <a> tag
+      if (
+        t.isJSXIdentifier(path.node.openingElement.name) &&
+        tagName === 'a'
+        ) {
+        // Find the href attribute
+        const hrefAttr = path.node.openingElement.attributes.find(
+            attr =>
+            t.isJSXAttribute(attr) &&
+            t.isJSXIdentifier(attr.name, { name: 'href' }) &&
+            t.isStringLiteral(attr.value)
+        );
+
+        if (hrefAttr) {
+            const href = hrefAttr.value.value;
+            const isInternal = href.startsWith('/');
+
+            if (isInternal) {
+            // Change tag to Link
+            path.node.openingElement.name = t.jsxIdentifier('Link');
+
+            // If there's a closing tag
+            if (path.node.closingElement) {
+                path.node.closingElement.name = t.jsxIdentifier('Link');
+            }
+
+            modified = true;
+            }
+        }
       }
     }
   });

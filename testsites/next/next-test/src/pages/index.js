@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Image from "next/image";
 import Head from "next/head";
 export default function Home() {
@@ -19,7 +20,7 @@ export default function Home() {
         <meta name="twitter:image" content="ogImage" />
       </Head>
       <h1>Home</h1>
-      <a href="/about">About</a>
+      <Link href="/about">About</Link>
       <Image
         src="/vercel.svg"
         width={500}
