@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { injectHelmetInReact } from './optimize-react.js';
 import { optimizeAngularComponents } from './optimize-angular.js';
+import { optimizeNextComponents } from './optimize-next.js';
 
 /**
  * Finds the project root directory
@@ -165,9 +166,9 @@ function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'ne
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
   if ('@angular/core' in deps) return 'angular';
+  if ('next' in deps) return 'next.js';
   if ('react' in deps || 'react-dom' in deps) return 'react';
   if ('vue' in deps) return 'vue';
-  if ('next' in deps) return 'next.js';
 
   return 'unknown';
 }
@@ -269,7 +270,14 @@ export async function optimizeCommand() {
     }
 
     if (framework === 'next.js') {
-      console.log(chalk.bgRedBright('Cliseo does not currently support the Next.js framework.'));
+      spinner.text = 'Next.js detected. Optimizing Next.js components...';
+      try {
+        await optimizeNextComponents();
+        spinner.succeed('Next.js components optimized successfully!');
+      } catch (err) {
+        spinner.fail('Failed to optimize Next.js components.');
+        console.error(err);
+      }
     }
 
     console.log(chalk.green('\n✔ SEO optimization complete!\n'));
