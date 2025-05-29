@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Github } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -14,6 +15,26 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleGetStarted = () => {
+    // If we're not on the homepage, navigate there first
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation to complete before scrolling
+      setTimeout(() => {
+        const quickstartSection = document.getElementById('quickstart');
+        if (quickstartSection) {
+          quickstartSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      // If we're already on the homepage, just scroll
+      const quickstartSection = document.getElementById('quickstart');
+      if (quickstartSection) {
+        quickstartSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 py-4 transition-all duration-300 ${
@@ -27,9 +48,9 @@ const Navbar = () => {
         </div>
         
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/docs" className="text-sm hover:text-primary transition-colors">Documentation</Link>
+          <a href="/docs" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-primary transition-colors">Documentation</a>
           <Link to="/about" className="text-sm hover:text-primary transition-colors">About</Link>
-          <Link to="/blog" className="text-sm hover:text-primary transition-colors">Blog</Link>
+          <a href="/blog" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-primary transition-colors">Blog</a>
           <a 
             href="https://github.com/ryanjhermes/cliseo" 
             target="_blank" 
@@ -38,7 +59,7 @@ const Navbar = () => {
           >
             <Github className="h-5 w-5" />
           </a>
-          <Button size="sm">Get Started</Button>
+          <Button size="sm" onClick={handleGetStarted}>Get Started</Button>
         </div>
         
         <Button size="sm" className="md:hidden" variant="outline">

@@ -281,7 +281,7 @@ cliseo optimize --ai --git-pr`;
           <div className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Is My Site Compatible?</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              We support all major web frameworks including React, Vue, Angular, Next.js, Nuxt.js, and Svelte. Check your site's compatibility below.
+              We support all major web frameworks including React, Angular, and Next.js. Check your site's compatibility below.
             </p>
           </div>
           <CompatibilityChecker />
