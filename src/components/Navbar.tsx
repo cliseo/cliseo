@@ -27,12 +27,15 @@ const Navbar = () => {
         </div>
         
         <div className="hidden md:flex items-center gap-6">
-          <a href="#features" className="text-sm hover:text-primary transition-colors">Features</a>
-          <a href="#pricing" className="text-sm hover:text-primary transition-colors">Pricing</a>
-          <a href="/docs" className="text-sm hover:text-primary transition-colors">Documentation</a>
+          <Link to="/docs" className="text-sm hover:text-primary transition-colors">Documentation</Link>
+          <Link to="/about" className="text-sm hover:text-primary transition-colors">About</Link>
           <Link to="/blog" className="text-sm hover:text-primary transition-colors">Blog</Link>
-          <a href="https://github.com/ryanjhermes/cliseo" target="_blank" rel="noopener noreferrer" 
-            className="hover:text-primary transition-colors flex items-center">
+          <a 
+            href="https://github.com/ryanjhermes/cliseo" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="hover:text-primary transition-colors flex items-center"
+          >
             <Github className="h-5 w-5" />
           </a>
           <Button size="sm">Get Started</Button>
