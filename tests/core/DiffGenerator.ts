@@ -1,10 +1,14 @@
-import { createTwoFilesPatch } from 'diff';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { glob } from 'glob';
+import { createPatch } from 'diff';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface FileSnapshot {
-  [filepath: string]: string;
+  path: string;
+  content: string;
 }
 
 interface CodeChange {
@@ -16,102 +20,105 @@ export class DiffGenerator {
   /**
    * Take a snapshot of all files in a directory
    */
-  async takeSnapshot(dirPath: string): Promise<FileSnapshot> {
-    const snapshot: FileSnapshot = {};
+  async takeSnapshot(dirPath: string): Promise<FileSnapshot[]> {
+    const snapshots: FileSnapshot[] = [];
     
-    // Find all relevant files
-    const files = await glob('**/*.{js,jsx,ts,tsx,vue,html,css}', {
-      cwd: dirPath,
-      ignore: ['**/node_modules/**', '**/dist/**', '**/build/**']
-    });
-
-    // Read each file
-    for (const file of files) {
-      const fullPath = path.join(dirPath, file);
-      try {
-        const content = await fs.readFile(fullPath, 'utf-8');
-        snapshot[file] = content;
-      } catch (error) {
-        console.warn(`Failed to read file ${file}: ${error.message}`);
+    async function walk(dir: string) {
+      const files = await fs.readdir(dir);
+      
+      for (const file of files) {
+        const filePath = path.join(dir, file);
+        const stat = await fs.stat(filePath);
+        
+        if (stat.isDirectory()) {
+          if (file !== 'node_modules' && file !== '.git') {
+            await walk(filePath);
+          }
+        } else if (stat.isFile()) {
+          const content = await fs.readFile(filePath, 'utf-8');
+          snapshots.push({
+            path: filePath,
+            content
+          });
+        }
       }
     }
-
-    return snapshot;
+    
+    await walk(dirPath);
+    return snapshots;
   }
 
   /**
    * Generate diff between two snapshots
    */
-  generateDiff(before: FileSnapshot, after: FileSnapshot): CodeChange[] {
+  generateDiff(before: FileSnapshot[], after: FileSnapshot[]): CodeChange[] {
     const changes: CodeChange[] = [];
-
-    // Find all unique file paths
-    const allFiles = new Set([
-      ...Object.keys(before),
-      ...Object.keys(after)
-    ]);
-
-    // Generate diff for each file
-    for (const file of allFiles) {
-      const beforeContent = before[file] || '';
-      const afterContent = after[file] || '';
-
-      // Skip if file hasn't changed
-      if (beforeContent === afterContent) {
-        continue;
+    const afterMap = new Map(after.map(s => [s.path, s]));
+    
+    // Check for modified and deleted files
+    for (const beforeFile of before) {
+      const afterFile = afterMap.get(beforeFile.path);
+      
+      if (!afterFile) {
+        // File was deleted
+        changes.push({
+          file: beforeFile.path,
+          diff: createPatch(beforeFile.path, beforeFile.content, '')
+        });
+      } else if (beforeFile.content !== afterFile.content) {
+        // File was modified
+        changes.push({
+          file: beforeFile.path,
+          diff: createPatch(beforeFile.path, beforeFile.content, afterFile.content)
+        });
       }
-
-      // Generate unified diff
-      const diff = createTwoFilesPatch(
-        file,
-        file,
-        beforeContent,
-        afterContent,
-        'Before',
-        'After'
-      );
-
-      changes.push({
-        file,
-        diff
-      });
     }
-
+    
+    // Check for new files
+    for (const afterFile of after) {
+      if (!before.find(b => b.path === afterFile.path)) {
+        changes.push({
+          file: afterFile.path,
+          diff: createPatch(afterFile.path, '', afterFile.content)
+        });
+      }
+    }
+    
     return changes;
   }
 
   /**
    * Save snapshots to disk
    */
-  async saveSnapshot(snapshot: FileSnapshot, outputPath: string): Promise<void> {
+  async saveSnapshot(snapshots: FileSnapshot[], outputPath: string): Promise<void> {
     await fs.mkdir(outputPath, { recursive: true });
     
-    for (const [file, content] of Object.entries(snapshot)) {
-      const filePath = path.join(outputPath, file);
+    for (const snapshot of snapshots) {
+      const filePath = path.join(outputPath, snapshot.path);
       const fileDir = path.dirname(filePath);
       
       await fs.mkdir(fileDir, { recursive: true });
-      await fs.writeFile(filePath, content, 'utf-8');
+      await fs.writeFile(filePath, snapshot.content, 'utf-8');
     }
   }
 
   /**
    * Load snapshot from disk
    */
-  async loadSnapshot(snapshotPath: string): Promise<FileSnapshot> {
-    const snapshot: FileSnapshot = {};
+  async loadSnapshot(snapshotPath: string): Promise<FileSnapshot[]> {
+    const snapshots: FileSnapshot[] = [];
     
-    const files = await glob('**/*.{js,jsx,ts,tsx,vue,html,css}', {
-      cwd: snapshotPath,
-      ignore: ['**/node_modules/**', '**/dist/**', '**/build/**']
-    });
+    const files = await fs.readdir(snapshotPath);
 
     for (const file of files) {
-      const fullPath = path.join(snapshotPath, file);
-      const content = await fs.readFile(fullPath, 'utf-8');
-      snapshot[file] = content;
+      const filePath = path.join(snapshotPath, file);
+      const content = await fs.readFile(filePath, 'utf-8');
+      snapshots.push({
+        path: file,
+        content
+      });
     }
 
-    return snapshot;
+    return snapshots;
   }
 } 

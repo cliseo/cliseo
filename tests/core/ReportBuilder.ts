@@ -1,6 +1,11 @@
-import { TestReport } from './types';
+import { TestReport } from './types.js';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { format } from 'date-fns';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface ReportConfig {
   reportsDir: string;
@@ -21,7 +26,9 @@ export class ReportBuilder {
    * Save a test report
    */
   async saveReport(report: TestReport): Promise<void> {
-    const reportDir = path.join(this.config.reportsDir, report.id);
+    const timestamp = format(report.timestamp, 'yyyy-MM-dd_HH-mm-ss');
+    const status = report.success ? 'pass' : 'fail';
+    const reportDir = path.join(this.config.reportsDir, `${timestamp}_${status}_${report.id}`);
     
     try {
       // Create report directory
@@ -41,8 +48,8 @@ export class ReportBuilder {
       if (this.config.keepHistory) {
         await this.cleanupOldReports();
       }
-    } catch (error) {
-      console.error(`Failed to save report: ${error.message}`);
+    } catch (error: unknown) {
+      console.error('Failed to save report:', error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -51,12 +58,13 @@ export class ReportBuilder {
    * Generate a markdown summary of the test run
    */
   private async generateSummaryMarkdown(report: TestReport, reportDir: string): Promise<void> {
+    const timestamp = format(report.timestamp, 'yyyy-MM-dd HH:mm:ss');
     const lines = [
       '# Test Run Report',
       '',
       `## Summary`,
       `- Run ID: ${report.id}`,
-      `- Timestamp: ${new Date(report.timestamp).toISOString()}`,
+      `- Timestamp: ${timestamp}`,
       `- Duration: ${report.duration}ms`,
       `- Status: ${report.success ? '✅ Passed' : '❌ Failed'}`,
       '',
@@ -82,14 +90,17 @@ export class ReportBuilder {
         `- Duration: ${result.duration}ms`,
         '',
         '#### Found Issues:',
-        ...result.foundIssues.map(issue => 
-          `- [${issue.severity.toUpperCase()}] ${issue.type}: ${issue.description}`
-        ),
+        result.foundIssues.length > 0
+          ? result.foundIssues.map(issue => 
+              `- [${issue.severity.toUpperCase()}] ${issue.type}: ${issue.description}` +
+              (issue.location ? `\n  Location: ${issue.location.file}${issue.location.line ? `:${issue.location.line}` : ''}` : '')
+            ).join('\n')
+          : '- No issues found',
         '',
         '#### Code Changes:',
-        ...result.codeChanges.map(change =>
-          `- ${change.file}`
-        ),
+        result.codeChanges.length > 0
+          ? result.codeChanges.map(change => `- ${change.file}`).join('\n')
+          : '- No changes made',
         ''
       );
 
@@ -118,15 +129,13 @@ export class ReportBuilder {
    */
   private async cleanupOldReports(): Promise<void> {
     try {
-      const reportsDir = this.config.reportsDir;
-      
       // Get all report directories
-      const dirs = await fs.readdir(reportsDir);
+      const dirs = await fs.readdir(this.config.reportsDir);
       
       // Sort by creation time (newest first)
       const sortedDirs = await Promise.all(
         dirs.map(async dir => {
-          const stat = await fs.stat(path.join(reportsDir, dir));
+          const stat = await fs.stat(path.join(this.config.reportsDir, dir));
           return {
             name: dir,
             time: stat.birthtimeMs
@@ -140,13 +149,13 @@ export class ReportBuilder {
       const toRemove = sortedDirs.slice(this.config.maxHistoryItems);
       
       for (const dir of toRemove) {
-        await fs.rm(path.join(reportsDir, dir.name), {
+        await fs.rm(path.join(this.config.reportsDir, dir.name), {
           recursive: true,
           force: true
         });
       }
-    } catch (error) {
-      console.warn(`Failed to clean up old reports: ${error.message}`);
+    } catch (error: unknown) {
+      console.warn('Failed to clean up old reports:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -165,6 +174,6 @@ export class ReportBuilder {
   async listReports(): Promise<string[]> {
     const reportsDir = this.config.reportsDir;
     const dirs = await fs.readdir(reportsDir);
-    return dirs.sort();
+    return dirs.sort().reverse(); // Newest first
   }
 } 

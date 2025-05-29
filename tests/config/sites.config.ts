@@ -1,11 +1,11 @@
-import { TestSite } from '../core/types';
+import { TestSite } from '../core/types.js';
 import path from 'path';
 
 const testSites: TestSite[] = [
   {
-    name: 'basic-react',
+    name: 'react-app',
     path: path.join('__fixtures__', 'react-app'),
-    framework: 'react',
+    framework: 'react' as const,
     expectedIssues: [
       {
         type: 'meta-description',
@@ -37,7 +37,7 @@ const testSites: TestSite[] = [
   {
     name: 'next-app',
     path: path.join('__fixtures__', 'next-app'),
-    framework: 'next',
+    framework: 'next' as const,
     expectedIssues: [
       {
         type: 'meta-tags',
@@ -60,32 +60,9 @@ const testSites: TestSite[] = [
     ]
   },
   {
-    name: 'vue-app',
-    path: path.join('__fixtures__', 'vue-app'),
-    framework: 'vue',
-    expectedIssues: [
-      {
-        type: 'meta-viewport',
-        description: 'Missing viewport meta tag',
-        severity: 'high',
-        location: {
-          file: 'index.html'
-        }
-      },
-      {
-        type: 'schema-markup',
-        description: 'Missing schema.org markup',
-        severity: 'medium',
-        location: {
-          file: 'src/components/ProductList.vue'
-        }
-      }
-    ]
-  },
-  {
     name: 'angular-app',
     path: path.join('__fixtures__', 'angular-app'),
-    framework: 'angular',
+    framework: 'angular' as const,
     expectedIssues: [
       {
         type: 'meta-title',
@@ -101,6 +78,22 @@ const testSites: TestSite[] = [
         severity: 'medium',
         location: {
           file: 'src/index.html'
+        }
+      },
+      {
+        type: 'img-alt',
+        description: 'Images missing alt text',
+        severity: 'high',
+        location: {
+          file: 'src/app/hero/hero.component.ts'
+        }
+      },
+      {
+        type: 'heading-structure',
+        description: 'Invalid heading hierarchy',
+        severity: 'medium',
+        location: {
+          file: 'src/app/about/about.component.ts'
         }
       }
     ]

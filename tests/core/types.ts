@@ -27,14 +27,24 @@ export interface TestConfig {
   };
 }
 
+export type Framework = 'react' | 'next' | 'vue' | 'angular';
+
 /**
  * Test site configuration
  */
 export interface TestSite {
   name: string;
   path: string;
-  framework: 'react' | 'next' | 'vue' | 'angular';
-  expectedIssues: SEOIssue[];
+  framework: Framework;
+  expectedIssues: Array<{
+    type: string;
+    description: string;
+    severity: 'high' | 'medium' | 'low';
+    location?: {
+      file: string;
+      line?: number;
+    };
+  }>;
 }
 
 /**
@@ -55,16 +65,24 @@ export interface SEOIssue {
  */
 export interface TestResult {
   siteName: string;
-  framework: string;
+  framework: Framework;
   timestamp: number;
-  success: boolean;
   duration: number;
-  foundIssues: SEOIssue[];
-  expectedIssues: SEOIssue[];
-  codeChanges: {
+  success: boolean;
+  foundIssues: Array<{
+    type: string;
+    description: string;
+    severity: string;
+    location?: {
+      file: string;
+      line?: number;
+    };
+  }>;
+  expectedIssues: TestSite['expectedIssues'];
+  codeChanges: Array<{
     file: string;
     diff: string;
-  }[];
+  }>;
   error?: string;
 }
 
@@ -74,8 +92,8 @@ export interface TestResult {
 export interface GitResult {
   success: boolean;
   branch?: string;
-  error?: string;
   pullRequestUrl?: string;
+  error?: string;
 }
 
 /**

@@ -1,6 +1,11 @@
-import { GitResult } from './types';
+import { GitResult } from './types.js';
 import { simpleGit, SimpleGit } from 'simple-git';
 import { v4 as uuidv4 } from 'uuid';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface GitConfig {
   branchPrefix: string;
@@ -36,10 +41,10 @@ export class GitManager {
         success: true,
         branch: this.currentBranch
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -66,10 +71,10 @@ export class GitManager {
         branch: this.currentBranch,
         pullRequestUrl: `https://github.com/owner/repo/compare/main...${this.currentBranch}`
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -102,10 +107,10 @@ export class GitManager {
       return {
         success: true
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }

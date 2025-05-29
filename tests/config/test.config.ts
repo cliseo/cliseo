@@ -1,6 +1,6 @@
 import { TestConfig } from '../core/types';
 
-const config: TestConfig = {
+const config = {
   // Git configuration
   git: {
     // Branch prefix for temporary test branches
