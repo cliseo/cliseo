@@ -1,0 +1,138 @@
+{
+  "id": "8c8db70c-84f4-4f36-80bd-ba8110267801",
+  "timestamp": 1748552916918,
+  "duration": 1809,
+  "success": true,
+  "results": [
+    {
+      "siteName": "basic-react",
+      "framework": "react",
+      "timestamp": 1748552917093,
+      "success": true,
+      "duration": 574,
+      "foundIssues": [],
+      "expectedIssues": [
+        {
+          "type": "meta-description",
+          "description": "Missing meta description tag",
+          "severity": "high",
+          "location": {
+            "file": "public/index.html",
+            "line": 9
+          }
+        },
+        {
+          "type": "img-alt",
+          "description": "Images missing alt text",
+          "severity": "high",
+          "location": {
+            "file": "src/components/Hero.tsx"
+          }
+        },
+        {
+          "type": "heading-structure",
+          "description": "Invalid heading hierarchy",
+          "severity": "medium",
+          "location": {
+            "file": "src/components/About.tsx"
+          }
+        }
+      ],
+      "codeChanges": []
+    },
+    {
+      "siteName": "next-app",
+      "framework": "next",
+      "timestamp": 1748552917093,
+      "success": true,
+      "duration": 912,
+      "foundIssues": [],
+      "expectedIssues": [
+        {
+          "type": "meta-tags",
+          "description": "Missing OpenGraph tags",
+          "severity": "high",
+          "location": {
+            "file": "src/app/layout.tsx"
+          }
+        },
+        {
+          "type": "robots",
+          "description": "Missing robots.txt configuration",
+          "severity": "medium"
+        },
+        {
+          "type": "sitemap",
+          "description": "Missing sitemap.xml",
+          "severity": "medium"
+        }
+      ],
+      "codeChanges": []
+    },
+    {
+      "siteName": "vue-app",
+      "framework": "vue",
+      "timestamp": 1748552918005,
+      "success": true,
+      "duration": 722,
+      "foundIssues": [],
+      "expectedIssues": [
+        {
+          "type": "meta-viewport",
+          "description": "Missing viewport meta tag",
+          "severity": "high",
+          "location": {
+            "file": "index.html"
+          }
+        },
+        {
+          "type": "schema-markup",
+          "description": "Missing schema.org markup",
+          "severity": "medium",
+          "location": {
+            "file": "src/components/ProductList.vue"
+          }
+        }
+      ],
+      "codeChanges": []
+    },
+    {
+      "siteName": "angular-app",
+      "framework": "angular",
+      "timestamp": 1748552918005,
+      "success": true,
+      "duration": 722,
+      "foundIssues": [],
+      "expectedIssues": [
+        {
+          "type": "meta-title",
+          "description": "Dynamic title not set correctly",
+          "severity": "high",
+          "location": {
+            "file": "src/app/app.component.ts"
+          }
+        },
+        {
+          "type": "canonical-url",
+          "description": "Missing canonical URL tags",
+          "severity": "medium",
+          "location": {
+            "file": "src/index.html"
+          }
+        }
+      ],
+      "codeChanges": []
+    }
+  ],
+  "gitInfo": {
+    "success": true,
+    "branch": "test-run-1748552916947-399ff723"
+  },
+  "summary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "issuesFixed": 0,
+    "filesChanged": 0
+  }
+}
