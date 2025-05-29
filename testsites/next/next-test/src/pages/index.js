@@ -22,11 +22,19 @@ export default function Home() {
       <h1>Home</h1>
       <Link href="/about">About</Link>
       <Image
-        src="/vercel.svg"
+        src="/images/nextjs.png"
         width={500}
         height={300}
         alt="Image description"
       />
+      <p>
+        This is a simple Next.js application. Click the link above to navigate
+        to the About page.
+      </p>
+      <p>
+        The image above is served from the public directory, which is accessible
+        at the root URL.
+      </p>
     </div>
   );
 }
