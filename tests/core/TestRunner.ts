@@ -1,4 +1,4 @@
-import { TestSite, TestResult, TestReport, GitResult } from './types.js';
+import { TestSite, TestResult, TestReport, GitResult, SEOIssue } from './types.js';
 import config from '../config/test.config.js';
 import testSites from '../config/sites.config.js';
 import { GitManager } from './GitManager.js';
@@ -200,30 +200,23 @@ export class TestRunner {
         throw new Error(`Test site directory not found: ${sitePath}`);
       }
 
-      // Take snapshot before changes
-      const beforeSnapshot = await this.diffGenerator.takeSnapshot(sitePath);
-
-      // Run cliseo optimize
-      await this.runCliSeoOptimize(sitePath);
-
-      // Take snapshot after changes
-      const afterSnapshot = await this.diffGenerator.takeSnapshot(sitePath);
-
-      // Generate diff
-      const codeChanges = this.diffGenerator.generateDiff(beforeSnapshot, afterSnapshot);
-
-      // Analyze results
+      // Find issues
       const foundIssues = await this.analyzeSEOIssues(sitePath, site);
+      
+      // Verify issues match expected issues
+      const matchesExpected = this.verifyExpectedIssues(foundIssues, site.expectedIssues);
 
       return {
         siteName: site.name,
         framework: site.framework,
         timestamp: startTime,
-        success: true,
+        success: matchesExpected,
         duration: Date.now() - startTime,
         foundIssues,
+        fixedIssues: 0, // No fixes yet
+        remainingIssues: foundIssues, // All issues remain
         expectedIssues: site.expectedIssues,
-        codeChanges
+        codeChanges: [] // No changes yet
       };
     } catch (error: unknown) {
       return {
@@ -233,6 +226,8 @@ export class TestRunner {
         success: false,
         duration: Date.now() - startTime,
         foundIssues: [],
+        fixedIssues: 0,
+        remainingIssues: [],
         expectedIssues: site.expectedIssues,
         codeChanges: [],
         error: error instanceof Error ? error.message : String(error)
@@ -241,25 +236,20 @@ export class TestRunner {
   }
 
   /**
-   * Run cliseo optimize command
+   * Verify that found issues match expected issues
    */
-  private async runCliSeoOptimize(sitePath: string): Promise<void> {
-    const command = `cliseo optimize --ai${config.cli.verbose ? ' --verbose' : ''}`;
-    try {
-      const { stdout, stderr } = await execAsync(command, {
-        cwd: sitePath,
-        timeout: config.cli.commandTimeout
-      });
+  private verifyExpectedIssues(found: SEOIssue[], expected: SEOIssue[]): boolean {
+    // For now, just verify we found all the types of issues we expect
+    const foundTypes = new Set(found.map(i => i.type));
+    const expectedTypes = new Set(expected.map(i => i.type));
 
-      if (config.cli.verbose) {
-        console.log('cliseo optimize output:');
-        console.log(stdout);
-        if (stderr) console.error(stderr);
+    for (const type of expectedTypes) {
+      if (!foundTypes.has(type)) {
+        return false;
       }
-    } catch (error: unknown) {
-      const err = error as { message: string; stderr: string };
-      throw new Error(`cliseo optimize failed: ${err.stderr || err.message}`);
     }
+
+    return true;
   }
 
   /**

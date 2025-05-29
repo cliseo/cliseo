@@ -65,24 +65,15 @@ export interface SEOIssue {
  */
 export interface TestResult {
   siteName: string;
-  framework: Framework;
+  framework: string;
   timestamp: number;
-  duration: number;
   success: boolean;
-  foundIssues: Array<{
-    type: string;
-    description: string;
-    severity: string;
-    location?: {
-      file: string;
-      line?: number;
-    };
-  }>;
-  expectedIssues: TestSite['expectedIssues'];
-  codeChanges: Array<{
-    file: string;
-    diff: string;
-  }>;
+  duration: number;
+  foundIssues: any[];
+  fixedIssues: number;
+  remainingIssues: any[];
+  expectedIssues: any[];
+  codeChanges: any[];
   error?: string;
 }
 
