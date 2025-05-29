@@ -7,9 +7,8 @@ import ora from 'ora';
 import { glob } from 'glob';
 import fs from 'fs';
 import path from 'path';
-import { html } from 'node_modules/cheerio/dist/esm/static';
 import { injectHelmetInReact } from './optimize-react.js';
-import { optimizeAngularComponents, optimizeAngularImages } from './optimize-angular.js';
+import { optimizeAngularComponents } from './optimize-angular.js';
 
 /**
  * Finds the project root directory
@@ -265,7 +264,6 @@ export async function optimizeCommand() {
       }
     }
 
-    // Vue optimizations
     if (framework === 'vue') {
       console.log(chalk.bgRedBright('Cliseo does not currently support the Vue framework. \nWe recommend implementing @vueuse/head for SEO optimizations in Vue projects.'));
     }
@@ -273,7 +271,6 @@ export async function optimizeCommand() {
     if (framework === 'next.js') {
       console.log(chalk.bgRedBright('Cliseo does not currently support the Next.js framework.'));
     }
-      
 
     console.log(chalk.green('\n✔ SEO optimization complete!\n'));
     console.log(chalk.magentaBright('Make sure to update the URLs in sitemap.xml to match your site.'));

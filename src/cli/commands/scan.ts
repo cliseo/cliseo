@@ -42,9 +42,9 @@ function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'ne
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
   if ('@angular/core' in deps) return 'angular';
+  if ('next' in deps) return 'next.js';
   if ('react' in deps || 'react-dom' in deps) return 'react';
   if ('vue' in deps) return 'vue';
-  if ('next' in deps) return 'next.js';
 
   return 'unknown';
 }
@@ -107,13 +107,17 @@ const basicSeoRules = {
  * @returns True if the file is a page component, false otherwise.
 */
 function isPageComponent(filePath: string): boolean {
+
+  console.log('Checking if file is a page component:', filePath);
   // Skip entry point files
   if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx') || filePath.endsWith('App.tsx')) {
+    console.log('Skipping entry point file:', filePath);
     return false;
   }
 
   // Skip files that don't export a component
   if (filePath.endsWith('vite-env.d.ts') || filePath.endsWith('.css')) {
+    console.log('Skipping non-component file:', filePath);
     return false;
   }
 
@@ -343,6 +347,40 @@ async function scanAngularComponent(filePath: string): Promise<SeoIssue[]> {
   return issues;
 }
 
+async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
+  const issues: SeoIssue[] = [];
+  const content = await readFile(filePath, 'utf-8');
+
+  console.log('Scanning Next.js component:', filePath);
+
+  if(!isPageComponent(filePath)) return issues;
+
+  console.log('Scanning Next.js component:', filePath);
+
+  if (!content.includes('<Head>')) {
+    console.log('No <Head> component found in:', filePath);
+    issues.push({
+      type: 'warning',
+      message: 'No <Head> component found for managing meta tags',
+      file: filePath,
+      fix: 'Consider using next/head, to manage title and meta tags in page components',
+    });
+  }
+  if (content.includes('<img') && !content.includes('next/image')) {
+    console.log('Image without next/image component found in:', filePath);
+    issues.push({
+      type: 'warning',
+      message: '<img> used without next/image component',
+      file: filePath,
+      fix: 'Consider using next/image, to optimize images for SEO',
+    });
+  } 
+
+  console.log('Next.js component scan complete:', filePath);
+
+  return issues;
+}
+
 /**
  * Checks file for basic SEO tags (title, meta description, alt tags, viewport).
  * 
@@ -453,7 +491,7 @@ export async function scanCommand(options: ScanOptions) {
   
   try {
     // Find all HTML/JSX/TSX files
-    const files = await glob('**/*.{html,jsx,tsx,ts}', {
+    const files = await glob('**/*.{html,jsx,tsx,ts,js}', {
       ignore: ['node_modules/**', 'dist/**', 'build/**'],
     });
 
@@ -493,8 +531,8 @@ export async function scanCommand(options: ScanOptions) {
       frameworkIssues = await scanReactComponent(file);
     } else if (framework === 'angular') {
       frameworkIssues = await scanAngularComponent(file); 
-    } else if (framework === 'vue') {
-      //frameworkIssues = await scanVueComponent(file);
+    } else if (framework === 'next.js') {
+      frameworkIssues = await scanNextComponent(file);
     }
 
     // let aiIssues: SeoIssue[] = [];

@@ -65,6 +65,8 @@ function updateNgModuleImports(componentArg: t.ObjectExpression) {
  * Optimizes Angular images by converting <img> tags to use ngOptimizedImage.
  * It also updates the associated TypeScript files to import NgOptimizedImage
  * and adds it to the component's imports if necessary.
+ * 
+ * @param file - The path to the Angular HTML file to optimize.
  */
 export async function optimizeAngularImages(file) {
 
