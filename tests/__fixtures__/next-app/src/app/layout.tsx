@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function RootLayout({
   children,
 }: {
@@ -7,9 +5,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        {/* Intentionally missing OpenGraph and other meta tags */}
-      </head>
       <body>{children}</body>
     </html>
   )

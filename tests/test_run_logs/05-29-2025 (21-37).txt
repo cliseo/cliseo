@@ -1,0 +1,242 @@
+CLISEO Test Run: 05-29-2025 (21-37)
+
+--- Summary ---
+
+FRAMEWORK: REACT
+  Build: ✅ Success
+  Functionality: ✅ Success
+  SEO Issues Fixed: 4 (Pre-scan: 7, Post-scan: 3)
+
+FRAMEWORK: NEXT
+  Build: ❌ Failed: Command failed: Command failed: npm run build
+ ⨯ Conflicting app and page file was found, please remove the conflicting files to continue:
+ ⨯   "pages/index.tsx" - "app/page.tsx"
+
+ ⨯ Conflicting app and page file was found, please remove the conflicting files to continue:
+ ⨯   "pages/index.tsx" - "app/page.tsx"
+
+  Functionality: ❌ Failed: Server returned 404
+  SEO Issues Fixed: 2 (Pre-scan: 2, Post-scan: 0)
+
+FRAMEWORK: ANGULAR
+  Build: ❌ Failed: Command failed: Command failed: npm run build
+Error: This command is not available when running the Angular CLI outside a workspace.
+
+Error: This command is not available when running the Angular CLI outside a workspace.
+
+  Functionality: ❌ Failed: fetch failed
+  SEO Issues Fixed: 3 (Pre-scan: 5, Post-scan: 2)
+
+
+--- Detailed Scan Results ---
+
+==== FRAMEWORK: REACT ====
+
+  --- Pre-Scan Data ---
+[
+  {
+    "file": "SEO Files",
+    "issues": [
+      {
+        "type": "error",
+        "message": "Missing robots.txt file",
+        "file": "robots.txt",
+        "fix": "Run `cliseo optimize` to generate a robots.txt file with recommended settings"
+      },
+      {
+        "type": "error",
+        "message": "Missing sitemap.xml file",
+        "file": "sitemap.xml",
+        "fix": "Run `cliseo optimize` to generate a sitemap.xml file with your site structure"
+      }
+    ]
+  },
+  {
+    "file": "src/App.tsx",
+    "issues": [
+      {
+        "type": "warning",
+        "message": "Image missing alt text",
+        "file": "src/App.tsx",
+        "element": "<img src=\"/logo.png\" />",
+        "fix": "Add descriptive alt text to the image"
+      }
+    ]
+  },
+  {
+    "file": "src/pages/Home.tsx",
+    "issues": [
+      {
+        "type": "warning",
+        "message": "No meta tag management library found",
+        "file": "src/pages/Home.tsx",
+        "fix": "Consider using react-helmet, next/head, or similar for managing meta tags"
+      },
+      {
+        "type": "warning",
+        "message": "Image missing alt text",
+        "file": "src/pages/Home.tsx",
+        "element": "<img src=\"/logo.png\" />",
+        "fix": "Add descriptive alt text to the image"
+      },
+      {
+        "type": "warning",
+        "message": "Non-descriptive link text found",
+        "file": "src/pages/Home.tsx",
+        "element": "<a href=\"https://example.com\">click here</a>",
+        "fix": "Use descriptive text that explains where the link goes"
+      },
+      {
+        "type": "warning",
+        "message": "Missing WebPage schema markup",
+        "file": "src/pages/Home.tsx",
+        "fix": "Add basic WebPage schema.org markup"
+      }
+    ]
+  }
+]
+
+  --- Post-Scan Data ---
+[
+  {
+    "file": "src/App.tsx",
+    "issues": [
+      {
+        "type": "warning",
+        "message": "Image missing alt text",
+        "file": "src/App.tsx",
+        "element": "<img src=\"/logo.png\" />",
+        "fix": "Add descriptive alt text to the image"
+      }
+    ]
+  },
+  {
+    "file": "src/pages/Home.tsx",
+    "issues": [
+      {
+        "type": "warning",
+        "message": "Image missing alt text",
+        "file": "src/pages/Home.tsx",
+        "element": "<img src=\"/logo.png\" />",
+        "fix": "Add descriptive alt text to the image"
+      },
+      {
+        "type": "warning",
+        "message": "Non-descriptive link text found",
+        "file": "src/pages/Home.tsx",
+        "element": "<a href=\"https://example.com\">click here</a>",
+        "fix": "Use descriptive text that explains where the link goes"
+      }
+    ]
+  }
+]
+
+
+==== FRAMEWORK: NEXT ====
+
+  --- Pre-Scan Data ---
+[
+  {
+    "file": "SEO Files",
+    "issues": [
+      {
+        "type": "error",
+        "message": "Missing robots.txt file",
+        "file": "robots.txt",
+        "fix": "Run `cliseo optimize` to generate a robots.txt file with recommended settings"
+      },
+      {
+        "type": "error",
+        "message": "Missing sitemap.xml file",
+        "file": "sitemap.xml",
+        "fix": "Run `cliseo optimize` to generate a sitemap.xml file with your site structure"
+      }
+    ]
+  }
+]
+
+  --- Post-Scan Data ---
+[]
+
+
+==== FRAMEWORK: ANGULAR ====
+
+  --- Pre-Scan Data ---
+[
+  {
+    "file": "SEO Files",
+    "issues": [
+      {
+        "type": "error",
+        "message": "Missing robots.txt file",
+        "file": "robots.txt",
+        "fix": "Run `cliseo optimize` to generate a robots.txt file with recommended settings"
+      },
+      {
+        "type": "error",
+        "message": "Missing sitemap.xml file",
+        "file": "sitemap.xml",
+        "fix": "Run `cliseo optimize` to generate a sitemap.xml file with your site structure"
+      }
+    ]
+  },
+  {
+    "file": "src/app/app.component.ts",
+    "issues": [
+      {
+        "type": "warning",
+        "message": "No title and meta management found for app component",
+        "file": "src/app/app.component.ts",
+        "fix": "Consider using @angular/platform-browser, to manage title and meta tags in standalone components"
+      }
+    ]
+  },
+  {
+    "file": "src/app/pages/hero/hero.component.ts",
+    "issues": [
+      {
+        "type": "warning",
+        "message": "No title and meta management found for standalone component",
+        "file": "src/app/pages/hero/hero.component.ts",
+        "fix": "Consider using @angular/platform-browser, to manage title and meta tags in standalone components"
+      }
+    ]
+  },
+  {
+    "file": "src/app/pages/hero/hero.component.html",
+    "issues": [
+      {
+        "type": "warning",
+        "message": "Image without ngOptimizedImage directive",
+        "file": "src/app/pages/hero/hero.component.html",
+        "fix": "Add ngOptimizedImage directive to optimize images for SEO"
+      }
+    ]
+  }
+]
+
+  --- Post-Scan Data ---
+[
+  {
+    "file": "src/app/app.component.ts",
+    "issues": [
+      {
+        "type": "warning",
+        "message": "No title and meta management found for app component",
+        "file": "src/app/app.component.ts",
+        "fix": "Consider using @angular/platform-browser, to manage title and meta tags in standalone components"
+      }
+    ]
+  },
+  {
+    "file": "src/app/pages/hero/hero.component.ts",
+    "issues": [
+      {
+        "type": "warning",
+        "message": "No title and meta management found for standalone component",
+        "file": "src/app/pages/hero/hero.component.ts",
+        "fix": "Consider using @angular/platform-browser, to manage title and meta tags in standalone components"
+      }
+    ]
+  }
+]
