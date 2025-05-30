@@ -71,8 +71,10 @@ def detect_framework(url):
             'Vue': False,
             'Angular': False,
             'Next.js': False,
-            'Nuxt.js': False,
-            'Svelte': False
+            'Wix': False,
+            'Squarespace': False,
+            'Shopify': False,
+            'Webflow': False
         }
         
         try:
@@ -81,47 +83,56 @@ def detect_framework(url):
                 content = str(meta.get('content', '')).lower()
                 if 'react' in content:
                     frameworks['React'] = True
-                elif 'vue' in content:
-                    frameworks['Vue'] = True
+                # elif 'vue' in content:
+                #     frameworks['Vue'] = True
                 elif 'angular' in content:
                     frameworks['Angular'] = True
                 elif 'next' in content:
                     frameworks['Next.js'] = True
-                elif 'nuxt' in content:
-                    frameworks['Nuxt.js'] = True
-                elif 'svelte' in content:
-                    frameworks['Svelte'] = True
+
 
             # Check script tags
             for script in soup.find_all('script'):
                 src = str(script.get('src', '')).lower()
                 if 'react' in src:
                     frameworks['React'] = True
-                elif 'vue' in src:
-                    frameworks['Vue'] = True
+                # elif 'vue' in src:
+                #     frameworks['Vue'] = True
                 elif 'angular' in src:
                     frameworks['Angular'] = True
                 elif 'next' in src:
                     frameworks['Next.js'] = True
-                elif 'nuxt' in src:
-                    frameworks['Nuxt.js'] = True
-                elif 'svelte' in src:
-                    frameworks['Svelte'] = True
 
             # Check for specific framework indicators in the page source
             page_source = str(soup).lower()
             if 'data-reactroot' in page_source or 'react-root' in page_source:
                 frameworks['React'] = True
-            if 'v-for' in page_source or 'v-if' in page_source:
-                frameworks['Vue'] = True
+            # if 'v-for' in page_source or 'v-if' in page_source:
+            #     frameworks['Vue'] = True
             if 'ng-' in page_source or 'angular' in page_source:
                 frameworks['Angular'] = True
             if '__next' in page_source:
                 frameworks['Next.js'] = True
-            if '__nuxt' in page_source:
-                frameworks['Nuxt.js'] = True
-            if 'svelte' in page_source:
-                frameworks['Svelte'] = True
+                
+            # Check for known website builder signatures
+            if 'wixsite.com' in url or 'static.parastorage.com' in page_source or 'wix.com' in page_source:
+                frameworks['Wix'] = True
+            if 'squarespace.com' in page_source or 'content="Squarespace"' in page_source:
+                frameworks['Squarespace'] = True
+            if 'cdn.shopify.com' in page_source or 'content="Shopify"' in page_source or 'shopify' in page_source:
+                frameworks['Shopify'] = True
+            if 'webflow.com' in page_source or 'content="Webflow"' in page_source:
+                frameworks['Webflow'] = True
+                
+            # Check if the site uses an unsupported site builder
+            site_builders = ['Wix', 'Squarespace', 'Shopify', 'Webflow']
+            detected_builders = [fw for fw in site_builders if frameworks[fw]]
+
+            if detected_builders:
+                return {
+                    'compatible': False,
+                    'error': f"Framework not supported: {', '.join(detected_builders)}"
+                }
 
             # Get the detected frameworks
             detected = [fw for fw, detected in frameworks.items() if detected]
