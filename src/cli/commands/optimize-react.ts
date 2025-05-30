@@ -201,7 +201,6 @@ async function transformFile(file) {
             } else {
               arg.children.unshift(helmetJSXElement);
               returnPath.stop();
-              path.stop();
               modified = true;
             }
           }
@@ -294,7 +293,6 @@ async function transformFile(file) {
                     arg.children.unshift(helmetJSXElement);
                     modified = true;
                     returnPath.stop();
-                    path.stop();
                     modified = true;
                   }
                 } else {

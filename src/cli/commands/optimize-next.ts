@@ -49,7 +49,7 @@ const headNode = () =>
       t.jsxElement(
         t.jsxOpeningElement(t.jsxIdentifier('title'), [], false),
         t.jsxClosingElement(t.jsxIdentifier('title')),
-        [t.jsxExpressionContainer(t.identifier('title'))],
+        [t.jsxExpressionContainer(t.stringLiteral('title'))],
         false
       ),
 
@@ -61,7 +61,7 @@ const headNode = () =>
             t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('description')),
             t.jsxAttribute(
               t.jsxIdentifier('content'),
-              t.jsxExpressionContainer(t.identifier('description'))
+              t.stringLiteral('description')
             ),
           ],
           true
@@ -94,7 +94,7 @@ const headNode = () =>
             t.jsxAttribute(t.jsxIdentifier('rel'), t.stringLiteral('canonical')),
             t.jsxAttribute(
               t.jsxIdentifier('href'),
-              t.jsxExpressionContainer(t.identifier('canonicalUrl'))
+              t.stringLiteral('canonicalUrl')
             ),
           ],
           true
@@ -112,7 +112,7 @@ const headNode = () =>
             t.jsxAttribute(t.jsxIdentifier('property'), t.stringLiteral('og:title')),
             t.jsxAttribute(
               t.jsxIdentifier('content'),
-              t.jsxExpressionContainer(t.identifier('title'))
+              t.stringLiteral('title')
             ),
           ],
           true
@@ -130,7 +130,7 @@ const headNode = () =>
             t.jsxAttribute(t.jsxIdentifier('property'), t.stringLiteral('og:description')),
             t.jsxAttribute(
               t.jsxIdentifier('content'),
-              t.jsxExpressionContainer(t.identifier('description'))
+              t.stringLiteral('description')
             ),
           ],
           true
@@ -148,7 +148,7 @@ const headNode = () =>
             t.jsxAttribute(t.jsxIdentifier('property'), t.stringLiteral('og:image')),
             t.jsxAttribute(
               t.jsxIdentifier('content'),
-              t.jsxExpressionContainer(t.identifier('ogImage'))
+              t.stringLiteral('ogImage')
             ),
           ],
           true
@@ -181,7 +181,7 @@ const headNode = () =>
             t.jsxAttribute(t.jsxIdentifier('property'), t.stringLiteral('og:url')),
             t.jsxAttribute(
               t.jsxIdentifier('content'),
-              t.jsxExpressionContainer(t.identifier('canonicalUrl'))
+              t.stringLiteral('canonicalUrl')
             ),
           ],
           true
@@ -214,7 +214,7 @@ const headNode = () =>
             t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('twitter:title')),
             t.jsxAttribute(
               t.jsxIdentifier('content'),
-              t.jsxExpressionContainer(t.identifier('title'))
+              t.stringLiteral('title')
             ),
           ],
           true
@@ -232,7 +232,7 @@ const headNode = () =>
             t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('twitter:description')),
             t.jsxAttribute(
               t.jsxIdentifier('content'),
-              t.jsxExpressionContainer(t.identifier('description'))
+              t.stringLiteral('description')
             ),
           ],
           true
@@ -250,7 +250,7 @@ const headNode = () =>
             t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('twitter:image')),
             t.jsxAttribute(
               t.jsxIdentifier('content'),
-              t.jsxExpressionContainer(t.identifier('ogImage'))
+              t.stringLiteral('ogImage')
             ),
           ],
           true
@@ -279,7 +279,7 @@ function getJSXElementName(name) {
  * 
  * @param {string} file - Path to the file to transform
  */
-export async function injectHeadTags(file) {
+export async function transformFile(file) {
   const code = await fs.readFile(file, 'utf-8');
 
   const ast = babel.parseSync(code, {
@@ -297,6 +297,8 @@ export async function injectHeadTags(file) {
   });
 
   let headImported = false;
+  let imageImported = false;
+  let linkImported = false
   let modified = false;
 
   traverse(ast, {
@@ -307,7 +309,18 @@ export async function injectHeadTags(file) {
           node.source.value === 'next/head'
         ) {
           headImported = true;
-          break;
+        }
+        if (
+          t.isImportDeclaration(node) &&
+          node.source.value === 'next/image'
+        ) {
+          imageImported = true;
+        }
+        if (
+        t.isImportDeclaration(node) &&
+        node.source.value === 'next/link'
+        ){
+            linkImported = true;
         }
       }
 
@@ -318,7 +331,22 @@ export async function injectHeadTags(file) {
         );
         path.node.body.unshift(importDecl);
         headImported = true;
-        modified = true;
+      }
+      if (!imageImported) {
+        const importDecl = t.importDeclaration(
+          [t.importDefaultSpecifier(t.identifier('Image'))],
+          t.stringLiteral('next/image')
+        );
+        path.node.body.unshift(importDecl);
+        imageImported = true;
+      }
+      if (!linkImported) {
+        const importDecl = t.importDeclaration(
+          [t.importDefaultSpecifier(t.identifier('Link'))],
+          t.stringLiteral('next/link')
+        );
+        path.node.body.unshift(importDecl);
+        imageImported = true;
       }
     },
 
@@ -338,8 +366,6 @@ export async function injectHeadTags(file) {
             if (!hasHead) {
               arg.children.unshift(seoHeadJSXElement);
               modified = true;
-              returnPath.stop();
-              path.stop();
             }
           }
         },
@@ -379,7 +405,6 @@ export async function injectHeadTags(file) {
                 if (!hasHead) {
                   arg.children.unshift(seoHeadJSXElement);
                   modified = true;
-                  returnPath.stop();
                 }
               }
             },
@@ -413,7 +438,6 @@ export async function injectHeadTags(file) {
                   if (!hasHead) {
                     arg.children.unshift(seoHeadJSXElement);
                     modified = true;
-                    returnPath.stop();
                   }
                 }
               },
@@ -422,10 +446,74 @@ export async function injectHeadTags(file) {
         });
       }
     },
+    JSXElement(path) {
+        const opening = path.node.openingElement;
+        const tagName = getJSXElementName(opening.name);
+
+        if (tagName === 'img') {
+        // Change tag to Image
+        opening.name.name = 'Image';
+
+        // If there's a closing tag
+        if (path.node.closingElement) {
+            path.node.closingElement.name.name = 'Image';
+        }
+
+        // Add width and height if missing
+        const existingAttrs = new Set(opening.attributes.map(attr => attr.name?.name));
+        if (!existingAttrs.has('width')) {
+            opening.attributes.push(
+            t.jsxAttribute(t.jsxIdentifier('width'), t.jsxExpressionContainer(t.numericLiteral(500)))
+            );
+        }
+        if (!existingAttrs.has('height')) {
+            opening.attributes.push(
+            t.jsxAttribute(t.jsxIdentifier('height'), t.jsxExpressionContainer(t.numericLiteral(300)))
+            );
+        }
+        if (!existingAttrs.has('alt')) {
+            opening.attributes.push(
+            t.jsxAttribute(t.jsxIdentifier('alt'), t.stringLiteral('Image description'))
+            );
+        }
+        modified = true;
+      }
+
+      // Check if the tag is an <a> tag
+      if (
+        t.isJSXIdentifier(path.node.openingElement.name) &&
+        tagName === 'a'
+        ) {
+        // Find the href attribute
+        const hrefAttr = path.node.openingElement.attributes.find(
+            attr =>
+            t.isJSXAttribute(attr) &&
+            t.isJSXIdentifier(attr.name, { name: 'href' }) &&
+            t.isStringLiteral(attr.value)
+        );
+
+        if (hrefAttr) {
+            const href = hrefAttr.value.value;
+            const isInternal = href.startsWith('/');
+
+            if (isInternal) {
+            // Change tag to Link
+            path.node.openingElement.name = t.jsxIdentifier('Link');
+
+            // If there's a closing tag
+            if (path.node.closingElement) {
+                path.node.closingElement.name = t.jsxIdentifier('Link');
+            }
+
+            modified = true;
+            }
+        }
+      }
+    }
   });
 
   if (modified) {
-    console.log(` • Injected <Head> in file: ${file}`);
+    console.log(` • Injected SEO optimizations in file: ${file}`);
     const output = babel.transformFromAstSync(ast, code, {
       plugins: ['@babel/plugin-syntax-jsx', '@babel/plugin-syntax-typescript'],
       generatorOpts: { retainLines: true, compact: false },
@@ -457,7 +545,7 @@ export async function optimizeNextComponents() {
     if (!isLikelyPageFile(file)) continue;
 
     try {
-      await injectHeadTags(file);
+      await transformFile(file);
     } catch (err) {
       console.error(`Failed to transform ${file}:`, err);
     }
