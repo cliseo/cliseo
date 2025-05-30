@@ -107,17 +107,16 @@ const basicSeoRules = {
  * @returns True if the file is a page component, false otherwise.
 */
 function isPageComponent(filePath: string): boolean {
-
-  console.log('Checking if file is a page component:', filePath);
+  console.error('Checking if file is a page component:', filePath);
   // Skip entry point files
   if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx') || filePath.endsWith('App.tsx')) {
-    console.log('Skipping entry point file:', filePath);
+    console.error('Skipping entry point file:', filePath);
     return false;
   }
 
   // Skip files that don't export a component
   if (filePath.endsWith('vite-env.d.ts') || filePath.endsWith('.css')) {
-    console.log('Skipping non-component file:', filePath);
+    console.error('Skipping non-component file:', filePath);
     return false;
   }
 
@@ -351,14 +350,14 @@ async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
   const issues: SeoIssue[] = [];
   const content = await readFile(filePath, 'utf-8');
 
-  console.log('Scanning Next.js component:', filePath);
+  console.error('Scanning Next.js component:', filePath);
 
   if(!isPageComponent(filePath)) return issues;
 
-  console.log('Scanning Next.js component:', filePath);
+  console.error('Scanning Next.js component (after isPageComponent):', filePath);
 
   if (!content.includes('<Head>')) {
-    console.log('No <Head> component found in:', filePath);
+    console.error('No <Head> component found in:', filePath);
     issues.push({
       type: 'warning',
       message: 'No <Head> component found for managing meta tags',
@@ -367,7 +366,7 @@ async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
     });
   }
   if (content.includes('<img') && !content.includes('next/image')) {
-    console.log('Image without next/image component found in:', filePath);
+    console.error('Image without next/image component found in:', filePath);
     issues.push({
       type: 'warning',
       message: '<img> used without next/image component',
@@ -376,7 +375,7 @@ async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
     });
   } 
 
-  console.log('Next.js component scan complete:', filePath);
+  console.error('Next.js component scan complete:', filePath);
 
   return issues;
 }
@@ -486,31 +485,21 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
  * @param options - Scan options including AI flag and JSON output
  */
 export async function scanCommand(options: ScanOptions) {
-  const spinner = ora('Scanning project for SEO issues...').start();
+  const spinner = ora({ 
+    text: 'Scanning project for SEO issues...', 
+    stream: options.json ? process.stderr : process.stdout 
+  }).start();
   const config = await loadConfig();
+  let results: ScanResult[] = [];
+  let framework = 'unknown'; // Default or detect appropriately
   
   try {
-    // Find all HTML/JSX/TSX files
+    // Simulate original logic structure for finding files and framework
     const files = await glob('**/*.{html,jsx,tsx,ts,js}', {
       ignore: ['node_modules/**', 'dist/**', 'build/**'],
     });
-
-    // let openai;
-    // if (options.ai) {
-    //   if (!config.openaiApiKey) {
-    //     spinner.fail('OpenAI API key not found!');
-    //     console.log('Run `cliseo auth` to set up your API key.');
-    //     process.exit(1);
-    //   }
-      
-    //   openai = new OpenAI({
-    //     apiKey: config.openaiApiKey
-    //   });
-    // }
-
-    const results: ScanResult[] = [];
-
-    // Check for required SEO files first
+    framework = detectFramework(findProjectRoot()); // Assuming detectFramework and findProjectRoot are defined
+    
     const seoFileIssues = await checkRequiredSeoFiles();
     if (seoFileIssues.length > 0) {
       results.push({
@@ -519,44 +508,33 @@ export async function scanCommand(options: ScanOptions) {
       });
     }
 
-    const framework = detectFramework(findProjectRoot());
-
-    // Scan all files
    for (const file of files) {
     const basicIssues = await performBasicScan(file);
-
     let frameworkIssues: SeoIssue[] = [];
-
     if (framework === 'react') {
       frameworkIssues = await scanReactComponent(file);
     } else if (framework === 'angular') {
       frameworkIssues = await scanAngularComponent(file); 
-    } else if (framework === 'next.js') {
+    } else if (framework === 'next.js') { // Ensure this matches your actual framework key
       frameworkIssues = await scanNextComponent(file);
     }
-
-    // let aiIssues: SeoIssue[] = [];
-    // if (options.ai && openai) {
-    //   aiIssues = await performAiScan(file, openai);
-    // }
-
-    if (basicIssues.length > 0 || frameworkIssues.length > 0 /* || aiIssues.length > 0 */) {
+    if (basicIssues.length > 0 || frameworkIssues.length > 0) {
       results.push({
         file,
-        issues: [...basicIssues, ...frameworkIssues /*, ...aiIssues */],
+        issues: [...basicIssues, ...frameworkIssues],
       });
     }
   }
+    // End of simulated scanning logic
 
-
-    spinner.succeed('Scan complete!');
-    const frameWorkColor = framework === 'angular' ? chalk.red : framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
-    console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
-
-    // Output results
     if (options.json) {
+      spinner.stop(); // Stop spinner before JSON output
       console.log(JSON.stringify(results, null, 2));
     } else {
+      spinner.succeed('Scan complete!');
+      const frameWorkColor = framework === 'angular' ? chalk.red : framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
+      console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
+
       results.forEach(result => {
         if (result.issues.length > 0) {
           console.log(chalk.underline('\nFile:', result.file));
@@ -571,16 +549,17 @@ export async function scanCommand(options: ScanOptions) {
         }
       });
 
-      // Summary
       const totalIssues = results.reduce((sum, r) => sum + r.issues.length, 0);
-      const filesWithIssues = results.length;
+      const filesWithIssues = results.filter(r => r.issues.length > 0).length;
       console.log(chalk.bold('\nSummary:'));
       console.log(`Found ${totalIssues} issue${totalIssues === 1 ? '' : 's'} in ${filesWithIssues} file${filesWithIssues === 1 ? '' : 's'} (scanned ${files.length} files total).`);
     }
 
   } catch (error) {
+    if (!options.json) {
     spinner.fail('Scan failed!');
-    console.error(error);
+    }
+    console.error(error); // Log error to stderr
     process.exit(1);
   }
 } 
