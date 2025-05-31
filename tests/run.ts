@@ -52,6 +52,16 @@ const FIXTURES: FixtureInfo[] = [
   },
 ];
 
+const frameworkArg = process.argv[2]; // e.g., "react", "next", "angular"
+let selectedFixtures = FIXTURES;
+if (frameworkArg) {
+  selectedFixtures = FIXTURES.filter(f => f.framework === frameworkArg);
+  if (selectedFixtures.length === 0) {
+    console.error(`Unknown framework: ${frameworkArg}`);
+    process.exit(1);
+  }
+}
+
 async function copyDirRecursive(src: string, dest: string) {
   await fs.mkdir(dest, { recursive: true });
   const entries = await fs.readdir(src, { withFileTypes: true });
@@ -155,7 +165,7 @@ async function main() {
 
   try {
     // Copy fixtures to temp directories
-    for (const { framework, fixtureDir } of FIXTURES) {
+    for (const { framework, fixtureDir } of selectedFixtures) {
       const tempDir = path.join(os.tmpdir(), `cliseo-test-${framework}-${randomUUID()}`);
       tempDirs.push(tempDir);
       

@@ -29,6 +29,6 @@ cd __fixtures__/angular-app && npm install && cd ../..
 
 # Run the test runner using tsx
 echo "Running test runner..."
-npx tsx run.ts
+npx tsx run.ts "$@"
 
 echo "CLISEO automated SEO test runner completed."
