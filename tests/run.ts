@@ -113,7 +113,20 @@ async function runCliseoOptimize(framework: Framework, tempDir: string): Promise
 
 async function runBuild(framework: Framework, tempDir: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const buildCmd = framework === 'next' ? 'npm run build' : 'npm run build';
+    let buildCmd: string;
+    switch (framework) {
+      case 'angular':
+        buildCmd = 'npx ng build --configuration=production';
+        break;
+      case 'next':
+        buildCmd = 'npm run build';
+        break;
+      case 'react':
+        buildCmd = 'npm run build';
+        break;
+      default:
+        throw new Error(`Unsupported framework for build: ${framework}`);
+    }
     await runCommand(buildCmd, tempDir);
     return { success: true };
   } catch (error: any) {
@@ -126,16 +139,34 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
   const url = `http://localhost:${port}`;
   
   try {
-    // Start dev server
-    const server = exec(`npm run dev`, { cwd });
+    // Start dev server with framework-specific command
+    let server;
+    if (framework === 'angular') {
+      server = exec('npx ng serve --host=0.0.0.0 --disable-host-check', { cwd });
+    } else {
+      server = exec('npm run dev', { cwd });
+    }
     
-    // Wait for server to start
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    // Wait for server to start with retries
+    const maxRetries = 6;
+    const retryDelay = 5000;
+    let isServerReady = false;
     
-    // Check if server is responding
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Server returned ${response.status}`);
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          isServerReady = true;
+          break;
+        }
+      } catch (error) {
+        // Server not ready yet, wait and retry
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
+    }
+    
+    if (!isServerReady) {
+      throw new Error('Server failed to start within the maximum retry period');
     }
     
     // Kill server
@@ -159,7 +190,7 @@ async function main() {
   const year = now.getFullYear();
   const hours = now.getHours().toString().padStart(2, '0');
   const minutes = now.getMinutes().toString().padStart(2, '0');
-  const timestamp = `${month}-${day}-${year} (${hours}-${minutes})`;
+  const timestamp = `${month}-${day}-${year} (${hours}:${minutes})`;
   const outputFilename = `${timestamp}.txt`;
   const outputPath = path.join(logsDir, outputFilename);
 
