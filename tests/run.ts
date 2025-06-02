@@ -66,7 +66,6 @@ async function copyDirRecursive(src: string, dest: string) {
   await fs.mkdir(dest, { recursive: true });
   const entries = await fs.readdir(src, { withFileTypes: true });
   
-  // First, copy all files
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
@@ -75,27 +74,6 @@ async function copyDirRecursive(src: string, dest: string) {
       await copyDirRecursive(srcPath, destPath);
     } else {
       await fs.copyFile(srcPath, destPath);
-    }
-  }
-  
-  // Verify critical files for Angular
-  if (src.includes('angular-app')) {
-    const criticalFiles = [
-      'tsconfig.json',
-      'tsconfig.app.json',
-      'angular.json',
-      'src/main.ts',
-      'src/styles.css',
-      'src/index.html'
-    ];
-    
-    for (const file of criticalFiles) {
-      const filePath = path.join(dest, file);
-      try {
-        await fs.access(filePath);
-      } catch (error) {
-        throw new Error(`Critical file missing after copy: ${file}`);
-      }
     }
   }
 }
@@ -238,6 +216,28 @@ async function main() {
       
       console.log(`[${framework}] Copying fixture to: ${tempDir}`);
       await copyDirRecursive(fixtureDir, tempDir);
+
+      // Verify critical files for Angular after copying the entire fixture
+      if (framework === 'angular') {
+        const criticalFiles = [
+          'tsconfig.json',
+          'tsconfig.app.json',
+          'angular.json',
+          'src/main.ts',
+          'src/styles.css',
+          'src/index.html'
+        ];
+        
+        for (const file of criticalFiles) {
+          const filePath = path.join(tempDir, file);
+          try {
+            await fs.access(filePath);
+          } catch (error) {
+            // Ensure a more specific error is thrown here
+            throw new Error(`Critical file missing after copy for ${framework} in ${tempDir}: ${file}. Error: ${error}`);
+          }
+        }
+      }
       
       // Install dependencies
       console.log(`[${framework}] Installing dependencies...`);
