@@ -65,13 +65,37 @@ if (frameworkArg) {
 async function copyDirRecursive(src: string, dest: string) {
   await fs.mkdir(dest, { recursive: true });
   const entries = await fs.readdir(src, { withFileTypes: true });
+  
+  // First, copy all files
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
+    
     if (entry.isDirectory()) {
       await copyDirRecursive(srcPath, destPath);
-    } else if (entry.isFile()) {
+    } else {
       await fs.copyFile(srcPath, destPath);
+    }
+  }
+  
+  // Verify critical files for Angular
+  if (src.includes('angular-app')) {
+    const criticalFiles = [
+      'tsconfig.json',
+      'tsconfig.app.json',
+      'angular.json',
+      'src/main.ts',
+      'src/styles.css',
+      'src/index.html'
+    ];
+    
+    for (const file of criticalFiles) {
+      const filePath = path.join(dest, file);
+      try {
+        await fs.access(filePath);
+      } catch (error) {
+        throw new Error(`Critical file missing after copy: ${file}`);
+      }
     }
   }
 }
@@ -142,8 +166,8 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     // Start dev server with framework-specific command
     let server;
     if (framework === 'angular') {
-      // Use a more reliable command for Angular
-      server = exec('npx ng serve --host=0.0.0.0 --disable-host-check --poll=2000 --port=4200', { 
+      // Use a more reliable command for Angular with watch disabled
+      server = exec('npx ng serve --host=0.0.0.0 --disable-host-check --poll=2000 --port=4200 --watch=false', { 
         cwd,
         env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' }
       });
@@ -156,8 +180,8 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     }
     
     // Wait for server to start with retries
-    const maxRetries = 15; // Increased from 12
-    const retryDelay = 15000; // Increased from 10000
+    const maxRetries = 15;
+    const retryDelay = 15000;
     let isServerReady = false;
     let lastError: string | undefined;
     
