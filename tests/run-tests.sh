@@ -16,19 +16,19 @@ echo "Running CLISEO automated SEO test runner..."
 
 # Install dependencies for all fixtures
 echo "Installing dependencies for React fixture..."
-cd __fixtures__/react-app && npm install && cd ../..
+cd tests/__fixtures__/react-app && npm install && cd ../..
 
 echo "Installing dependencies for Next.js fixture..."
-cd __fixtures__/next-app && npm install && cd ../..
+cd tests/__fixtures__/next-app && npm install && cd ../..
 
 echo "Installing dependencies for Angular fixture..."
-cd __fixtures__/angular-app && npm install && cd ../..
+cd tests/__fixtures__/angular-app && npm install && cd ../..
 
 # Ensure tsx is available (it's in root devDependencies, but npx will handle it)
 # We can add a specific check/install for tsx if needed, but npx should find it.
 
 # Run the test runner using tsx
 echo "Running test runner..."
-npx tsx run.ts "$@"
+npx tsx tests/run.ts "$@"
 
 echo "CLISEO automated SEO test runner completed."
