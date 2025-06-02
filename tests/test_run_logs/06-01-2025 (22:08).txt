@@ -1,0 +1,204 @@
+CLISEO Test Run: 06-01-2025 (22:08)
+
+--- Summary ---
+
+FRAMEWORK: ANGULAR
+  Build: ❌ Failed: Command failed: Command failed: npx ng build --configuration=production
+- Building...
+
+▲ [WARNING] TypeScript compiler options 'module' values 'CommonJS', 'UMD', 'System' and 'AMD' are not supported. [plugin angular-compiler]
+
+  The 'module' option will be set to 'ES2022' instead.
+
+
+▲ [WARNING] TypeScript compiler options 'target' and 'useDefineForClassFields' are set to 'ES2022' and 'false' respectively by the Angular CLI. [plugin angular-compiler]
+
+    tsconfig.app.json:0:0:
+      0 │ 
+        ╵ ^
+
+  To control ECMA version and features use the Browserslist configuration. For more information, see https://angular.io/guide/build#configuring-browser-compatibility
+
+
+▲ [WARNING] Cannot find base config file "./tsconfig.json" [tsconfig.json]
+
+    tsconfig.app.json:2:13:
+      2 │   "extends": "./tsconfig.json",
+        ╵              ~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] Cannot find base config file "./tsconfig.json" [tsconfig.json]
+
+    tsconfig.app.json:2:13:
+      2 │   "extends": "./tsconfig.json",
+        ╵              ~~~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] TS5012: Cannot read file '/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-3ba4404a-b906-4deb-9c04-fdb2a32eaf4d/tsconfig.json': ENOENT: no such file or directory, open '/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-3ba4404a-b906-4deb-9c04-fdb2a32eaf4d/tsconfig.json'. [plugin angular-compiler]
+
+
+✘ [ERROR] TS2792: Cannot find module '@angular/core'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option? [plugin angular-compiler]
+
+    src/app/app.component.ts:1:26:
+      1 │ import { Component } from '@angular/core';
+        ╵                           ~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] TS2792: Cannot find module '@angular/core'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option? [plugin angular-compiler]
+
+    src/app/app.module.ts:1:25:
+      1 │ import { NgModule } from '@angular/core';
+        ╵                          ~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] TS2792: Cannot find module '@angular/platform-browser'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option? [plugin angular-compiler]
+
+    src/app/app.module.ts:2:30:
+      2 │ import { BrowserModule } from '@angular/platform-browser';
+        ╵                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] TS-991010: Value at position 0 in the NgModule.imports of AppModule is not a reference
+  Value could not be determined statically. [plugin angular-compiler]
+
+    src/app/app.module.ts:9:11:
+      9 │   imports: [
+        ╵            ^
+
+  Unknown reference.
+
+    src/app/app.module.ts:10:4:
+      10 │     BrowserModule
+         ╵     ~~~~~~~~~~~~~
+
+
+✘ [ERROR] TS2792: Cannot find module '@angular/platform-browser-dynamic'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option? [plugin angular-compiler]
+
+    src/main.ts:1:39:
+      1 │ ... platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+        ╵                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+- Building...
+
+▲ [WARNING] TypeScript compiler options 'module' values 'CommonJS', 'UMD', 'System' and 'AMD' are not supported. [plugin angular-compiler]
+
+  The 'module' option will be set to 'ES2022' instead.
+
+
+▲ [WARNING] TypeScript compiler options 'target' and 'useDefineForClassFields' are set to 'ES2022' and 'false' respectively by the Angular CLI. [plugin angular-compiler]
+
+    tsconfig.app.json:0:0:
+      0 │ 
+        ╵ ^
+
+  To control ECMA version and features use the Browserslist configuration. For more information, see https://angular.io/guide/build#configuring-browser-compatibility
+
+
+▲ [WARNING] Cannot find base config file "./tsconfig.json" [tsconfig.json]
+
+    tsconfig.app.json:2:13:
+      2 │   "extends": "./tsconfig.json",
+        ╵              ~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] Cannot find base config file "./tsconfig.json" [tsconfig.json]
+
+    tsconfig.app.json:2:13:
+      2 │   "extends": "./tsconfig.json",
+        ╵              ~~~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] TS5012: Cannot read file '/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-3ba4404a-b906-4deb-9c04-fdb2a32eaf4d/tsconfig.json': ENOENT: no such file or directory, open '/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-3ba4404a-b906-4deb-9c04-fdb2a32eaf4d/tsconfig.json'. [plugin angular-compiler]
+
+
+✘ [ERROR] TS2792: Cannot find module '@angular/core'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option? [plugin angular-compiler]
+
+    src/app/app.component.ts:1:26:
+      1 │ import { Component } from '@angular/core';
+        ╵                           ~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] TS2792: Cannot find module '@angular/core'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option? [plugin angular-compiler]
+
+    src/app/app.module.ts:1:25:
+      1 │ import { NgModule } from '@angular/core';
+        ╵                          ~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] TS2792: Cannot find module '@angular/platform-browser'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option? [plugin angular-compiler]
+
+    src/app/app.module.ts:2:30:
+      2 │ import { BrowserModule } from '@angular/platform-browser';
+        ╵                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] TS-991010: Value at position 0 in the NgModule.imports of AppModule is not a reference
+  Value could not be determined statically. [plugin angular-compiler]
+
+    src/app/app.module.ts:9:11:
+      9 │   imports: [
+        ╵            ^
+
+  Unknown reference.
+
+    src/app/app.module.ts:10:4:
+      10 │     BrowserModule
+         ╵     ~~~~~~~~~~~~~
+
+
+✘ [ERROR] TS2792: Cannot find module '@angular/platform-browser-dynamic'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option? [plugin angular-compiler]
+
+    src/main.ts:1:39:
+      1 │ ... platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+        ╵                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+  Functionality: ❌ Failed: Server failed to start within the maximum retry period
+  SEO Issues Fixed: 3 (Pre-scan: 5, Post-scan: 2)
+
+
+--- Detailed Scan Results ---
+
+==== FRAMEWORK: ANGULAR ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+  File: src/app/app.component.ts
+    - Type: warning
+      Message: No title and meta management found for app component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: src/app/pages/hero/hero.component.ts
+    - Type: warning
+      Message: No title and meta management found for standalone component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: src/app/pages/hero/hero.component.html
+    - Type: warning
+      Message: Image without ngOptimizedImage directive
+      Fix: Add ngOptimizedImage directive to optimize images for SEO
+
+
+  --- Post-Scan Data ---
+  File: src/app/app.component.ts
+    - Type: warning
+      Message: No title and meta management found for app component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: src/app/pages/hero/hero.component.ts
+    - Type: warning
+      Message: No title and meta management found for standalone component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+
