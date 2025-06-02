@@ -10,7 +10,7 @@ set -e
 
 echo "Building CLISEO tool..."
 # Go to project root, build the CLI, then come back or run in subshell
-(cd .. && npm run build:cli)
+npm run build:cli
 
 echo "Running CLISEO automated SEO test runner..."
 
