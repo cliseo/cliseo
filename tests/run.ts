@@ -142,31 +142,43 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     // Start dev server with framework-specific command
     let server;
     if (framework === 'angular') {
-      server = exec('npx ng serve --host=0.0.0.0 --disable-host-check --poll=2000', { cwd });
+      // Use a more reliable command for Angular
+      server = exec('npx ng serve --host=0.0.0.0 --disable-host-check --poll=2000 --port=4200', { 
+        cwd,
+        env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' }
+      });
+      
+      // Log server output for debugging
+      server.stdout?.on('data', (data) => console.log(`[Angular Server] ${data}`));
+      server.stderr?.on('data', (data) => console.error(`[Angular Server Error] ${data}`));
     } else {
       server = exec('npm run dev', { cwd });
     }
     
     // Wait for server to start with retries
-    const maxRetries = 12;
-    const retryDelay = 10000;
+    const maxRetries = 15; // Increased from 12
+    const retryDelay = 15000; // Increased from 10000
     let isServerReady = false;
+    let lastError: string | undefined;
     
     for (let i = 0; i < maxRetries; i++) {
       try {
+        console.log(`[${framework}] Attempt ${i + 1}/${maxRetries} to connect to server...`);
         const response = await fetch(url);
         if (response.ok) {
           isServerReady = true;
+          console.log(`[${framework}] Server is ready!`);
           break;
         }
-      } catch (error) {
-        // Server not ready yet, wait and retry
+      } catch (error: any) {
+        lastError = error.message;
+        console.log(`[${framework}] Server not ready yet (${error.message}), retrying in ${retryDelay/1000}s...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
     }
     
     if (!isServerReady) {
-      throw new Error('Server failed to start within the maximum retry period');
+      throw new Error(`Server failed to start within the maximum retry period. Last error: ${lastError}`);
     }
     
     // Kill server
