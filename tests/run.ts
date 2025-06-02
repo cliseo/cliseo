@@ -148,8 +148,8 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     }
     
     // Wait for server to start with retries
-    const maxRetries = 6;
-    const retryDelay = 5000;
+    const maxRetries = 12;
+    const retryDelay = 10000;
     let isServerReady = false;
     
     for (let i = 0; i < maxRetries; i++) {
@@ -330,7 +330,19 @@ async function main() {
     // Cleanup temp directories
     for (const tempDir of tempDirs) {
       try {
-        await fs.rm(tempDir, { recursive: true, force: true });
+        // Wait a bit before cleanup to ensure processes are terminated
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        // Use a more robust cleanup by removing contents first
+        const entries = await fs.readdir(tempDir, { withFileTypes: true });
+        for (const entry of entries) {
+          const entryPath = path.join(tempDir, entry.name);
+          if (entry.isDirectory()) {
+            await fs.rm(entryPath, { recursive: true, force: true });
+          } else {
+            await fs.unlink(entryPath);
+          }
+        }
+        await fs.rmdir(tempDir);
       } catch (error) {
         console.error(`Failed to cleanup ${tempDir}:`, error);
       }
