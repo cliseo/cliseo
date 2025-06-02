@@ -142,7 +142,7 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     // Start dev server with framework-specific command
     let server;
     if (framework === 'angular') {
-      server = exec('npx ng serve --host=0.0.0.0 --disable-host-check', { cwd });
+      server = exec('npx ng serve --host=0.0.0.0 --disable-host-check --poll=2000', { cwd });
     } else {
       server = exec('npm run dev', { cwd });
     }
@@ -195,8 +195,8 @@ async function main() {
   const outputPath = path.join(logsDir, outputFilename);
 
   try {
-    // Copy fixtures to temp directories
-    for (const { framework, fixtureDir } of selectedFixtures) {
+    // Copy fixtures to temp directories and run tests in parallel
+    await Promise.all(selectedFixtures.map(async ({ framework, fixtureDir }) => {
       const tempDir = path.join(os.tmpdir(), `cliseo-test-${framework}-${randomUUID()}`);
       tempDirs.push(tempDir);
       
@@ -239,7 +239,7 @@ async function main() {
         build: buildResult,
         functionality,
       });
-    }
+    }));
     
     // --- Generate Log Output ---
     let logOutput = `CLISEO Test Run: ${timestamp}\n\n`;
