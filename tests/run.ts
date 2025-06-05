@@ -458,6 +458,9 @@ async function main() {
       console.log(`  SEO Issues Fixed: ${issuesFixed} (Pre: ${preScanIssueCount}, Post: ${postScanIssueCount})`);
     }
     
+    // Explicitly exit after successful run to ensure CI job finishes even if there are stray handles
+    process.exit(0);
+    
   } catch (error) {
     console.error('Test failed:', error);
     process.exit(1);
