@@ -145,39 +145,65 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
   const url = `http://localhost:${port}`;
   
   let serverProcess: import('child_process').ChildProcess | undefined;
+  let serverEarlyExitError: string | undefined;
 
   try {
     // Start dev server with framework-specific command
+    const commandOptions = { cwd, detached: true }; // detached: true to allow killing process group
+
     if (framework === 'angular') {
       const ngPath = path.join(cwd, 'node_modules', '.bin', 'ng');
-      // Use a more reliable command for Angular with watch disabled
-      serverProcess = exec(`${ngPath} serve --host=0.0.0.0 --poll=2000 --port=${port} --watch=false`, {
-        cwd,
+      serverProcess = exec(`${ngPath} serve --host=0.0.0.0 --poll=2000 --port=${port} --watch=false --verbose`, {
+        ...commandOptions,
         env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' }
       });
     } else if (framework === 'next') {
-      serverProcess = exec(`npm run dev -- --port ${port}`, { cwd });
+      serverProcess = exec(`npm run dev -- --port ${port}`, commandOptions);
     } else { // react
-      serverProcess = exec(`npm run dev -- --port ${port}`, { cwd });
+      serverProcess = exec(`npm run dev -- --port ${port}`, commandOptions);
     }
     
-    if (!serverProcess) {
-      throw new Error('Failed to create server process.');
+    if (!serverProcess || serverProcess.pid === undefined) {
+      return { success: false, error: 'Failed to create server process or PID undefined.' };
     }
 
+    console.log(`[${framework}] Started server process with PID: ${serverProcess.pid}`);
+
+    // Listen for early exit or errors from the server process
+    serverProcess.on('error', (err) => {
+      console.error(`[${framework} Server Process Error] ${err.message}`);
+      serverEarlyExitError = `Server process emitted error: ${err.message}`;
+      // Attempt to kill just in case, though 'error' often means it didn't launch
+      if (serverProcess && !serverProcess.killed) serverProcess.kill();
+    });
+
+    serverProcess.on('exit', (code, signal) => {
+      if (code !== 0 && signal !== 'SIGKILL' && signal !== 'SIGTERM' && signal !== 'SIGINT') { // Don't log expected kills
+        console.warn(`[${framework} Server Process Exited] Code: ${code}, Signal: ${signal}`);
+        serverEarlyExitError = `Server process exited prematurely with code ${code}, signal ${signal}. Check STDOUT/STDERR logs.`;
+      }
+    });
+
     // Log server output for debugging
-    serverProcess.stdout?.on('data', (data) => console.log(`[${framework} Server STDOUT] ${data}`));
-    serverProcess.stderr?.on('data', (data) => console.error(`[${framework} Server STDERR] ${data}`));
+    serverProcess.stdout?.on('data', (data) => console.log(`[${framework} Server STDOUT] ${data.toString().trim()}`));
+    serverProcess.stderr?.on('data', (data) => console.error(`[${framework} Server STDERR] ${data.toString().trim()}`));
     
     // Wait for server to start with retries
-    const maxRetries = 5;
-    const retryDelay = 15000;
+    const maxRetries = 6; // Increased
+    const retryDelay = 20000; // Increased
+    const initialDelay = framework === 'angular' ? 30000 : 10000; // Longer initial delay for Angular
     let isServerReady = false;
     let lastError: string | undefined;
+
+    console.log(`[${framework}] Waiting ${initialDelay/1000}s initial delay for server to spin up...`);
+    await new Promise(resolve => setTimeout(resolve, initialDelay));
     
     for (let i = 0; i < maxRetries; i++) {
+      if (serverEarlyExitError) { // Check if server exited or errored out before proceeding
+        return { success: false, error: `Server process failed before readiness check: ${serverEarlyExitError}` };
+      }
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased fetch timeout
 
       try {
         console.log(`[${framework}] Attempt ${i + 1}/${maxRetries} to connect to server at ${url}...`);
@@ -185,31 +211,30 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
         clearTimeout(timeoutId);
 
         if (response.ok) {
-          const responseText = await response.text(); // Try to read response
+          const responseText = await response.text();
           console.log(`[${framework}] Server responded OK. Status: ${response.status}. Response length: ${responseText.length}`);
           isServerReady = true;
           console.log(`[${framework}] Server is ready!`);
           break;
         } else {
-          // Enhanced logging for non-OK responses
           const responseBody = await response.text().catch(() => "[[Could not read response body]]");
           lastError = `Server responded with status ${response.status} (${response.statusText}). Preview: ${responseBody.substring(0, 200)}`;
           console.log(`[${framework}] Server not ready yet (${lastError}), retrying in ${retryDelay/1000}s...`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
       } catch (error: any) {
         clearTimeout(timeoutId);
         lastError = error.message;
         if (error.name === 'AbortError') {
-          lastError = 'Request timed out after 10 seconds.';
+          lastError = 'Request timed out after 15 seconds.'; // Updated timeout message
         }
         console.log(`[${framework}] Server not ready yet (${lastError}), retrying in ${retryDelay/1000}s...`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
+      if (i < maxRetries - 1) await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
     
     if (!isServerReady) {
-      throw new Error(`Server failed to start or respond at ${url} within the maximum retry period. Last error: ${lastError}`);
+      const finalError = serverEarlyExitError ? `Server process failed: ${serverEarlyExitError}` : `Server failed to start or respond at ${url} within the maximum retry period. Last error: ${lastError}`;
+      return { success: false, error: finalError };
     }
     
     return { success: true };
@@ -217,13 +242,48 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     return { success: false, error: error.message };
   } finally {
     // Kill server process if it was started
-    if (serverProcess) {
-      console.log(`[${framework}] Killing server process (PID: ${serverProcess.pid})...`);
-      const killed = serverProcess.kill();
-      if (killed) {
-        console.log(`[${framework}] Server process killed successfully.`);
-      } else {
-        console.warn(`[${framework}] Failed to kill server process.`);
+    if (serverProcess && serverProcess.pid && !serverProcess.killed) {
+      const pid = serverProcess.pid;
+      console.log(`[${framework}] Attempting to kill server process tree (PID: ${pid})...`);
+      try {
+        // Using negative PID to kill the process group, requires detached: true
+        // This is more effective for processes that spawn children (like npm scripts)
+        process.kill(-pid, 'SIGTERM'); 
+        console.log(`[${framework}] Sent SIGTERM to process group ${pid}.`);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for graceful shutdown
+
+        if (!serverProcess.killed) {
+          console.warn(`[${framework}] Process group ${pid} did not terminate with SIGTERM, trying SIGKILL.`);
+          process.kill(-pid, 'SIGKILL');
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for SIGKILL to take effect
+          if (!serverProcess.killed) {
+             console.error(`[${framework}] Failed to kill process group ${pid} with SIGKILL.`);
+          } else {
+            console.log(`[${framework}] Process group ${pid} killed with SIGKILL.`);
+          }
+        } else {
+          console.log(`[${framework}] Process group ${pid} terminated successfully.`);
+        }
+      } catch (killError: any) {
+        // Fallback for individual process kill if group kill fails or PID is not group leader
+        console.warn(`[${framework}] Failed to kill process group ${pid} (may not be group leader or process already exited): ${killError.message}. Attempting individual kill.`);
+        try {
+            serverProcess.kill('SIGTERM');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            if (!serverProcess.killed) {
+                serverProcess.kill('SIGKILL');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                 if (!serverProcess.killed) {
+                    console.error(`[${framework}] Failed to kill server process PID ${pid} with SIGKILL.`);
+                 } else {
+                    console.log(`[${framework}] Server process PID ${pid} killed with SIGKILL.`);
+                 }
+            } else {
+                 console.log(`[${framework}] Server process PID ${pid} killed successfully with SIGTERM.`);
+            }
+        } catch (finalKillError: any) {
+            console.error(`[${framework}] Error during final attempt to kill server process PID ${pid}: ${finalKillError.message}`);
+        }
       }
     }
   }
