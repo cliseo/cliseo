@@ -1,0 +1,230 @@
+CLISEO Test Run: 05-30-2025 (18-09)
+
+--- Summary ---
+
+FRAMEWORK: REACT
+  Build: ✅ Success
+  Functionality: ✅ Success
+  SEO Issues Fixed: 4 (Pre-scan: 7, Post-scan: 3)
+
+FRAMEWORK: NEXT
+  Build: ✅ Success
+  Functionality: ✅ Success
+  SEO Issues Fixed: 2 (Pre-scan: 2, Post-scan: 0)
+
+FRAMEWORK: ANGULAR
+  Build: ❌ Failed: Command failed: Command failed: npm run build
+- Building...
+
+▲ [WARNING] TypeScript compiler options 'module' values 'CommonJS', 'UMD', 'System' and 'AMD' are not supported. [plugin angular-compiler]
+
+  The 'module' option will be set to 'ES2022' instead.
+
+
+▲ [WARNING] TypeScript compiler options 'target' and 'useDefineForClassFields' are set to 'ES2022' and 'false' respectively by the Angular CLI. [plugin angular-compiler]
+
+    tsconfig.app.json:0:0:
+      0 │ 
+        ╵ ^
+
+  To control ECMA version and features use the Browserslist configuration. For more information, see https://angular.io/guide/build#configuring-browser-compatibility
+
+
+✘ [ERROR] Cannot find tsconfig file "tsconfig.app.json"
+
+
+✘ [ERROR] TS500: Error: ENOENT: no such file or directory, lstat '/private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/tsconfig.app.json'
+    at Object.lstatSync (node:fs:1660:3)
+    at NodeJSFileSystem.lstat (file:///private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular/compiler-cli/bundles/chunk-75YFKYUJ.js:341:16)
+    at calcProjectFileAndBasePath (file:///private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular/compiler-cli/bundles/chunk-LV7FGTGX.js:10260:29)
+    at readConfiguration (file:///private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular/compiler-cli/bundles/chunk-LV7FGTGX.js:10286:39)
+    at /private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular-devkit/build-angular/src/tools/esbuild/angular/compilation/angular-compilation.js:61:69
+    at profileSync (/private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular-devkit/build-angular/src/tools/esbuild/profiling.js:68:16)
+    at AotCompilation.loadConfiguration (/private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular-devkit/build-angular/src/tools/esbuild/angular/compilation/angular-compilation.js:61:44)
+    at async AotCompilation.initialize (/private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular-devkit/build-angular/src/tools/esbuild/angular/compilation/aot-compilation.js:50:100)
+    at async initialize (/private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular-devkit/build-angular/src/tools/esbuild/angular/compilation/parallel-worker.js:33:50)
+    at async /private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/piscina/dist/src/worker.js:145:26 [plugin angular-compiler]
+
+
+✘ [ERROR] Cannot find tsconfig file "tsconfig.app.json"
+
+
+✘ [ERROR] Could not resolve "src/styles.css"
+
+    angular:styles/global:styles:1:8:
+      1 │ @import 'src/styles.css';
+        ╵         ~~~~~~~~~~~~~~~~
+
+  You can mark the path "src/styles.css" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+
+
+- Building...
+
+▲ [WARNING] TypeScript compiler options 'module' values 'CommonJS', 'UMD', 'System' and 'AMD' are not supported. [plugin angular-compiler]
+
+  The 'module' option will be set to 'ES2022' instead.
+
+
+▲ [WARNING] TypeScript compiler options 'target' and 'useDefineForClassFields' are set to 'ES2022' and 'false' respectively by the Angular CLI. [plugin angular-compiler]
+
+    tsconfig.app.json:0:0:
+      0 │ 
+        ╵ ^
+
+  To control ECMA version and features use the Browserslist configuration. For more information, see https://angular.io/guide/build#configuring-browser-compatibility
+
+
+✘ [ERROR] Cannot find tsconfig file "tsconfig.app.json"
+
+
+✘ [ERROR] TS500: Error: ENOENT: no such file or directory, lstat '/private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/tsconfig.app.json'
+    at Object.lstatSync (node:fs:1660:3)
+    at NodeJSFileSystem.lstat (file:///private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular/compiler-cli/bundles/chunk-75YFKYUJ.js:341:16)
+    at calcProjectFileAndBasePath (file:///private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular/compiler-cli/bundles/chunk-LV7FGTGX.js:10260:29)
+    at readConfiguration (file:///private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular/compiler-cli/bundles/chunk-LV7FGTGX.js:10286:39)
+    at /private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular-devkit/build-angular/src/tools/esbuild/angular/compilation/angular-compilation.js:61:69
+    at profileSync (/private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular-devkit/build-angular/src/tools/esbuild/profiling.js:68:16)
+    at AotCompilation.loadConfiguration (/private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular-devkit/build-angular/src/tools/esbuild/angular/compilation/angular-compilation.js:61:44)
+    at async AotCompilation.initialize (/private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular-devkit/build-angular/src/tools/esbuild/angular/compilation/aot-compilation.js:50:100)
+    at async initialize (/private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/@angular-devkit/build-angular/src/tools/esbuild/angular/compilation/parallel-worker.js:33:50)
+    at async /private/var/folders/1l/3drt1x_n4bz5tn532yyhk39w0000gn/T/cliseo-test-angular-b5cb5a23-c8d7-43bb-960f-e1b82a3ee473/node_modules/piscina/dist/src/worker.js:145:26 [plugin angular-compiler]
+
+
+✘ [ERROR] Cannot find tsconfig file "tsconfig.app.json"
+
+
+✘ [ERROR] Could not resolve "src/styles.css"
+
+    angular:styles/global:styles:1:8:
+      1 │ @import 'src/styles.css';
+        ╵         ~~~~~~~~~~~~~~~~
+
+  You can mark the path "src/styles.css" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+
+
+  Functionality: ❌ Failed: fetch failed
+  SEO Issues Fixed: 3 (Pre-scan: 5, Post-scan: 2)
+
+
+--- Detailed Scan Results ---
+
+==== FRAMEWORK: REACT ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+  File: src/App.tsx
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+  File: src/pages/Home.tsx
+    - Type: warning
+      Message: No meta tag management library found
+      Fix: Consider using react-helmet, next/head, or similar for managing meta tags
+
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+    - Type: warning
+      Message: Non-descriptive link text found
+      Element: <a href="https://example.com">click here</a>
+      Fix: Use descriptive text that explains where the link goes
+
+    - Type: warning
+      Message: Missing WebPage schema markup
+      Fix: Add basic WebPage schema.org markup
+
+
+  --- Post-Scan Data ---
+  File: src/App.tsx
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+  File: src/pages/Home.tsx
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+    - Type: warning
+      Message: Non-descriptive link text found
+      Element: <a href="https://example.com">click here</a>
+      Fix: Use descriptive text that explains where the link goes
+
+
+
+
+==== FRAMEWORK: NEXT ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+
+  --- Post-Scan Data ---
+  No post-scan data available or no issues remaining.
+
+
+
+
+==== FRAMEWORK: ANGULAR ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+  File: src/app/app.component.ts
+    - Type: warning
+      Message: No title and meta management found for app component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: src/app/pages/hero/hero.component.ts
+    - Type: warning
+      Message: No title and meta management found for standalone component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: src/app/pages/hero/hero.component.html
+    - Type: warning
+      Message: Image without ngOptimizedImage directive
+      Fix: Add ngOptimizedImage directive to optimize images for SEO
+
+
+  --- Post-Scan Data ---
+  File: src/app/app.component.ts
+    - Type: warning
+      Message: No title and meta management found for app component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: src/app/pages/hero/hero.component.ts
+    - Type: warning
+      Message: No title and meta management found for standalone component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+
