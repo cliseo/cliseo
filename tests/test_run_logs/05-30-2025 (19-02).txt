@@ -1,0 +1,69 @@
+CLISEO Test Run: 05-30-2025 (19-02)
+
+--- Summary ---
+
+FRAMEWORK: REACT
+  Build: ✅ Success
+  Functionality: ✅ Success
+  SEO Issues Fixed: 4 (Pre-scan: 7, Post-scan: 3)
+
+
+--- Detailed Scan Results ---
+
+==== FRAMEWORK: REACT ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+  File: src/App.tsx
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+  File: src/pages/Home.tsx
+    - Type: warning
+      Message: No meta tag management library found
+      Fix: Consider using react-helmet, next/head, or similar for managing meta tags
+
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+    - Type: warning
+      Message: Non-descriptive link text found
+      Element: <a href="https://example.com">click here</a>
+      Fix: Use descriptive text that explains where the link goes
+
+    - Type: warning
+      Message: Missing WebPage schema markup
+      Fix: Add basic WebPage schema.org markup
+
+
+  --- Post-Scan Data ---
+  File: src/App.tsx
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+  File: src/pages/Home.tsx
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+    - Type: warning
+      Message: Non-descriptive link text found
+      Element: <a href="https://example.com">click here</a>
+      Fix: Use descriptive text that explains where the link goes
+
+
