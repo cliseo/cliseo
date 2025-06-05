@@ -7,5 +7,5 @@ import chalk from "chalk";
 export async function optimizeVueComponents() {
     // Currently, there are no specific optimizations for Vue components.
     // This function can be expanded in the future to include Vue-specific SEO optimizations.
-    console.log(chalk.bgRedBright('Cliseo does not currently support the Vue framework. \nPlease check back later for updates!'));
+    console.log(chalk.bgRedBright('cliseo does not currently support the Vue framework. \nPlease check back later for updates!'));
 }

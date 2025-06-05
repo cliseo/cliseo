@@ -17,19 +17,30 @@ const Footer = () => {
             <p className="text-sm text-muted-foreground mt-2">
               © 2025 cliseo. All rights reserved. cliseo is an abbreviation for command line interface + search engine optimization.
             </p>
+            <div className="flex gap-4 mt-2">
+              <a 
+                href="/privacy-policy" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-sm text-muted-foreground hover:text-primary"
+              >
+                Privacy Policy
+              </a>
+              <a 
+                href="/terms-of-service" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-sm text-muted-foreground hover:text-primary"
+              >
+                Terms of Service
+              </a>
+            </div>
           </div>
           <div className="flex gap-8">
             <div>
-              <h3 className="font-semibold mb-2">Product</h3>
-              <ul className="space-y-1">
-                <li><a href="#features" className="text-sm text-muted-foreground hover:text-primary">Features</a></li>
-                <li><a href="#pricing" className="text-sm text-muted-foreground hover:text-primary">Pricing</a></li>
-              </ul>
-            </div>
-            <div>
               <h3 className="font-semibold mb-2">Resources</h3>
               <ul className="space-y-1">
-                <li><a href="#" className="text-sm text-muted-foreground hover:text-primary">Documentation</a></li>
+                <li><a href="/docs" className="text-sm text-muted-foreground hover:text-primary">Documentation</a></li>
                 <li><a href="/blog" className="text-sm text-muted-foreground hover:text-primary">Blog</a></li>
               </ul>
             </div>

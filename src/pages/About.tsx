@@ -82,8 +82,8 @@ const About = () => {
   return (
     <MainLayout>
       <Helmet>
-        <title>About - CLISEO</title>
-        <meta name="description" content="Learn about CLISEO, the AI-powered SEO optimization tool for developers." />
+        <title>About - cliseo</title>
+        <meta name="description" content="Learn about cliseo, the AI-powered SEO optimization tool for developers." />
       </Helmet>
       
       <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-full pointer-events-none">
@@ -93,7 +93,7 @@ const About = () => {
       <main className="container mx-auto px-4 py-16 mt-16 relative">
         {/* Hero Section */}
         <div className="max-w-3xl mx-auto text-center mb-20">
-          <h1 className="text-4xl font-bold mb-6">About CLISEO</h1>
+          <h1 className="text-4xl font-bold mb-6">About cliseo</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">
             blah blah blah
           </p>

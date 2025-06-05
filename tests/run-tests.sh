@@ -3,16 +3,16 @@
 
 
 #!/bin/bash
-# Shell script to run the CLISEO automated SEO test runner
+# Shell script to run the cliseo automated SEO test runner
 
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-echo "Building CLISEO tool..."
+echo "Building cliseo tool..."
 # Go to project root, build the CLI, then come back or run in subshell
 npm run build:cli
 
-echo "Running CLISEO automated SEO test runner..."
+echo "Running cliseo automated SEO test runner..."
 
 # Get the absolute path to the tests directory
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -34,4 +34,4 @@ cd "$TESTS_DIR/__fixtures__/angular-app" && npm install && cd "$TESTS_DIR"
 echo "Running test runner..."
 npx tsx "$TESTS_DIR/run.ts" "$@"
 
-echo "CLISEO automated SEO test runner completed."
+echo "cliseo automated SEO test runner completed."

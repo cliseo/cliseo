@@ -4,7 +4,7 @@ import React from "react";
 const Blog = () => (
   <div className="container mx-auto py-16 text-center">
     <Helmet>
-      <title>Your Site Title</title>
+      <title>cliseo blog</title>
       <meta name="description" content="Default description for this page" />
       <link rel="canonical" href="https://yourdomain.com/current-page" />
       <script

@@ -95,7 +95,7 @@ async function runCliseoScan(cwd: string): Promise<any> {
   try {
     return JSON.parse(stdout);
   } catch (error) {
-    throw new Error(`Failed to parse CLISEO scan output: ${error}`);
+    throw new Error(`Failed to parse cliseo scan output: ${error}`);
   }
 }
 
@@ -309,7 +309,7 @@ async function main() {
     }));
     
     // --- Generate Log Output ---
-    let logOutput = `CLISEO Test Run: ${timestamp}\n\n`;
+    let logOutput = `cliseo Test Run: ${timestamp}\n\n`;
 
     logOutput += "--- Summary ---\n";
   for (const result of results) {

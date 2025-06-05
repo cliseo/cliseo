@@ -6,16 +6,16 @@ export default function Docs() {
   const schemaData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Cliseo Documentation",
-    "description": "Complete documentation for the Cliseo SEO optimization tool",
+    "name": "cliseo Documentation",
+    "description": "Complete documentation for the cliseo SEO optimization tool",
     "url": window.location.href,
     "mainEntity": {
       "@type": "TechArticle",
-      "headline": "Cliseo Documentation",
-      "description": "Learn how to use Cliseo to optimize your site's SEO",
+      "headline": "cliseo Documentation",
+      "description": "Learn how to use cliseo to optimize your site's SEO",
       "author": {
         "@type": "Organization",
-        "name": "Cliseo"
+        "name": "cliseo"
       }
     }
   };
@@ -23,8 +23,8 @@ export default function Docs() {
   return (
     <>
       <Helmet>
-        <title>Documentation - Cliseo</title>
-        <meta name="description" content="Complete documentation for the Cliseo SEO optimization tool" />
+        <title>Documentation - cliseo</title>
+        <meta name="description" content="Complete documentation for the cliseo SEO optimization tool" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script type="application/ld+json">
           {JSON.stringify(schemaData)}

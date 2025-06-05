@@ -30,12 +30,12 @@ const Index = () => {
   const schemaData = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Cliseo - SEO Optimization Tool",
+    "name": "cliseo - SEO Optimization Tool",
     "description": "Optimize your site's SEO in 30 seconds with AI-powered fixes",
     "url": window.location.href,
     "mainEntity": {
       "@type": "SoftwareApplication",
-      "name": "Cliseo",
+      "name": "cliseo",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Any",
       "offers": {
@@ -99,7 +99,7 @@ cliseo optimize --ai --git-pr`;
   return (
     <>
       <Helmet>
-        <title>Cliseo - SEO Optimization Tool</title>
+        <title>cliseo - SEO Optimization Tool</title>
         <meta name="description" content="Optimize your site's SEO in 30 seconds with AI-powered fixes" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script type="application/ld+json">

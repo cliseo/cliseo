@@ -266,7 +266,7 @@ export async function optimizeCommand() {
     }
 
     if (framework === 'vue') {
-      console.log(chalk.bgRedBright('Cliseo does not currently support the Vue framework. \nWe recommend implementing @vueuse/head for SEO optimizations in Vue projects.'));
+      console.log(chalk.bgRedBright('cliseo does not currently support the Vue framework. \nWe recommend implementing @vueuse/head for SEO optimizations in Vue projects.'));
     }
 
     if (framework === 'next.js') {

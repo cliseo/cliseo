@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Github } from 'lucide-react';
+import { Github, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Replace with actual auth state
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,6 +37,14 @@ const Navbar = () => {
     }
   };
 
+  const handleAccountClick = () => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+    } else {
+      navigate('/account');
+    }
+  };
+
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 py-4 transition-all duration-300 ${
       scrolled ? 'bg-background/80 backdrop-blur-md border-b' : 'bg-transparent'
@@ -51,6 +60,15 @@ const Navbar = () => {
           <a href="/docs" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-primary transition-colors">Documentation</a>
           <Link to="/about" className="text-sm hover:text-primary transition-colors">About</Link>
           <a href="/blog" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-primary transition-colors">Blog</a>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleAccountClick}
+            className="flex items-center gap-2"
+          >
+            <User className="h-4 w-4" />
+            {isAuthenticated ? 'Account' : 'Sign In'}
+          </Button>
           <a 
             href="https://github.com/ryanjhermes/cliseo" 
             target="_blank" 
