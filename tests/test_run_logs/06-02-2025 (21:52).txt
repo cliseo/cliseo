@@ -1,0 +1,282 @@
+CLISEO Test Run: 06-02-2025 (21:52)
+
+--- Summary ---
+
+FRAMEWORK: REACT
+  Build: ❌ Failed: Command failed: Command failed: npm run build
+node:internal/modules/esm/resolve:283
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-react-e6a9e6da-4b10-4c51-94c3-dd3c6c293b77/node_modules/dist/node/cli.js' imported from /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-react-e6a9e6da-4b10-4c51-94c3-dd3c6c293b77/node_modules/.bin/vite
+    at finalizeResolution (node:internal/modules/esm/resolve:283:11)
+    at moduleResolve (node:internal/modules/esm/resolve:952:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:574:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:236:38)
+    at ModuleLoader.import (node:internal/modules/esm/loader:539:34)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:215:31)
+    at importModuleDynamicallyCallback (node:internal/modules/esm/utils:254:12) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-react-e6a9e6da-4b10-4c51-94c3-dd3c6c293b77/node_modules/dist/node/cli.js'
+}
+
+Node.js v20.19.2
+
+node:internal/modules/esm/resolve:283
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-react-e6a9e6da-4b10-4c51-94c3-dd3c6c293b77/node_modules/dist/node/cli.js' imported from /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-react-e6a9e6da-4b10-4c51-94c3-dd3c6c293b77/node_modules/.bin/vite
+    at finalizeResolution (node:internal/modules/esm/resolve:283:11)
+    at moduleResolve (node:internal/modules/esm/resolve:952:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:574:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:236:38)
+    at ModuleLoader.import (node:internal/modules/esm/loader:539:34)
+    at defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:215:31)
+    at importModuleDynamicallyCallback (node:internal/modules/esm/utils:254:12) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-react-e6a9e6da-4b10-4c51-94c3-dd3c6c293b77/node_modules/dist/node/cli.js'
+}
+
+Node.js v20.19.2
+
+  Functionality: ❌ Failed: Server failed to start within the maximum retry period. Last error: fetch failed
+  SEO Issues Fixed: 4 (Pre-scan: 7, Post-scan: 3)
+
+FRAMEWORK: NEXT
+  Build: ❌ Failed: Command failed: Command failed: npm run build
+node:internal/modules/cjs/loader:1215
+  throw err;
+  ^
+
+Error: Cannot find module '../build/output/log'
+Require stack:
+- /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-next-acefdd1b-5c42-439f-a181-6b747a92f8a8/node_modules/.bin/next
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-next-acefdd1b-5c42-439f-a181-6b747a92f8a8/node_modules/.bin/next:6:54)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-next-acefdd1b-5c42-439f-a181-6b747a92f8a8/node_modules/.bin/next'
+  ]
+}
+
+Node.js v20.19.2
+
+node:internal/modules/cjs/loader:1215
+  throw err;
+  ^
+
+Error: Cannot find module '../build/output/log'
+Require stack:
+- /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-next-acefdd1b-5c42-439f-a181-6b747a92f8a8/node_modules/.bin/next
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-next-acefdd1b-5c42-439f-a181-6b747a92f8a8/node_modules/.bin/next:6:54)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-next-acefdd1b-5c42-439f-a181-6b747a92f8a8/node_modules/.bin/next'
+  ]
+}
+
+Node.js v20.19.2
+
+  Functionality: ❌ Failed: Server failed to start within the maximum retry period. Last error: fetch failed
+  SEO Issues Fixed: 2 (Pre-scan: 2, Post-scan: 0)
+
+FRAMEWORK: ANGULAR
+  Build: ❌ Failed: Command failed: Command failed: npx ng build --configuration=production
+node:internal/modules/cjs/loader:1215
+  throw err;
+  ^
+
+Error: Cannot find module './bootstrap'
+Require stack:
+- /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-20d6d035-a9cd-4cf0-8dab-31c988e0529d/node_modules/.bin/ng
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-20d6d035-a9cd-4cf0-8dab-31c988e0529d/node_modules/.bin/ng:70:3)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-20d6d035-a9cd-4cf0-8dab-31c988e0529d/node_modules/.bin/ng'
+  ]
+}
+
+Node.js v20.19.2
+
+node:internal/modules/cjs/loader:1215
+  throw err;
+  ^
+
+Error: Cannot find module './bootstrap'
+Require stack:
+- /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-20d6d035-a9cd-4cf0-8dab-31c988e0529d/node_modules/.bin/ng
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-20d6d035-a9cd-4cf0-8dab-31c988e0529d/node_modules/.bin/ng:70:3)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-20d6d035-a9cd-4cf0-8dab-31c988e0529d/node_modules/.bin/ng'
+  ]
+}
+
+Node.js v20.19.2
+
+  Functionality: ❌ Failed: Server failed to start within the maximum retry period. Last error: fetch failed
+  SEO Issues Fixed: 3 (Pre-scan: 5, Post-scan: 2)
+
+
+--- Detailed Scan Results ---
+
+==== FRAMEWORK: REACT ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+  File: src/App.tsx
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+  File: src/pages/Home.tsx
+    - Type: warning
+      Message: No meta tag management library found
+      Fix: Consider using react-helmet, next/head, or similar for managing meta tags
+
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+    - Type: warning
+      Message: Non-descriptive link text found
+      Element: <a href="https://example.com">click here</a>
+      Fix: Use descriptive text that explains where the link goes
+
+    - Type: warning
+      Message: Missing WebPage schema markup
+      Fix: Add basic WebPage schema.org markup
+
+
+  --- Post-Scan Data ---
+  File: src/App.tsx
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+  File: src/pages/Home.tsx
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+    - Type: warning
+      Message: Non-descriptive link text found
+      Element: <a href="https://example.com">click here</a>
+      Fix: Use descriptive text that explains where the link goes
+
+
+
+
+==== FRAMEWORK: NEXT ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+
+  --- Post-Scan Data ---
+  No post-scan data available or no issues remaining.
+
+
+
+
+==== FRAMEWORK: ANGULAR ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+  File: src/app/app.component.ts
+    - Type: warning
+      Message: No title and meta management found for app component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: src/app/pages/hero/hero.component.ts
+    - Type: warning
+      Message: No title and meta management found for standalone component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: src/app/pages/hero/hero.component.html
+    - Type: warning
+      Message: Image without ngOptimizedImage directive
+      Fix: Add ngOptimizedImage directive to optimize images for SEO
+
+
+  --- Post-Scan Data ---
+  File: src/app/app.component.ts
+    - Type: warning
+      Message: No title and meta management found for app component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: src/app/pages/hero/hero.component.ts
+    - Type: warning
+      Message: No title and meta management found for standalone component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+

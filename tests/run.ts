@@ -70,6 +70,10 @@ async function copyDirRecursive(src: string, dest: string) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
     
+    if (entry.name === 'node_modules') { // Skip node_modules
+      continue;
+    }
+    
     if (entry.isDirectory()) {
       await copyDirRecursive(srcPath, destPath);
     } else {
@@ -140,55 +144,82 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
   const port = framework === 'next' ? 3000 : framework === 'angular' ? 4200 : 5173;
   const url = `http://localhost:${port}`;
   
+  let serverProcess: import('child_process').ChildProcess | undefined;
+
   try {
     // Start dev server with framework-specific command
-    let server;
     if (framework === 'angular') {
+      const ngPath = path.join(cwd, 'node_modules', '.bin', 'ng');
       // Use a more reliable command for Angular with watch disabled
-      server = exec('npx ng serve --host=0.0.0.0 --disable-host-check --poll=2000 --port=4200 --watch=false', { 
+      serverProcess = exec(`${ngPath} serve --host=0.0.0.0 --disable-host-check --poll=2000 --port=${port} --watch=false`, { 
         cwd,
         env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' }
       });
-      
-      // Log server output for debugging
-      server.stdout?.on('data', (data) => console.log(`[Angular Server] ${data}`));
-      server.stderr?.on('data', (data) => console.error(`[Angular Server Error] ${data}`));
-    } else {
-      server = exec('npm run dev', { cwd });
+    } else if (framework === 'next') {
+      serverProcess = exec(`npm run dev -- --port ${port}`, { cwd });
+    } else { // react
+      serverProcess = exec(`npm run dev -- --port ${port}`, { cwd });
     }
     
+    if (!serverProcess) {
+      throw new Error('Failed to create server process.');
+    }
+
+    // Log server output for debugging
+    serverProcess.stdout?.on('data', (data) => console.log(`[${framework} Server STDOUT] ${data}`));
+    serverProcess.stderr?.on('data', (data) => console.error(`[${framework} Server STDERR] ${data}`));
+    
     // Wait for server to start with retries
-    const maxRetries = 15;
+    const maxRetries = 5;
     const retryDelay = 15000;
     let isServerReady = false;
     let lastError: string | undefined;
     
     for (let i = 0; i < maxRetries; i++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+
       try {
-        console.log(`[${framework}] Attempt ${i + 1}/${maxRetries} to connect to server...`);
-        const response = await fetch(url);
+        console.log(`[${framework}] Attempt ${i + 1}/${maxRetries} to connect to server at ${url}...`);
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         if (response.ok) {
+          const responseText = await response.text(); // Try to read response
+          console.log(`[${framework}] Server responded OK. Status: ${response.status}. Response length: ${responseText.length}`);
           isServerReady = true;
           console.log(`[${framework}] Server is ready!`);
           break;
         }
       } catch (error: any) {
+        clearTimeout(timeoutId);
         lastError = error.message;
-        console.log(`[${framework}] Server not ready yet (${error.message}), retrying in ${retryDelay/1000}s...`);
+        if (error.name === 'AbortError') {
+          lastError = 'Request timed out after 10 seconds.';
+        }
+        console.log(`[${framework}] Server not ready yet (${lastError}), retrying in ${retryDelay/1000}s...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
     }
     
     if (!isServerReady) {
-      throw new Error(`Server failed to start within the maximum retry period. Last error: ${lastError}`);
+      throw new Error(`Server failed to start or respond at ${url} within the maximum retry period. Last error: ${lastError}`);
     }
-    
-    // Kill server
-    server.kill();
     
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
+  } finally {
+    // Kill server process if it was started
+    if (serverProcess) {
+      console.log(`[${framework}] Killing server process (PID: ${serverProcess.pid})...`);
+      const killed = serverProcess.kill();
+      if (killed) {
+        console.log(`[${framework}] Server process killed successfully.`);
+      } else {
+        console.warn(`[${framework}] Failed to kill server process.`);
+      }
+    }
   }
 }
 
@@ -214,8 +245,14 @@ async function main() {
       const tempDir = path.join(os.tmpdir(), `cliseo-test-${framework}-${randomUUID()}`);
       tempDirs.push(tempDir);
       
-      console.log(`[${framework}] Copying fixture to: ${tempDir}`);
+      console.log(`[${framework}] Copying fixture source files to: ${tempDir}`);
       await copyDirRecursive(fixtureDir, tempDir);
+
+      // Install dependencies
+      console.log(`[${framework}] Installing dependencies in ${tempDir}...`);
+      // Install fixture dependencies AND the local cliseo tool
+      const cliseoProjectRoot = path.resolve(__dirname, '..');
+      await runCommand(`npm install && npm install file:${cliseoProjectRoot}`, tempDir);
 
       // Verify critical files for Angular after copying the entire fixture
       if (framework === 'angular') {
@@ -238,12 +275,6 @@ async function main() {
           }
         }
       }
-      
-      // Install dependencies
-      console.log(`[${framework}] Installing dependencies...`);
-      // Install fixture dependencies AND the local cliseo tool
-      const cliseoProjectRoot = path.resolve(__dirname, '..');
-      await runCommand(`npm install && npm install file:${cliseoProjectRoot}`, tempDir);
       
       // Run pre-scan
       console.log(`[${framework}] Running pre-scan...`);
