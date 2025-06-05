@@ -20,7 +20,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Helmet>
-        <title>My Site</title>
+        <title>cliseo</title>
         <meta name="description" content="My site description" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Helmet>

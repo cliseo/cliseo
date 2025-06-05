@@ -151,7 +151,7 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     if (framework === 'angular') {
       const ngPath = path.join(cwd, 'node_modules', '.bin', 'ng');
       // Use a more reliable command for Angular with watch disabled
-      serverProcess = exec(`${ngPath} serve --host=0.0.0.0 --disable-host-check --poll=2000 --port=${port} --watch=false`, { 
+      serverProcess = exec(`${ngPath} serve --host=0.0.0.0 --poll=2000 --port=${port} --watch=false`, {
         cwd,
         env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' }
       });
