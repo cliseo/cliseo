@@ -14,7 +14,7 @@ const traverse = _traverse.default;
  * Assumes the root contains a `package.json`.
  * 
  * @param {string} [startDir=process.cwd()] - Directory to start search from
- * @returns {string} - Project root directory path
+ * @returns {string} - Project root directory path 
  */
 function findProjectRoot(startDir = process.cwd()) {
   let dir = path.resolve(startDir);
