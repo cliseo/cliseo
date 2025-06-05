@@ -148,6 +148,15 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
   let serverEarlyExitError: string | undefined;
 
   try {
+    if (framework === 'next') {
+      try {
+        const nextConfigPath = path.join(cwd, 'next.config.js');
+        const nextConfigContent = await fs.readFile(nextConfigPath, 'utf-8');
+        console.log(`[${framework} Debug] Content of next.config.js:\n${nextConfigContent}`);
+      } catch (e: any) {
+        console.error(`[${framework} Debug] Error reading next.config.js: ${e.message}`);
+      }
+    }
     // Start dev server with framework-specific command
     const commandOptions = { cwd, detached: true }; // detached: true to allow killing process group
 
@@ -223,11 +232,12 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
         }
       } catch (error: any) {
         clearTimeout(timeoutId);
-        lastError = error.message;
+        // Log the full error object for more details
+        lastError = error instanceof Error ? `Name: ${error.name}, Message: ${error.message}, Stack: ${error.stack}` : String(error);
         if (error.name === 'AbortError') {
           lastError = 'Request timed out after 15 seconds.'; // Updated timeout message
         }
-        console.log(`[${framework}] Server not ready yet (${lastError}), retrying in ${retryDelay/1000}s...`);
+        console.log(`[${framework}] Server not ready yet (Full error: ${lastError}), retrying in ${retryDelay/1000}s...`);
       }
       if (i < maxRetries - 1) await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
