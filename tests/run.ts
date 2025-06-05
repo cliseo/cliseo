@@ -190,6 +190,12 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
           isServerReady = true;
           console.log(`[${framework}] Server is ready!`);
           break;
+        } else {
+          // Enhanced logging for non-OK responses
+          const responseBody = await response.text().catch(() => "[[Could not read response body]]");
+          lastError = `Server responded with status ${response.status} (${response.statusText}). Preview: ${responseBody.substring(0, 200)}`;
+          console.log(`[${framework}] Server not ready yet (${lastError}), retrying in ${retryDelay/1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
       } catch (error: any) {
         clearTimeout(timeoutId);

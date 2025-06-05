@@ -11,6 +11,20 @@ const nextConfig = {
   experimental: {
     serverActions: true,
   },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: [
+          ...(config.watchOptions?.ignored || []),
+          // Ignore specific /tmp subdirectories that cause EACCES errors
+          /\/tmp\/snap-private-tmp\//,
+          /\/tmp\/systemd-private-/,
+        ],
+      };
+    }
+    return config;
+  },
 };
 
 module.exports = nextConfig;
