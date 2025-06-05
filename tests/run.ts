@@ -157,8 +157,7 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
         console.error(`[${framework} Debug] Error reading next.config.js: ${e.message}`);
       }
     }
-    // Start dev server with framework-specific command
-    const commandOptions = { cwd, detached: true }; // detached: true to allow killing process group
+    const commandOptions = { cwd, detached: true };
 
     if (framework === 'angular') {
       const ngPath = path.join(cwd, 'node_modules', '.bin', 'ng');
@@ -178,45 +177,61 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
 
     console.log(`[${framework}] Started server process with PID: ${serverProcess.pid}`);
 
-    // Listen for early exit or errors from the server process
     serverProcess.on('error', (err) => {
       console.error(`[${framework} Server Process Error] ${err.message}`);
       serverEarlyExitError = `Server process emitted error: ${err.message}`;
-      // Attempt to kill just in case, though 'error' often means it didn't launch
       if (serverProcess && !serverProcess.killed) serverProcess.kill();
     });
 
     serverProcess.on('exit', (code, signal) => {
-      if (code !== 0 && signal !== 'SIGKILL' && signal !== 'SIGTERM' && signal !== 'SIGINT') { // Don't log expected kills
+      if (code !== 0 && signal !== 'SIGKILL' && signal !== 'SIGTERM' && signal !== 'SIGINT') {
         console.warn(`[${framework} Server Process Exited] Code: ${code}, Signal: ${signal}`);
         serverEarlyExitError = `Server process exited prematurely with code ${code}, signal ${signal}. Check STDOUT/STDERR logs.`;
       }
     });
 
-    // Log server output for debugging
     serverProcess.stdout?.on('data', (data) => console.log(`[${framework} Server STDOUT] ${data.toString().trim()}`));
     serverProcess.stderr?.on('data', (data) => console.error(`[${framework} Server STDERR] ${data.toString().trim()}`));
     
-    // Wait for server to start with retries
-    const maxRetries = 6; // Increased
-    const retryDelay = 20000; // Increased
-    const initialDelay = framework === 'angular' ? 30000 : 10000; // Longer initial delay for Angular
+    const maxRetries = 6;
+    const retryDelay = 20000;
+    const initialDelay = framework === 'angular' ? 30000 : 10000;
     let isServerReady = false;
     let lastError: string | undefined;
 
+    // Use 127.0.0.1 for fetch for Angular and Next, and add a curl check
+    const fetchUrl = (framework === 'angular' || framework === 'next') ? `http://127.0.0.1:${port}` : url;
+
     console.log(`[${framework}] Waiting ${initialDelay/1000}s initial delay for server to spin up...`);
     await new Promise(resolve => setTimeout(resolve, initialDelay));
+
+    if (framework === 'angular' || framework === 'next') {
+      try {
+        console.log(`[${framework} Debug] Attempting curl to ${fetchUrl}...`);
+        const curlResult = await execAsync(`curl --fail -s -o /dev/null -w '%{http_code}' ${fetchUrl}`, { timeout: 10000 }); // Increased curl timeout
+        if (curlResult.stdout.trim() === '200') {
+          console.log(`[${framework} Debug] curl to ${fetchUrl} was successful (HTTP 200).`);
+        } else {
+          console.warn(`[${framework} Debug] curl to ${fetchUrl} returned HTTP status: ${curlResult.stdout.trim()}. Stderr: ${curlResult.stderr.trim()}`);
+        }
+      } catch (e: any) {
+        let curlErrorDetails = e.message;
+        if (e.stderr) curlErrorDetails += ` Stderr: ${e.stderr.toString().trim()}`;
+        if (e.stdout) curlErrorDetails += ` Stdout: ${e.stdout.toString().trim()}`;
+        console.error(`[${framework} Debug] curl command to ${fetchUrl} failed: ${curlErrorDetails}`);
+      }
+    }
     
     for (let i = 0; i < maxRetries; i++) {
-      if (serverEarlyExitError) { // Check if server exited or errored out before proceeding
+      if (serverEarlyExitError) {
         return { success: false, error: `Server process failed before readiness check: ${serverEarlyExitError}` };
       }
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased fetch timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
-        console.log(`[${framework}] Attempt ${i + 1}/${maxRetries} to connect to server at ${url}...`);
-        const response = await fetch(url, { signal: controller.signal });
+        console.log(`[${framework}] Attempt ${i + 1}/${maxRetries} to connect to server at ${fetchUrl}...`);
+        const response = await fetch(fetchUrl, { signal: controller.signal });
         clearTimeout(timeoutId);
 
         if (response.ok) {
@@ -232,10 +247,9 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
         }
       } catch (error: any) {
         clearTimeout(timeoutId);
-        // Log the full error object for more details
         lastError = error instanceof Error ? `Name: ${error.name}, Message: ${error.message}, Stack: ${error.stack}` : String(error);
         if (error.name === 'AbortError') {
-          lastError = 'Request timed out after 15 seconds.'; // Updated timeout message
+          lastError = 'Request timed out after 15 seconds.';
         }
         console.log(`[${framework}] Server not ready yet (Full error: ${lastError}), retrying in ${retryDelay/1000}s...`);
       }
@@ -243,7 +257,7 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     }
     
     if (!isServerReady) {
-      const finalError = serverEarlyExitError ? `Server process failed: ${serverEarlyExitError}` : `Server failed to start or respond at ${url} within the maximum retry period. Last error: ${lastError}`;
+      const finalError = serverEarlyExitError ? `Server process failed: ${serverEarlyExitError}` : `Server failed to start or respond at ${fetchUrl} within the maximum retry period. Last error: ${lastError}`;
       return { success: false, error: finalError };
     }
     
@@ -251,21 +265,18 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
   } catch (error: any) {
     return { success: false, error: error.message };
   } finally {
-    // Kill server process if it was started
     if (serverProcess && serverProcess.pid && !serverProcess.killed) {
       const pid = serverProcess.pid;
       console.log(`[${framework}] Attempting to kill server process tree (PID: ${pid})...`);
       try {
-        // Using negative PID to kill the process group, requires detached: true
-        // This is more effective for processes that spawn children (like npm scripts)
         process.kill(-pid, 'SIGTERM'); 
         console.log(`[${framework}] Sent SIGTERM to process group ${pid}.`);
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for graceful shutdown
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         if (!serverProcess.killed) {
           console.warn(`[${framework}] Process group ${pid} did not terminate with SIGTERM, trying SIGKILL.`);
           process.kill(-pid, 'SIGKILL');
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for SIGKILL to take effect
+          await new Promise(resolve => setTimeout(resolve, 1000));
           if (!serverProcess.killed) {
              console.error(`[${framework}] Failed to kill process group ${pid} with SIGKILL.`);
           } else {
@@ -275,7 +286,6 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
           console.log(`[${framework}] Process group ${pid} terminated successfully.`);
         }
       } catch (killError: any) {
-        // Fallback for individual process kill if group kill fails or PID is not group leader
         console.warn(`[${framework}] Failed to kill process group ${pid} (may not be group leader or process already exited): ${killError.message}. Attempting individual kill.`);
         try {
             serverProcess.kill('SIGTERM');
@@ -316,7 +326,6 @@ async function main() {
   const outputPath = path.join(logsDir, outputFilename);
 
   try {
-    // Copy fixtures to temp directories and run tests in parallel
     await Promise.all(selectedFixtures.map(async ({ framework, fixtureDir }) => {
       const tempDir = path.join(os.tmpdir(), `cliseo-test-${framework}-${randomUUID()}`);
       tempDirs.push(tempDir);
@@ -324,13 +333,10 @@ async function main() {
       console.log(`[${framework}] Copying fixture source files to: ${tempDir}`);
       await copyDirRecursive(fixtureDir, tempDir);
 
-      // Install dependencies
       console.log(`[${framework}] Installing dependencies in ${tempDir}...`);
-      // Install fixture dependencies AND the local cliseo tool
       const cliseoProjectRoot = path.resolve(__dirname, '..');
       await runCommand(`npm install && npm install file:${cliseoProjectRoot}`, tempDir);
 
-      // Verify critical files for Angular after copying the entire fixture
       if (framework === 'angular') {
         const criticalFiles = [
           'tsconfig.json',
@@ -346,29 +352,23 @@ async function main() {
           try {
             await fs.access(filePath);
           } catch (error) {
-            // Ensure a more specific error is thrown here
             throw new Error(`Critical file missing after copy for ${framework} in ${tempDir}: ${file}. Error: ${error}`);
           }
         }
       }
       
-      // Run pre-scan
       console.log(`[${framework}] Running pre-scan...`);
       const preScan = await runCliseoScan(tempDir);
       
-      // Run optimization
       console.log(`[${framework}] Running optimization...`);
       await runCliseoOptimize(framework, tempDir);
       
-      // Run post-scan
       console.log(`[${framework}] Running post-scan...`);
       const postScan = await runCliseoScan(tempDir);
       
-      // Run build
       console.log(`[${framework}] Running build...`);
       const buildResult = await runBuild(framework, tempDir);
       
-      // Check functionality
       console.log(`[${framework}] Checking functionality...`);
       const functionality = await checkFunctionality(framework, tempDir);
       
@@ -384,26 +384,21 @@ async function main() {
       });
     }));
     
-    // --- Generate Log Output ---
     let logOutput = `cliseo Test Run: ${timestamp}\n\n`;
-
     logOutput += "--- Summary ---\n";
-  for (const result of results) {
+    for (const result of results) {
       logOutput += `\nFRAMEWORK: ${result.framework.toUpperCase()}\n`;
       logOutput += `  Build: ${result.build.success ? '✅ Success' : `❌ Failed: ${result.build.error || 'Unknown error'}`}\n`;
       logOutput += `  Functionality: ${result.functionality.success ? '✅ Success' : `❌ Failed: ${result.functionality.error || 'Unknown error'}`}\n`;
-
       const preScanIssueCount = result.preScan.reduce((sum: number, r: any) => sum + r.issues.length, 0);
       const postScanIssueCount = result.postScan.reduce((sum: number, r: any) => sum + r.issues.length, 0);
       const issuesFixed = preScanIssueCount - postScanIssueCount;
-
       logOutput += `  SEO Issues Fixed: ${issuesFixed} (Pre-scan: ${preScanIssueCount}, Post-scan: ${postScanIssueCount})\n`;
     }
 
     logOutput += "\n\n--- Detailed Scan Results ---";
     for (const result of results) {
       logOutput += `\n\n==== FRAMEWORK: ${result.framework.toUpperCase()} ====\n`;
-      
       logOutput += `\n  --- Pre-Scan Data ---\n`;
       if (result.preScan && result.preScan.length > 0) {
         for (const scanItem of result.preScan) {
@@ -424,7 +419,6 @@ async function main() {
       } else {
         logOutput += `  No pre-scan data available or no files scanned.\n\n`;
       }
-
       logOutput += `\n  --- Post-Scan Data ---\n`;
       if (result.postScan && result.postScan.length > 0) {
         for (const scanItem of result.postScan) {
@@ -448,21 +442,17 @@ async function main() {
       logOutput += `\n`;
     }
     
-    // Write results to text file
     await fs.writeFile(outputPath, logOutput);
     console.log(`Test results written to: ${outputPath}`);
     
-    // Print summary
     console.log('\nTest Summary:');
     for (const result of results) {
       console.log(`\n${result.framework.toUpperCase()}:`);
       console.log(`  Build: ${result.build.success ? '✅' : '❌'}`);
       console.log(`  Functionality: ${result.functionality.success ? '✅' : '❌'}`);
-
       const preScanIssueCount = result.preScan.reduce((sum: number, r: any) => sum + r.issues.length, 0);
       const postScanIssueCount = result.postScan.reduce((sum: number, r: any) => sum + r.issues.length, 0);
       const issuesFixed = preScanIssueCount - postScanIssueCount;
-
       console.log(`  SEO Issues Fixed: ${issuesFixed} (Pre: ${preScanIssueCount}, Post: ${postScanIssueCount})`);
     }
     
@@ -470,12 +460,9 @@ async function main() {
     console.error('Test failed:', error);
     process.exit(1);
   } finally {
-    // Cleanup temp directories
     for (const tempDir of tempDirs) {
       try {
-        // Wait a bit before cleanup to ensure processes are terminated
         await new Promise(resolve => setTimeout(resolve, 5000));
-        // Use a more robust cleanup by removing contents first
         const entries = await fs.readdir(tempDir, { withFileTypes: true });
         for (const entry of entries) {
           const entryPath = path.join(tempDir, entry.name);

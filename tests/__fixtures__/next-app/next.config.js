@@ -18,8 +18,9 @@ const nextConfig = {
         ignored: [
           ...(config.watchOptions?.ignored || []),
           // Ignore specific /tmp subdirectories that cause EACCES errors
-          /\/tmp\/snap-private-tmp\//,
-          /\/tmp\/systemd-private-/,
+          // Use string glob patterns instead of RegExp literals
+          '/tmp/snap-private-tmp/**',
+          '/tmp/systemd-private-*/**',
         ],
       };
     }
