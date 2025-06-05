@@ -107,16 +107,13 @@ const basicSeoRules = {
  * @returns True if the file is a page component, false otherwise.
 */
 function isPageComponent(filePath: string): boolean {
-  console.error('Checking if file is a page component:', filePath);
   // Skip entry point files
   if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx') || filePath.endsWith('App.tsx')) {
-    console.error('Skipping entry point file:', filePath);
     return false;
   }
 
   // Skip files that don't export a component
   if (filePath.endsWith('vite-env.d.ts') || filePath.endsWith('.css')) {
-    console.error('Skipping non-component file:', filePath);
     return false;
   }
 
