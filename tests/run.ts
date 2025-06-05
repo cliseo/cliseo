@@ -166,7 +166,9 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
         env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' }
       });
     } else if (framework === 'next') {
-      serverProcess = exec(`npm run dev -- --port ${port}`, commandOptions);
+      // Force chokidar to use polling for Next.js to avoid EACCES errors on /tmp paths
+      console.log(`[${framework} Debug] Starting Next.js with CHOKIDAR_USEPOLLING=1`);
+      serverProcess = exec(`CHOKIDAR_USEPOLLING=1 npm run dev -- --port ${port}`, commandOptions);
     } else { // react
       serverProcess = exec(`npm run dev -- --port ${port}`, commandOptions);
     }
