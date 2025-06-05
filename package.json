@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:cli": "tsc -p tsconfig.cli.json",
+    "prepare": "npm run build:cli",
     "lint": "eslint .",
     "preview": "vite preview",
     "cli": "node dist/cli.js",
@@ -162,5 +163,11 @@
     "cliseo"
   ],
   "author": "Your Name",
-  "license": "AGPL-3.0"
+  "license": "AGPL-3.0",
+  "files": [
+    "dist/cli/**",
+    "dist/**",
+    "README.md",
+    "LICENSE"
+  ]
 }
