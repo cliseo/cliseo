@@ -51,10 +51,6 @@ Options:
 ### `cliseo optimize`
 Automatically applies SEO fixes to your codebase.
 
-Options:
-- `--dry-run`: Preview changes without applying
-- `--yes`: Skip confirmation prompts
-
 ## 📄 License
 
 [AGPL-3.0](LICENSE)
