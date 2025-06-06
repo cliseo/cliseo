@@ -67,10 +67,7 @@ cliseo scan --ai`;
 cliseo optimize --ai
 
 # Preview changes without applying
-cliseo optimize --ai --dry-run
-
-# Create a PR with fixes
-cliseo optimize --ai --git-pr`;
+cliseo optimize --ai --dry-run`;
 
   const configExample = `{
   "ai": {

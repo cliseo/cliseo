@@ -34,11 +34,9 @@ program
   .action(scanCommand);
 
 program
-  .command('optimize')
+  .command('optimize [directory]')
   .description('Apply SEO optimizations to codebase')
   .option('--ai', 'Use AI for generating improvements')
-  .option('--model <model>', 'Select AI model (gpt-4, gpt-3.5)', 'gpt-4')
-  .option('--git-pr', 'Create a Git PR with changes')
   .option('--dry-run', 'Preview changes without applying')
   .option('--yes', 'Skip confirmation prompts')
   .action(optimizeCommand);

@@ -10,6 +10,9 @@ import path from 'path';
 import { optimizeReactComponents } from './optimize-react.js';
 import { optimizeAngularComponents } from './optimize-angular.js';
 import { optimizeNextComponents } from './optimize-next.js';
+import { ProjectAnalyzer } from '../../ai/src/services/analysis/project-analyzer.js';
+import inquirer from 'inquirer';
+import { execSync } from 'child_process';
 
 /**
  * Finds the project root directory
@@ -213,10 +216,32 @@ async function addImagesAltAttributes() {
 /**
  * * Main function to optimize SEO for the project.
  */
-export async function optimizeCommand() {
-  const spinner = ora('Preparing SEO files...').start();
+export async function optimizeCommand(directory: string | undefined, options: { ai: boolean }) {
+  const dir = resolve(directory || '.');
+  const spinner = ora('Starting SEO optimization...').start();
+  let aiAnalysisResult = null;
 
   try {
+    // --- AI Analysis Step (if enabled) ---
+    if (options.ai) {
+      spinner.text = '🤖 AI mode enabled. Analyzing project...';
+      try {
+        const analyzer = new ProjectAnalyzer();
+        aiAnalysisResult = await analyzer.analyzeProject(dir);
+        spinner.succeed(chalk.green('✨ AI Analysis Complete!'));
+        console.log(chalk.cyan(`   - Project: ${aiAnalysisResult.projectName}`));
+        console.log(chalk.cyan(`   - Desc: ${aiAnalysisResult.description.substring(0, 80)}...`));
+        console.log('');
+      } catch (error) {
+        spinner.fail(chalk.red('❌ AI analysis failed.'));
+        if (error instanceof Error) console.error(chalk.red(error.message));
+        return; 
+      }
+    }
+
+    // --- Standard SEO Optimizations ---
+    spinner.start('Running standard SEO optimizations...');
+    
     spinner.text = 'Checking SEO files...';
     const { robotsCreated, sitemapCreated } = await ensureSeoFiles();
 
@@ -280,14 +305,58 @@ export async function optimizeCommand() {
       }
     }
 
-    console.log(chalk.green('\n✔ SEO optimization complete!\n'));
+    spinner.succeed(chalk.bold.green('\n✅ SEO optimization complete!'));
+
+    // Check if we're in a git repository
+    try {
+      execSync('git rev-parse --is-inside-work-tree', { stdio: 'ignore' });
+      
+      // Ask about creating a PR
+      const { createPr } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'createPr',
+          message: 'Would you like to create a Pull Request with these changes?',
+          default: false
+        }
+      ]);
+
+      if (createPr) {
+        spinner.start('Creating Pull Request...');
+        try {
+          // Create a new branch
+          const branchName = `seo-optimization-${Date.now()}`;
+          execSync(`git checkout -b ${branchName}`);
+
+          // Add and commit changes
+          execSync('git add .');
+          execSync('git commit -m "chore: SEO optimizations"');
+
+          // Push branch and create PR
+          execSync(`git push -u origin ${branchName}`);
+          
+          // Get the current repository URL
+          const repoUrl = execSync('git config --get remote.origin.url').toString().trim();
+          const prUrl = repoUrl.replace('.git', `/compare/${branchName}`);
+          
+          spinner.succeed(chalk.green('Pull Request created!'));
+          console.log(chalk.cyan(`PR URL: ${prUrl}`));
+        } catch (error) {
+          spinner.fail(chalk.red('Failed to create Pull Request.'));
+          console.error(error);
+        }
+      }
+    } catch (error) {
+      // Not in a git repository, skip PR creation
+    }
+
     console.log(chalk.magentaBright('Make sure to update the URLs in sitemap.xml to match your site.'));
     console.log(chalk.magentaBright('Ensure to update modified files with your actual content.'));
     console.log(chalk.blue('For more information, visit: https://cliseo.com/seo-guide'));
     console.log(chalk.whiteBright('Happy optimizing!\n\n'));
   } catch (error) {
-    spinner.fail('SEO file generation failed!\n\n');
-    console.error(error);
+    spinner.fail(chalk.red('\n❌ An unexpected error occurred during optimization.'));
+    if (error instanceof Error) console.error(chalk.red(error.message));
     process.exit(1);
   }
 }

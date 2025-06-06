@@ -65,12 +65,13 @@ export default function Docs() {
           <p>Automatically applies SEO fixes to your codebase.</p>
           <ul className="list-disc pl-6 text-sm mb-2">
             <li><b>--ai</b>: Use AI for generating improvements</li>
-            <li><b>--model=&lt;model&gt;</b>: Select AI model (gpt-4, gpt-3.5)</li>
-            <li><b>--git-pr</b>: Create a Git PR with changes</li>
             <li><b>--dry-run</b>: Preview changes without applying</li>
             <li><b>--yes</b>: Skip confirmation prompts</li>
           </ul>
-          <CommandDisplay command="cliseo optimize --ai --model=gpt-4" />
+          <p className="text-sm text-gray-400 mb-2">
+            After optimization, if you're in a git repository, you'll be prompted to create a Pull Request with the changes.
+          </p>
+          <CommandDisplay command="cliseo optimize --ai" />
         </div>
 
         <h2 className="text-2xl font-semibold mt-10 mb-2">Configuration</h2>

@@ -426,42 +426,52 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
   return issues;
 }
 
-// async function performAiScan(filePath: string, openai: OpenAI): Promise<SeoIssue[]> {
-//   const content = await readFile(filePath, 'utf-8');
+async function performAiScan(filePath: string, openai: OpenAI): Promise<SeoIssue[]> {
+  const content = await readFile(filePath, 'utf-8');
+  const framework = detectFramework(findProjectRoot());
   
-//   try {
-//     const completion = await openai.chat.completions.create({
-//       model: "gpt-4",
-//       messages: [
-//         {
-//           role: "system",
-//           content: "You are an SEO expert. Analyze the HTML content and provide specific SEO improvements."
-//         },
-//         {
-//           role: "user",
-//           content: `Analyze this HTML for SEO issues and provide specific fixes:\n\n${content}`
-//         }
-//       ]
-//     });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are an SEO expert. Analyze the ${framework} code and provide specific SEO improvements. Focus on:
+1. Meta tags and title management
+2. Image optimization
+3. Semantic HTML structure
+4. Schema.org markup
+5. Accessibility
+6. Performance considerations
+7. Framework-specific best practices`
+        },
+        {
+          role: "user",
+          content: `Analyze this ${framework} code for SEO issues and provide specific fixes. Format each issue as a separate line starting with "ISSUE: ":\n\n${content}`
+        }
+      ]
+    });
 
-//     const analysis = completion.choices[0].message.content;
+    const analysis = completion.choices[0].message.content;
     
-//     // Parse AI response into structured issues
-//     // This is a simplified version - you'd want more robust parsing
-//     return analysis.split('\n')
-//       .filter(line => line.trim())
-//       .map(issue => ({
-//         type: 'ai-suggestion',
-//         message: issue,
-//         file: filePath,
-//         fix: issue
-//       }));
+    // Parse AI response into structured issues
+    return analysis.split('\n')
+      .filter(line => line.trim().startsWith('ISSUE: '))
+      .map(line => {
+        const message = line.replace('ISSUE: ', '').trim();
+        return {
+          type: 'ai-suggestion',
+          message,
+          file: filePath,
+          fix: message
+        };
+      });
 
-//   } catch (error) {
-//     console.error('Error during AI analysis:', error);
-//     return [];
-//   }
-// }
+  } catch (error) {
+    console.error('Error during AI analysis:', error);
+    return [];
+  }
+}
 
 /**
  * Main function to scan project for SEO issues.
@@ -475,14 +485,13 @@ export async function scanCommand(options: ScanOptions) {
   }).start();
   const config = await loadConfig();
   let results: ScanResult[] = [];
-  let framework = 'unknown'; // Default or detect appropriately
+  let framework = 'unknown';
   
   try {
-    // Simulate original logic structure for finding files and framework
     const files = await glob('**/*.{html,jsx,tsx,ts,js}', {
       ignore: ['node_modules/**', 'dist/**', 'build/**'],
     });
-    framework = detectFramework(findProjectRoot()); // Assuming detectFramework and findProjectRoot are defined
+    framework = detectFramework(findProjectRoot());
     
     const seoFileIssues = await checkRequiredSeoFiles();
     if (seoFileIssues.length > 0) {
@@ -492,27 +501,44 @@ export async function scanCommand(options: ScanOptions) {
       });
     }
 
-   for (const file of files) {
-    const basicIssues = await performBasicScan(file);
-    let frameworkIssues: SeoIssue[] = [];
-    if (framework === 'react') {
-      frameworkIssues = await scanReactComponent(file);
-    } else if (framework === 'angular') {
-      frameworkIssues = await scanAngularComponent(file); 
-    } else if (framework === 'next.js') { // Ensure this matches your actual framework key
-      frameworkIssues = await scanNextComponent(file);
+    // Initialize OpenAI if AI is enabled
+    let openai: OpenAI | undefined;
+    if (options.ai) {
+      if (!config.openaiApiKey) {
+        throw new Error('OpenAI API key not found. Please run `cliseo auth` first.');
+      }
+      openai = new OpenAI({ apiKey: config.openaiApiKey });
+      spinner.text = 'Running AI-powered deep analysis...';
     }
-    if (basicIssues.length > 0 || frameworkIssues.length > 0) {
-      results.push({
-        file,
-        issues: [...basicIssues, ...frameworkIssues],
-      });
+
+    for (const file of files) {
+      const basicIssues = await performBasicScan(file);
+      let frameworkIssues: SeoIssue[] = [];
+      
+      if (framework === 'react') {
+        frameworkIssues = await scanReactComponent(file);
+      } else if (framework === 'angular') {
+        frameworkIssues = await scanAngularComponent(file);
+      } else if (framework === 'next.js') {
+        frameworkIssues = await scanNextComponent(file);
+      }
+
+      // Perform AI analysis if enabled
+      let aiIssues: SeoIssue[] = [];
+      if (options.ai && openai) {
+        aiIssues = await performAiScan(file, openai);
+      }
+
+      if (basicIssues.length > 0 || frameworkIssues.length > 0 || aiIssues.length > 0) {
+        results.push({
+          file,
+          issues: [...basicIssues, ...frameworkIssues, ...aiIssues],
+        });
+      }
     }
-  }
-    // End of simulated scanning logic
 
     if (options.json) {
-      spinner.stop(); // Stop spinner before JSON output
+      spinner.stop();
       console.log(JSON.stringify(results, null, 2));
     } else {
       spinner.succeed('Scan complete!');
@@ -523,7 +549,7 @@ export async function scanCommand(options: ScanOptions) {
         if (result.issues.length > 0) {
           console.log(chalk.underline('\nFile:', result.file));
           result.issues.forEach(issue => {
-            const icon = issue.type === 'error' ? '❌' : '⚠️';
+            const icon = issue.type === 'error' ? '❌' : issue.type === 'ai-suggestion' ? '🤖' : '⚠️';
             console.log(`${icon} ${chalk.bold(issue.message)}`);
             console.log(`   ${chalk.gray('Fix:')} ${issue.fix}`);
             if (issue.element) {
@@ -541,9 +567,9 @@ export async function scanCommand(options: ScanOptions) {
 
   } catch (error) {
     if (!options.json) {
-    spinner.fail('Scan failed!');
+      spinner.fail('Scan failed!');
     }
-    console.error(error); // Log error to stderr
+    console.error(error);
     process.exit(1);
   }
 } 
