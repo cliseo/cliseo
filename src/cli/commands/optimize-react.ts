@@ -1,11 +1,11 @@
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import * as fs from 'fs/promises';
-import { existsSync } from 'fs';
 import path from 'path';
 import { glob } from 'glob';
 import * as babel from '@babel/core';
+import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 import prettier from 'prettier';
-import traverse, { NodePath } from '@babel/traverse';
 
 const helmetImportName = 'Helmet';
 
@@ -116,13 +116,28 @@ function isLikelyPageFile(filePath: string): boolean {
  * @param {string} [startDir=process.cwd()] - Directory to start search from
  * @returns {string} - Project root directory path
  */
-function findProjectRoot(startDir = process.cwd()) {
+function findProjectRoot(startDir = process.cwd()): string {
   let dir = path.resolve(startDir);
   while (dir !== path.dirname(dir)) {
     if (existsSync(path.join(dir, 'package.json'))) return dir;
     dir = path.dirname(dir);
   }
   return process.cwd();
+}
+
+/**
+ * Helper function to get the name of a JSX element (or nested member expression).
+ * 
+ * @param {t.JSXIdentifier | t.JSXMemberExpression} node - JSX node to extract name from
+ * @returns {string | null} - The extracted name or null
+ */
+function getJSXElementName(node: any): string | null {
+  if (!node) return null;
+  if (node.type === 'JSXIdentifier') return node.name;
+  if (node.type === 'JSXMemberExpression') {
+    return `${getJSXElementName(node.object)}.${getJSXElementName(node.property)}`;
+  }
+  return null;
 }
 
 /**
@@ -133,8 +148,7 @@ function findProjectRoot(startDir = process.cwd()) {
  * 
  * @param {string} file - Absolute path to the source file
  */
-async function transformFile(file) {
-
+async function transformFile(file: string): Promise<void> {
   const code = await fs.readFile(file, 'utf-8');
 
   const ast = babel.parseSync(code, {
@@ -150,6 +164,11 @@ async function transformFile(file) {
       ],
     ],
   });
+
+  if (!ast) {
+    console.error(`Cannot parse ${file}`);
+    return;
+  }
 
   let helmetImported = false;
   let modified = false;
@@ -180,7 +199,6 @@ async function transformFile(file) {
      * Handles standard function components (e.g. `function Home() { return (...) }`)
      */
     FunctionDeclaration(path) {
-
       if (modified) {
         return;
       }
@@ -198,8 +216,7 @@ async function transformFile(file) {
                 t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet'
               );
 
-            if (hasHelmet) {
-            } else {
+            if (!hasHelmet) {
               arg.children.unshift(helmetJSXElement);
               returnPath.stop();
               modified = true;
@@ -224,11 +241,10 @@ async function transformFile(file) {
         const func = path.node.init;
 
         if (func.body && t.isJSXElement(func.body)) {
-          const hasHelmet = func.body.openingElement.name.name === 'Helmet' || func.body.children.some(child =>
+          const hasHelmet = func.body.children.some(child =>
             t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet');
 
-          if (hasHelmet) {
-          } else {
+          if (!hasHelmet) {
             func.body.children.unshift(helmetJSXElement);
             modified = true;
           }
@@ -245,13 +261,10 @@ async function transformFile(file) {
                   t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet'
                 );
 
-                if (hasHelmet) {
-                } else {
+                if (!hasHelmet) {
                   arg.children.unshift(helmetJSXElement);
                   modified = true;
                   returnPath.stop();
-                  modified = true;
-
                 }
               }
             }
@@ -266,19 +279,17 @@ async function transformFile(file) {
     ClassDeclaration(path) {
       if (modified) return;
 
-
       const body = path.node.body.body;
       const renderMethod = body.find(
         method =>
           t.isClassMethod(method) &&
-          getJSXElementName(method.key) === 'render' &&
+          t.isIdentifier(method.key) && method.key.name === 'render' &&
           t.isBlockStatement(method.body)
       );
 
       if (renderMethod) {
-
         path.get('body').get('body').forEach(methodPath => {
-          if (methodPath.node.key.name === 'render') {
+          if (methodPath.isClassMethod() && t.isIdentifier(methodPath.node.key) && methodPath.node.key.name === 'render') {
             methodPath.traverse({
               ReturnStatement(returnPath) {
                 const arg = returnPath.node.argument;
@@ -289,14 +300,11 @@ async function transformFile(file) {
                   const hasHelmet = tagName === 'Helmet' || arg.children.some(child =>
                     t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet');
 
-                  if (hasHelmet) {
-                  } else {
+                  if (!hasHelmet) {
                     arg.children.unshift(helmetJSXElement);
                     modified = true;
                     returnPath.stop();
-                    modified = true;
                   }
-                } else {
                 }
               }
             });
@@ -304,6 +312,7 @@ async function transformFile(file) {
         });
       }
     },
+
     JSXElement(path) {
       const opening = path.node.openingElement;
       const tagName = getJSXElementName(opening.name);
@@ -311,7 +320,7 @@ async function transformFile(file) {
       if (tagName === 'img') {
         // Add alt attribute if missing
         const hasAlt = opening.attributes.some(attr => 
-          t.isJSXAttribute(attr) && attr.name.name === 'alt'
+          t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'alt'
         );
 
         if (!hasAlt) {
@@ -319,7 +328,6 @@ async function transformFile(file) {
             t.jsxAttribute(t.jsxIdentifier('alt'), t.stringLiteral('Image description'))
           );
           modified = true; 
-
         }
       }   
     },
@@ -328,22 +336,24 @@ async function transformFile(file) {
   if (modified) {
     console.log(` • Modifications made in file: ${file}, generating new code...`);
     const output = babel.transformFromAstSync(ast, code, {
-  plugins: ['@babel/plugin-syntax-jsx', '@babel/plugin-syntax-typescript'],
-  generatorOpts: { retainLines: true, compact: false },
-  });
+      plugins: ['@babel/plugin-syntax-jsx', '@babel/plugin-syntax-typescript'],
+      generatorOpts: { retainLines: true, compact: false },
+    });
 
-  const formatted = await prettier.format(output.code, {
-    parser: 'babel-ts', // or 'babel' if you're not using TypeScript
-    semi: true,
-    singleQuote: false,
-    jsxSingleQuote: false,
-    trailingComma: 'none',
-    printWidth: 80,
-    tabWidth: 2,
-    useTabs: false,
-  });
+    if (output && output.code) {
+      const formatted = await prettier.format(output.code, {
+        parser: 'babel-ts',
+        semi: true,
+        singleQuote: false,
+        jsxSingleQuote: false,
+        trailingComma: 'none',
+        printWidth: 80,
+        tabWidth: 2,
+        useTabs: false,
+      });
 
-  await fs.writeFile(file, formatted, 'utf-8');
+      await fs.writeFile(file, formatted, 'utf-8');
+    }
   }
 }
 
@@ -351,8 +361,8 @@ async function transformFile(file) {
  * Injects Helmet metadata into all relevant React page files in the project.
  * This skips files that don't appear to be top-level page components.
  */
-export async function optimizeReactComponents() {
-  const root = findProjectRoot();
+export async function optimizeReactComponents(targetDir?: string): Promise<void> {
+  const root = targetDir || findProjectRoot();
   const srcDir = path.join(root, 'src');
   const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: srcDir, absolute: true });
 
@@ -365,19 +375,4 @@ export async function optimizeReactComponents() {
       console.error(`Failed to transform ${file}:`, err);
     }
   }
-}
-
-/**
- * Helper function to get the name of a JSX element (or nested member expression).
- * 
- * @param {t.JSXIdentifier | t.JSXMemberExpression} node - JSX node to extract name from
- * @returns {string | null} - The extracted name or null
- */
-function getJSXElementName(node) {
-  if (!node) return null;
-  if (node.type === 'JSXIdentifier') return node.name;
-  if (node.type === 'JSXMemberExpression') {
-    return `${getJSXElementName(node.object)}.${getJSXElementName(node.property)}`;
-  }
-  return null;
-}
+} 

@@ -9,10 +9,14 @@ import fs from 'fs';
 import path from 'path';
 import { optimizeReactComponents } from './optimize-react.js';
 import { optimizeAngularComponents } from './optimize-angular.js';
-import { optimizeNextComponents } from './optimize-next.js';
+import { optimizeNextjsComponents } from './optimize-next.js';
 import { ProjectAnalyzer } from '../../ai/src/services/analysis/project-analyzer.js';
 import inquirer from 'inquirer';
 import { execSync } from 'child_process';
+interface ProjectAnalysis {
+  projectName: string;
+  description: string;
+}
 
 /**
  * Finds the project root directory
@@ -168,8 +172,9 @@ function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'ne
   const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
-  if ('@angular/core' in deps) return 'angular';
+  // Check Next.js BEFORE React since Next.js projects also have React as a dependency
   if ('next' in deps) return 'next.js';
+  if ('@angular/core' in deps) return 'angular';
   if ('react' in deps || 'react-dom' in deps) return 'react';
   if ('vue' in deps) return 'vue';
 
@@ -219,19 +224,23 @@ async function addImagesAltAttributes() {
 export async function optimizeCommand(directory: string | undefined, options: { ai: boolean }) {
   const dir = resolve(directory || '.');
   const spinner = ora('Starting SEO optimization...').start();
-  let aiAnalysisResult = null;
+  let aiAnalysisResult: ProjectAnalysis | null = null;
 
   try {
     // --- AI Analysis Step (if enabled) ---
     if (options.ai) {
       spinner.text = '🤖 AI mode enabled. Analyzing project...';
       try {
+        const { ProjectAnalyzer } = await import('../../ai/src/index.js');
         const analyzer = new ProjectAnalyzer();
         aiAnalysisResult = await analyzer.analyzeProject(dir);
-        spinner.succeed(chalk.green('✨ AI Analysis Complete!'));
-        console.log(chalk.cyan(`   - Project: ${aiAnalysisResult.projectName}`));
-        console.log(chalk.cyan(`   - Desc: ${aiAnalysisResult.description.substring(0, 80)}...`));
-        console.log('');
+        
+                  if (aiAnalysisResult) {
+            console.log(chalk.cyan(`   - Project: ${aiAnalysisResult.projectName}`));
+            console.log(chalk.cyan(`   - Desc: ${aiAnalysisResult.description.substring(0, 80)}...`));
+          }
+          spinner.succeed(chalk.green('✨ AI Analysis Complete!'));
+          console.log('');
       } catch (error) {
         spinner.fail(chalk.red('❌ AI analysis failed.'));
         if (error instanceof Error) console.error(chalk.red(error.message));
@@ -262,7 +271,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
     await addImagesAltAttributes();
     spinner.succeed('Tags added to HTML files!');
 
-    const framework = detectFramework(findProjectRoot());
+    const framework = detectFramework(dir);
     const frameWorkColor = framework === 'angular' ? chalk.red : framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
     console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
 
@@ -270,7 +279,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
     if (framework === 'react') {
       spinner.text = 'React detected but Helmet not found. Installing react-helmet...';
       try {
-        await optimizeReactComponents();
+        await optimizeReactComponents(dir);
         spinner.succeed('Injected react-helmet into React components!');
       } catch (err) {
         spinner.text = 'Failed to inject react-helmet.';
@@ -297,7 +306,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
     if (framework === 'next.js') {
       spinner.text = 'Next.js detected. Optimizing Next.js components...';
       try {
-        await optimizeNextComponents();
+        await optimizeNextjsComponents(dir);
         spinner.succeed('Next.js components optimized successfully!');
       } catch (err) {
         spinner.fail('Failed to optimize Next.js components.');

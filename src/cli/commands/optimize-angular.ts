@@ -1,4 +1,3 @@
-import * as fs from 'fs/promises';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { glob } from 'glob';
 import { parseDocument } from 'htmlparser2';
@@ -68,8 +67,7 @@ function updateNgModuleImports(componentArg: t.ObjectExpression) {
  * 
  * @param file - The path to the Angular HTML file to optimize.
  */
-export async function optimizeAngularImages(file) {
-
+export async function optimizeAngularImages(file: string) {
   console.log(`Processing ${file}...`);
   const original = readFileSync(file, 'utf8');
   const dom = parseDocument(original);
@@ -88,12 +86,13 @@ export async function optimizeAngularImages(file) {
       elem.attribs['[src]'] = `'${src}'`;
       updated = true;
     }
+    return false; // Always return boolean
   }, dom.children);
 
   // TS file variables
-  let ast = null;
+  let ast: babel.ParseResult<t.File> | null = null;
   let tsUpdated = false;
-  let tsFile = null;
+  let tsFile: string | null = null;
 
   if (updated) {
     // Write updated HTML
@@ -112,6 +111,12 @@ export async function optimizeAngularImages(file) {
           ['@babel/plugin-proposal-decorators', { legacy: true }],
         ],
       });
+      
+      if (!ast) {
+        console.error(`Cannot parse ${tsFile}`);
+        return;
+      }
+
       traverse(ast, {
         Program(path) {
           const hasNgOptimizedImageImport = path.node.body.some(
@@ -163,7 +168,8 @@ export async function optimizeAngularImages(file) {
       });
     }
   }
-  if (tsUpdated) { 
+  
+  if (tsUpdated && ast && tsFile) { 
     const updatedCode = generate(ast, {
       retainLines: true,
       quotes: 'single',
@@ -190,273 +196,277 @@ export async function optimizeAngularImages(file) {
  * 
  * @param file - The path to the Angular component file to transform.
  */
-async function transformAngularComponents(file) {
+async function transformAngularComponents(file: string) {
   console.log(`Processing ${file}...`);
   const code = readFileSync(file, 'utf-8');
-    const ast = babel.parseSync(code, {
-      sourceType: 'module',
-      plugins: [
-        '@babel/plugin-syntax-jsx',
-        ['@babel/plugin-syntax-typescript', { isTSX: true, allExtensions: true }],
-        ['@babel/plugin-proposal-decorators', { legacy: true }],
-      ],
-    });
+  const ast = babel.parseSync(code, {
+    sourceType: 'module',
+    plugins: [
+      '@babel/plugin-syntax-jsx',
+      ['@babel/plugin-syntax-typescript', { isTSX: true, allExtensions: true }],
+      ['@babel/plugin-proposal-decorators', { legacy: true }],
+    ],
+  });
 
-    let updated = false;
-    let needsSeoLogic = false;
-
-    traverse(ast, {
-      ClassDeclaration(path) {
-        // Add implements OnInit if missing
-        const hasImplementsOnInit = path.node.implements?.some(
-          (impl) =>
-            t.isTSExpressionWithTypeArguments(impl) &&
-            t.isIdentifier(impl.expression, { name: 'OnInit' })
-        );
-
-        if (!hasImplementsOnInit) {
-          if (!path.node.implements) path.node.implements = [];
-          path.node.implements.push(
-            t.tsExpressionWithTypeArguments(t.identifier('OnInit'))
-          );
-          updated = true;
-          needsSeoLogic = true;
-        }
-
-        // Ensure constructor injects Title and Meta
-        let constructorFound = false;
-
-        path.get('body.body').forEach((childPath) => {
-          if (childPath.isClassMethod({ kind: 'constructor' })) {
-            constructorFound = true;
-
-            const hasParam = (name) =>
-              childPath.node.params.some(
-                (p) =>
-                  // constructor parameters could be TSParameterProperty or Identifier with typeAnnotation
-                  (t.isTSParameterProperty(p) && t.isIdentifier(p.parameter, { name })) ||
-                  (t.isIdentifier(p) && p.name === name)
-              );
-
-            const addParam = (name, typeName) => {
-              const id = t.identifier(name);
-              id.typeAnnotation = t.tsTypeAnnotation(
-                t.tsTypeReference(t.identifier(typeName))
-              );
-              const param = t.tsParameterProperty(id);
-              param.accessibility = 'private';
-              childPath.node.params.push(param);
-            };
-
-            if (!hasParam('titleService')) {
-              addParam('titleService', 'Title');
-              updated = true;
-              needsSeoLogic = true;
-            }
-
-            if (!hasParam('metaService')) {
-              addParam('metaService', 'Meta');
-              updated = true;
-              needsSeoLogic = true;
-            }
-          }
-        });
-
-        if (!constructorFound) {
-          // create constructor with injected Title and Meta
-          const titleId = t.identifier('titleService');
-          titleId.typeAnnotation = t.tsTypeAnnotation(
-            t.tsTypeReference(t.identifier('Title'))
-          );
-
-          const metaId = t.identifier('metaService');
-          metaId.typeAnnotation = t.tsTypeAnnotation(
-            t.tsTypeReference(t.identifier('Meta'))
-          );
-
-          const titleParam = t.tsParameterProperty(titleId);
-          titleParam.accessibility = 'private';
-
-          const metaParam = t.tsParameterProperty(metaId);
-          metaParam.accessibility = 'private';
-
-          const constructorMethod = t.classMethod(
-            'constructor',
-            t.identifier('constructor'),
-            [titleParam, metaParam],
-            t.blockStatement([])
-          );
-
-          path.node.body.body.unshift(constructorMethod);
-          updated = true;
-          needsSeoLogic = true;
-        }
-
-        // Add or update ngOnInit method
-        const ngOnInitMethod = path.node.body.body.find(
-          (m) => t.isClassMethod(m) && t.isIdentifier(m.key, { name: 'ngOnInit' })
-        );
-
-        const titleSetCall = t.expressionStatement(
-          t.callExpression(
-            t.memberExpression(
-              t.memberExpression(t.thisExpression(), t.identifier('titleService')),
-              t.identifier('setTitle')
-            ),
-            [t.stringLiteral('Example Page')]
-          )
-        );
-
-        const metaUpdateCall = t.expressionStatement(
-          t.callExpression(
-            t.memberExpression(
-              t.memberExpression(t.thisExpression(), t.identifier('metaService')),
-              t.identifier('updateTag')
-            ),
-            [
-              t.objectExpression([
-                t.objectProperty(t.identifier('name'), t.stringLiteral('description')),
-                t.objectProperty(t.identifier('content'), t.stringLiteral('This is an example page for SEO.')),
-              ]),
-            ]
-          )
-        );
-
-        if (ngOnInitMethod) {
-          const body = ngOnInitMethod.body.body;
-
-          const hasTitleCall = body.some(
-            (stmt) =>
-              t.isExpressionStatement(stmt) &&
-              t.isCallExpression(stmt.expression) &&
-              t.isMemberExpression(stmt.expression.callee) &&
-              t.isIdentifier(stmt.expression.callee.property, { name: 'setTitle' })
-          );
-
-          const hasMetaCall = body.some(
-            (stmt) =>
-              t.isExpressionStatement(stmt) &&
-              t.isCallExpression(stmt.expression) &&
-              t.isMemberExpression(stmt.expression.callee) &&
-              t.isIdentifier(stmt.expression.callee.property, { name: 'updateTag' })
-          );
-
-          if (!hasTitleCall) {
-            body.push(titleSetCall);
-            updated = true;
-            needsSeoLogic = true;
-          }
-          if (!hasMetaCall) {
-            body.push(metaUpdateCall);
-            updated = true;
-            needsSeoLogic = true;
-          }
-        } else {
-          const method = t.classMethod(
-            'method',
-            t.identifier('ngOnInit'),
-            [],
-            t.blockStatement([titleSetCall, metaUpdateCall])
-          );
-          method.returnType = t.tsTypeAnnotation(t.tsVoidKeyword());
-          path.node.body.body.push(method);
-          updated = true;
-          needsSeoLogic = true;
-        }
-      },
-
-      Program: {
-        exit(path) {
-          if (!needsSeoLogic) return;
-
-          // Add imports only if needed
-
-          // Import Title & Meta
-          const hasTitleMetaImport = path.node.body.some(
-            (n) =>
-              t.isImportDeclaration(n) &&
-              n.source.value === '@angular/platform-browser'
-          );
-
-          if (!hasTitleMetaImport) {
-            path.node.body.unshift(
-              t.importDeclaration(
-                [
-                  t.importSpecifier(t.identifier('Title'), t.identifier('Title')),
-                  t.importSpecifier(t.identifier('Meta'), t.identifier('Meta')),
-                ],
-                t.stringLiteral('@angular/platform-browser')
-              )
-            );
-            updated = true;
-          }
-
-          // Ensure OnInit is imported
-          const hasOnInitImport = path.node.body.some(
-            (n) =>
-              t.isImportDeclaration(n) &&
-              n.source.value === '@angular/core' &&
-              n.specifiers.some(
-                (s) =>
-                  t.isImportSpecifier(s) &&
-                  t.isIdentifier(s.imported, { name: 'OnInit' })
-              )
-          );
-
-          if (!hasOnInitImport) {
-            const angularCoreImport = path.node.body.find(
-              (n) =>
-                t.isImportDeclaration(n) && n.source.value === '@angular/core'
-            );
-
-            if (angularCoreImport && t.isImportDeclaration(angularCoreImport)) {
-              angularCoreImport.specifiers.push(
-                t.importSpecifier(t.identifier('OnInit'), t.identifier('OnInit'))
-              );
-            } else {
-              path.node.body.unshift(
-                t.importDeclaration(
-                  [t.importSpecifier(t.identifier('OnInit'), t.identifier('OnInit'))],
-                  t.stringLiteral('@angular/core')
-                )
-              );
-            }
-            updated = true;
-          }
-        },
-      },
-    });
-
-    if (updated) {
-      const output = generate(
-        ast,
-        {
-          retainLines: true,
-          compact: false,
-          minified: false,
-          decoratorsBeforeExport: true,
-          retainFunctionParens: true,
-          quotes: 'single',
-          jsonCompatibleStrings: true,
-          jsescOption: { minimal: true },
-        },
-        code
-      );
-        const formatted = await prettier.format(output.code, {
-          parser: 'babel-ts', // or 'babel' if you're not using TypeScript
-          semi: true,
-          singleQuote: false,
-          jsxSingleQuote: false,
-          trailingComma: 'none',
-          printWidth: 80,
-          tabWidth: 2,
-          useTabs: false,
-        });
-      writeFileSync(file, formatted, 'utf-8');
-      console.log(` • Updated ${file} with Angular SEO optimizations.`);
-    }
+  if (!ast) {
+    console.error(`Cannot parse ${file}`);
+    return;
   }
 
+  let updated = false;
+  let needsSeoLogic = false;
+
+  traverse(ast, {
+    ClassDeclaration(path) {
+      // Add implements OnInit if missing
+      const hasImplementsOnInit = path.node.implements?.some(
+        (impl) =>
+          t.isTSExpressionWithTypeArguments(impl) &&
+          t.isIdentifier(impl.expression, { name: 'OnInit' })
+      );
+
+      if (!hasImplementsOnInit) {
+        if (!path.node.implements) path.node.implements = [];
+        path.node.implements.push(
+          t.tsExpressionWithTypeArguments(t.identifier('OnInit'))
+        );
+        updated = true;
+        needsSeoLogic = true;
+      }
+
+      // Ensure constructor injects Title and Meta
+      let constructorFound = false;
+
+      path.get('body.body').forEach((childPath) => {
+        if (childPath.isClassMethod({ kind: 'constructor' })) {
+          constructorFound = true;
+
+          const hasParam = (name: string) =>
+            childPath.node.params.some(
+              (p) =>
+                // constructor parameters could be TSParameterProperty or Identifier with typeAnnotation
+                (t.isTSParameterProperty(p) && t.isIdentifier(p.parameter, { name })) ||
+                (t.isIdentifier(p) && p.name === name)
+            );
+
+          const addParam = (name: string, typeName: string) => {
+            const id = t.identifier(name);
+            id.typeAnnotation = t.tsTypeAnnotation(
+              t.tsTypeReference(t.identifier(typeName))
+            );
+            const param = t.tsParameterProperty(id);
+            param.accessibility = 'private';
+            childPath.node.params.push(param);
+          };
+
+          if (!hasParam('titleService')) {
+            addParam('titleService', 'Title');
+            updated = true;
+            needsSeoLogic = true;
+          }
+
+          if (!hasParam('metaService')) {
+            addParam('metaService', 'Meta');
+            updated = true;
+            needsSeoLogic = true;
+          }
+        }
+      });
+
+      if (!constructorFound) {
+        // create constructor with injected Title and Meta
+        const titleId = t.identifier('titleService');
+        titleId.typeAnnotation = t.tsTypeAnnotation(
+          t.tsTypeReference(t.identifier('Title'))
+        );
+
+        const metaId = t.identifier('metaService');
+        metaId.typeAnnotation = t.tsTypeAnnotation(
+          t.tsTypeReference(t.identifier('Meta'))
+        );
+
+        const titleParam = t.tsParameterProperty(titleId);
+        titleParam.accessibility = 'private';
+
+        const metaParam = t.tsParameterProperty(metaId);
+        metaParam.accessibility = 'private';
+
+        const constructorMethod = t.classMethod(
+          'constructor',
+          t.identifier('constructor'),
+          [titleParam, metaParam],
+          t.blockStatement([])
+        );
+
+        path.node.body.body.unshift(constructorMethod);
+        updated = true;
+        needsSeoLogic = true;
+      }
+
+      // Add or update ngOnInit method
+      const ngOnInitMethod = path.node.body.body.find(
+        (m) => t.isClassMethod(m) && t.isIdentifier(m.key, { name: 'ngOnInit' })
+      );
+
+      const titleSetCall = t.expressionStatement(
+        t.callExpression(
+          t.memberExpression(
+            t.memberExpression(t.thisExpression(), t.identifier('titleService')),
+            t.identifier('setTitle')
+          ),
+          [t.stringLiteral('Example Page')]
+        )
+      );
+
+      const metaUpdateCall = t.expressionStatement(
+        t.callExpression(
+          t.memberExpression(
+            t.memberExpression(t.thisExpression(), t.identifier('metaService')),
+            t.identifier('updateTag')
+          ),
+          [
+            t.objectExpression([
+              t.objectProperty(t.identifier('name'), t.stringLiteral('description')),
+              t.objectProperty(t.identifier('content'), t.stringLiteral('This is an example page for SEO.')),
+            ]),
+          ]
+        )
+      );
+
+      if (ngOnInitMethod) {
+        const body = ngOnInitMethod.body.body;
+
+        const hasTitleCall = body.some(
+          (stmt) =>
+            t.isExpressionStatement(stmt) &&
+            t.isCallExpression(stmt.expression) &&
+            t.isMemberExpression(stmt.expression.callee) &&
+            t.isIdentifier(stmt.expression.callee.property, { name: 'setTitle' })
+        );
+
+        const hasMetaCall = body.some(
+          (stmt) =>
+            t.isExpressionStatement(stmt) &&
+            t.isCallExpression(stmt.expression) &&
+            t.isMemberExpression(stmt.expression.callee) &&
+            t.isIdentifier(stmt.expression.callee.property, { name: 'updateTag' })
+        );
+
+        if (!hasTitleCall) {
+          body.push(titleSetCall);
+          updated = true;
+          needsSeoLogic = true;
+        }
+        if (!hasMetaCall) {
+          body.push(metaUpdateCall);
+          updated = true;
+          needsSeoLogic = true;
+        }
+      } else {
+        const method = t.classMethod(
+          'method',
+          t.identifier('ngOnInit'),
+          [],
+          t.blockStatement([titleSetCall, metaUpdateCall])
+        );
+        method.returnType = t.tsTypeAnnotation(t.tsVoidKeyword());
+        path.node.body.body.push(method);
+        updated = true;
+        needsSeoLogic = true;
+      }
+    },
+
+    Program: {
+      exit(path) {
+        if (!needsSeoLogic) return;
+
+        // Add imports only if needed
+
+        // Import Title & Meta
+        const hasTitleMetaImport = path.node.body.some(
+          (n) =>
+            t.isImportDeclaration(n) &&
+            n.source.value === '@angular/platform-browser'
+        );
+
+        if (!hasTitleMetaImport) {
+          path.node.body.unshift(
+            t.importDeclaration(
+              [
+                t.importSpecifier(t.identifier('Title'), t.identifier('Title')),
+                t.importSpecifier(t.identifier('Meta'), t.identifier('Meta')),
+              ],
+              t.stringLiteral('@angular/platform-browser')
+            )
+          );
+          updated = true;
+        }
+
+        // Ensure OnInit is imported
+        const hasOnInitImport = path.node.body.some(
+          (n) =>
+            t.isImportDeclaration(n) &&
+            n.source.value === '@angular/core' &&
+            n.specifiers.some(
+              (s) =>
+                t.isImportSpecifier(s) &&
+                t.isIdentifier(s.imported, { name: 'OnInit' })
+            )
+        );
+
+        if (!hasOnInitImport) {
+          const angularCoreImport = path.node.body.find(
+            (n) =>
+              t.isImportDeclaration(n) && n.source.value === '@angular/core'
+          );
+
+          if (angularCoreImport && t.isImportDeclaration(angularCoreImport)) {
+            angularCoreImport.specifiers.push(
+              t.importSpecifier(t.identifier('OnInit'), t.identifier('OnInit'))
+            );
+          } else {
+            path.node.body.unshift(
+              t.importDeclaration(
+                [t.importSpecifier(t.identifier('OnInit'), t.identifier('OnInit'))],
+                t.stringLiteral('@angular/core')
+              )
+            );
+          }
+          updated = true;
+        }
+      },
+    },
+  });
+
+  if (updated) {
+    const output = generate(
+      ast,
+      {
+        retainLines: true,
+        compact: false,
+        minified: false,
+        decoratorsBeforeExport: true,
+        retainFunctionParens: true,
+        quotes: 'single',
+        jsonCompatibleStrings: true,
+        jsescOption: { minimal: true },
+      },
+      code
+    );
+    const formatted = await prettier.format(output.code, {
+      parser: 'babel-ts',
+      semi: true,
+      singleQuote: false,
+      jsxSingleQuote: false,
+      trailingComma: 'none',
+      printWidth: 80,
+      tabWidth: 2,
+      useTabs: false,
+    });
+    writeFileSync(file, formatted, 'utf-8');
+    console.log(` • Updated ${file} with Angular SEO optimizations.`);
+  }
+}
 
 /**
  * Optimizes Angular project components by ensuring proper title tags, meta tags, and image optimizations.
