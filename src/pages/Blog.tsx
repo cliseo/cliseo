@@ -5,8 +5,8 @@ const Blog = () => (
   <div className="container mx-auto py-16 text-center">
     <Helmet>
       <title>cliseo blog</title>
-      <meta name="description" content="Default description for this page" />
-      <link rel="canonical" href="https://yourdomain.com/current-page" />
+      <meta name="description" content="blog for cliseo" />
+      <link rel="canonical" href="https://cliseo.com/blog" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

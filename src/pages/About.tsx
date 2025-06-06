@@ -31,7 +31,7 @@ const teamMembers: TeamMember[] = [
   {
     name: "Samuel Thorson",
     role: "Co-founder",
-    bio: "bio",
+    bio: "Software engineer in Minneapolis, MN",
     image: "/images/team/sam.jpeg",
     links: {
       website: "https://www.samuelthorson.com/",
@@ -95,7 +95,7 @@ const About = () => {
         <div className="max-w-3xl mx-auto text-center mb-20">
           <h1 className="text-4xl font-bold mb-6">About cliseo</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">
-            blah blah blah
+            Meet the team behind cliseo.
           </p>
         </div>
 
