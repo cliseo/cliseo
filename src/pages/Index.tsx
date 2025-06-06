@@ -297,10 +297,10 @@ cliseo optimize --ai --dry-run`;
             </p>
           </div>
           
-          <div className="flex gap-2 items-center justify-center mb-8 animate-fade-in-up">
+          {/* <div className="flex gap-2 items-center justify-center mb-8 animate-fade-in-up">
             <Badge type="license" value="AGPL/Commercial" />
             <Badge type="downloads" value="10k+" />
-          </div>
+          </div> */}
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <div className="border rounded-lg p-8 bg-card flex flex-col">
@@ -455,9 +455,9 @@ cliseo optimize --ai --dry-run`;
                   <a href="/" className="flex items-center gap-2">
                     <img src="/logo.png" alt="cliseo logo" className="h-8 w-auto" />
                   </a>
-                  <div className="flex gap-2 ml-2">
+                  {/* <div className="flex gap-2 ml-2">
                     <Badge type="license" value="AGPL/Commercial" />
-                  </div>
+                  </div> */}
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
                   2025 cliseo. cliseo is an abbreviation for command line interface + search engine optimization.
