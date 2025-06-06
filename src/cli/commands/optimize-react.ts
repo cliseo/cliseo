@@ -1,13 +1,11 @@
-import fs from 'fs/promises';
+import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { glob } from 'glob';
 import * as babel from '@babel/core';
 import * as t from '@babel/types';
 import prettier from 'prettier';
-import _traverse from "@babel/traverse";
-const traverse = _traverse.default;
-
+import traverse, { NodePath } from '@babel/traverse';
 
 const helmetImportName = 'Helmet';
 
@@ -351,7 +349,7 @@ async function transformFile(file) {
 
 /**
  * Injects Helmet metadata into all relevant React page files in the project.
- * This skips files that don’t appear to be top-level page components.
+ * This skips files that don't appear to be top-level page components.
  */
 export async function optimizeReactComponents() {
   const root = findProjectRoot();

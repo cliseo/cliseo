@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+import * as fs from 'fs/promises';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { glob } from 'glob';
 import { parseDocument } from 'htmlparser2';
@@ -6,12 +6,10 @@ import { DomUtils } from 'htmlparser2';
 import { default as render } from 'dom-serializer';
 import * as babel from '@babel/core';
 import * as t from '@babel/types';
-import { generate } from '@babel/generator';
-import _traverse, { NodePath } from '@babel/traverse';
+import generate from '@babel/generator';
+import traverse, { NodePath } from '@babel/traverse';
 import { JSDOM } from 'jsdom';
 import prettier from 'prettier';
-
-const traverse = _traverse.default;
 
 /**
  * Checks if the given component argument is a standalone Angular component.
@@ -458,7 +456,7 @@ async function transformAngularComponents(file) {
       console.log(` • Updated ${file} with Angular SEO optimizations.`);
     }
   }
-
+}
 
 /**
  * Optimizes Angular project components by ensuring proper title tags, meta tags, and image optimizations.

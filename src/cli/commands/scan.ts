@@ -10,10 +10,8 @@ import OpenAI from 'openai';
 import { loadConfig } from '../utils/config.js';
 import { ScanOptions, SeoIssue, ScanResult } from '../types/index.js';
 import fs from 'fs';
-import { file } from '@babel/types';
-import { is } from 'node_modules/cheerio/dist/esm/api/traversing.js';
-import { detectFramework, findProjectRoot } from '../utils/detect-framework.js';
-import { scanReactComponent } from '../frameworks/react.js';
+// import { detectFramework, findProjectRoot } from '../utils/detect-framework.js';
+// import { scanReactComponent } from '../frameworks/react.js';
 
 /** 
  * Find project root (where package.json is)

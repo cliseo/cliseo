@@ -1,4 +1,4 @@
-import { loadConfig } from '../utils/config';
+import { loadConfig } from '../utils/config.js';
 import chalk from 'chalk';
 
 export async function connectCommand(service: string, options: any) {

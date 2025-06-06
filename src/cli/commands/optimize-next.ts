@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { glob } from 'glob';
@@ -6,8 +6,7 @@ import chalk from 'chalk';
 import * as babel from '@babel/core';
 import * as t from '@babel/types';
 import prettier from 'prettier';
-import _traverse from "@babel/traverse";
-const traverse = _traverse.default;
+import traverse, { NodePath } from '@babel/traverse';
 
 /**
  * Recursively walks up the directory tree to find the project root.
