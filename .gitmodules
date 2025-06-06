@@ -1,0 +1,3 @@
+[submodule "src/ai"]
+	path = src/ai
+	url = https://github.com/cliseo/cliseo-ai
