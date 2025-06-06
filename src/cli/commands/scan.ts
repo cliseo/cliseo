@@ -107,16 +107,13 @@ const basicSeoRules = {
  * @returns True if the file is a page component, false otherwise.
 */
 function isPageComponent(filePath: string): boolean {
-  console.error('Checking if file is a page component:', filePath);
   // Skip entry point files
   if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx') || filePath.endsWith('App.tsx')) {
-    console.error('Skipping entry point file:', filePath);
     return false;
   }
 
   // Skip files that don't export a component
   if (filePath.endsWith('vite-env.d.ts') || filePath.endsWith('.css')) {
-    console.error('Skipping non-component file:', filePath);
     return false;
   }
 
@@ -187,6 +184,10 @@ async function checkSchemaMarkup(filePath: string): Promise<SeoIssue[]> {
  * @returns List of SEO issues found.
  */
 async function scanReactComponent(filePath: string): Promise<SeoIssue[]> {
+  //ignor entry point files
+  if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx') || filePath.endsWith('App.tsx')) {
+    return [];
+  }
   const issues: SeoIssue[] = [];
   const content = await readFile(filePath, 'utf-8');
   
@@ -232,23 +233,10 @@ async function scanReactComponent(filePath: string): Promise<SeoIssue[]> {
     }
   }
 
-  // Check for links without descriptive text
   const linkRegex = /<(?:Link|a)[^>]*>([^<]*)<\/(?:Link|a)>/g;
   while ((match = linkRegex.exec(content)) !== null) {
     const linkTag = match[0];
     const linkText = match[1].trim();
-
-    // Check for non-descriptive link text
-    const nonDescriptiveText = ['click here', 'here', 'read more', 'learn more', 'more', 'link'];
-    if (nonDescriptiveText.includes(linkText.toLowerCase())) {
-      issues.push({
-        type: 'warning',
-        message: 'Non-descriptive link text found',
-        file: filePath,
-        element: linkTag,
-        fix: 'Use descriptive text that explains where the link goes',
-      });
-    }
 
     // Check for empty links
     if (!linkText) {
@@ -350,11 +338,7 @@ async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
   const issues: SeoIssue[] = [];
   const content = await readFile(filePath, 'utf-8');
 
-  console.error('Scanning Next.js component:', filePath);
-
   if(!isPageComponent(filePath)) return issues;
-
-  console.error('Scanning Next.js component (after isPageComponent):', filePath);
 
   if (!content.includes('<Head>')) {
     console.error('No <Head> component found in:', filePath);

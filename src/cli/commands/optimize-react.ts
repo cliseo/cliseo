@@ -96,15 +96,18 @@ const helmetJSXElement = t.jsxElement(
 /**
  * Determines if a given file path is likely a React "page" component
  * based on common naming or folder conventions.
- * 
- * @param {string} filePath - Absolute or relative path to the file
- * @returns {boolean} - True if the file is likely a page component
+ * Skips main entry files like App.tsx.
  */
-function isLikelyPageFile(filePath) {
-  const normalized = filePath.replace(/\\/g, '/'); 
+function isLikelyPageFile(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, '/');
+  const base = path.basename(filePath);
+  // Exclude main entry files like App.tsx, App.jsx, index.tsx, index.jsx
+  if (/^(App|index)\.(jsx?|tsx?)$/.test(base)) {
+    return false;
+  }
   return (
-    /\/(pages|routes|views)\//.test(normalized) || 
-    /(Page|Screen|Route)\.(jsx?|tsx?)$/.test(path.basename(filePath))
+    /\/(pages|routes|views)\//.test(normalized) ||
+    /(Page|Screen|Route)\.(jsx?|tsx?)$/.test(base)
   );
 }
 
@@ -302,6 +305,25 @@ async function transformFile(file) {
           }
         });
       }
+    },
+    JSXElement(path) {
+      const opening = path.node.openingElement;
+      const tagName = getJSXElementName(opening.name);
+
+      if (tagName === 'img') {
+        // Add alt attribute if missing
+        const hasAlt = opening.attributes.some(attr => 
+          t.isJSXAttribute(attr) && attr.name.name === 'alt'
+        );
+
+        if (!hasAlt) {
+          opening.attributes.push(
+            t.jsxAttribute(t.jsxIdentifier('alt'), t.stringLiteral('Image description'))
+          );
+          modified = true; 
+
+        }
+      }   
     },
   });
 
