@@ -65,12 +65,12 @@ export default function Docs() {
           <p>Automatically applies SEO fixes to your codebase.</p>
           <ul className="list-disc pl-6 text-sm mb-2">
             <li><b>--ai</b>: Use AI for generating improvements</li>
-            <li><b>--dry-run</b>: Preview changes without applying</li>
-            <li><b>--yes</b>: Skip confirmation prompts</li>
+            {/* <li><b>--dry-run</b>: Preview changes without applying</li>
+            <li><b>--yes</b>: Skip confirmation prompts</li> */}
           </ul>
-          <p className="text-sm text-gray-400 mb-2">
+          {/* <p className="text-sm text-gray-400 mb-2">
             After optimization, if you're in a git repository, you'll be prompted to create a Pull Request with the changes.
-          </p>
+          </p> */}
           <CommandDisplay command="cliseo optimize --ai" />
         </div>
 
@@ -98,7 +98,7 @@ export default function Docs() {
 └── sitemap.xml`}
         </pre>
 
-        <h2 className="text-2xl font-semibold mt-10 mb-2">Authentication</h2>
+        {/* <h2 className="text-2xl font-semibold mt-10 mb-2">Authentication</h2>
         <ol className="list-decimal pl-6 mb-4">
           <li>Run <CommandDisplay command="cliseo auth" /></li>
           <li>Follow the prompts to complete OAuth flow</li>
@@ -107,13 +107,13 @@ export default function Docs() {
 
         <h2 className="text-2xl font-semibold mt-10 mb-2">Analytics</h2>
         <p>Connect to Google Search Console for SEO performance tracking:</p>
-        <CommandDisplay command="cliseo connect --google-search-console" />
+        <CommandDisplay command="cliseo connect --google-search-console" /> */}
 
         <h2 className="text-2xl font-semibold mt-10 mb-2">Support</h2>
         <ul className="list-disc pl-6 mb-4">
           <li>Documentation: <a href="https://docs.cliseo.dev" className="text-cyan-300 underline">https://docs.cliseo.dev</a></li>
           <li>Issues: <a href="https://github.com/yourusername/cliseo/issues" className="text-cyan-300 underline">GitHub Issues</a></li>
-          <li>Email: <a href="mailto:support@cliseo.dev" className="text-cyan-300 underline">support@cliseo.dev</a></li>
+          <li>Email: <a href="mailto:support@cliseo.dev" className="text-cyan-300 underline">ryan@cliseo.dev</a></li>
         </ul>
       </div>
     </>

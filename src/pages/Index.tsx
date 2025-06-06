@@ -187,9 +187,6 @@ cliseo optimize --ai --dry-run`;
           <p className="text-2xl mb-6">
             SEO helps search engines understand your website's content. Sites that follow best practices are more likely to show up in search results, whether it's Google, Perplexity, Bing, or Brave. The higher you rank, the more traffic your site recieves.
           </p>
-          <blockquote className="border-l-4 border-primary pl-4 italic text-m text-muted-foreground">
-            "If you don't capture the clicks available in your niche, your competitors will" -Semrush
-          </blockquote>
         </motion.section>
 
         {/* Quickstart Section */}
@@ -278,7 +275,7 @@ cliseo optimize --ai --dry-run`;
           <div className="text-center mb-8">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Is My Site Compatible?</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              We support all major web frameworks including React, Angular, and Next.js. Check your site's compatibility below.
+              We support major web frameworks including React, Angular, and Next.js. Check your site's compatibility below.
             </p>
           </div>
           <CompatibilityChecker />
@@ -381,7 +378,10 @@ cliseo optimize --ai --dry-run`;
               <Button className="w-full">Subscribe Now</Button>
             </div>
             
-            <div className="border rounded-lg p-8 bg-card flex flex-col">
+            <div className="border rounded-lg p-8 bg-card flex flex-col opacity-50 pointer-events-none relative">
+              <div className="absolute top-0 right-0 bg-gray-700 text-white px-3 py-1 text-xs font-medium rounded-bl-lg rounded-tr-lg z-10">
+                Coming Soon
+              </div>
               <div className="mb-6">
                 <div className="text-muted-foreground text-sm mb-2">
                   <LayoutDashboard className="inline-block mr-1 h-4 w-4" />
@@ -415,7 +415,9 @@ cliseo optimize --ai --dry-run`;
                   Priority support
                 </li>
               </ul>
-              <Button variant="secondary" className="w-full">Join the Waitlist</Button>
+              <Button variant="secondary" className="w-full" disabled>
+                Join the Waitlist
+              </Button>
             </div>
           </div>
         </motion.section>
@@ -431,7 +433,7 @@ cliseo optimize --ai --dry-run`;
           <div className="max-w-4xl mx-auto bg-black/40 backdrop-blur-sm rounded-2xl p-10 border border-white/10 text-center shadow-[0_0_50px_-12px_rgba(255,255,255,0.15)] ring-1 ring-white/10">
             <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-[#33ff33] to-[#a4c2f4] bg-clip-text text-transparent">Ready to supercharge your SEO?</h2>
             <p className="text-xl mb-8 max-w-2xl mx-auto text-gray-300">
-              Join thousands of developers optimizing their sites with cliseo
+              Join the growing community of developers using Cliseo to boost their site performance.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button size="lg" className="group" onClick={handleScrollToQuickstart}>
@@ -458,7 +460,7 @@ cliseo optimize --ai --dry-run`;
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  © 2025 cliseo. All rights reserved. cliseo is an abbreviation for command line interface + search engine optimization.
+                  2025 cliseo. cliseo is an abbreviation for command line interface + search engine optimization.
                 </p>
               </div>
               <div className="flex gap-8">
