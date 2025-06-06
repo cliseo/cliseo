@@ -347,11 +347,7 @@ async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
   const issues: SeoIssue[] = [];
   const content = await readFile(filePath, 'utf-8');
 
-  console.error('Scanning Next.js component:', filePath);
-
   if(!isPageComponent(filePath)) return issues;
-
-  console.error('Scanning Next.js component (after isPageComponent):', filePath);
 
   if (!content.includes('<Head>')) {
     console.error('No <Head> component found in:', filePath);
