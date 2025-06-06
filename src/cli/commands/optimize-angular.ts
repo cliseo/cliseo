@@ -456,7 +456,7 @@ async function transformAngularComponents(file) {
       console.log(` • Updated ${file} with Angular SEO optimizations.`);
     }
   }
-}
+
 
 /**
  * Optimizes Angular project components by ensuring proper title tags, meta tags, and image optimizations.
