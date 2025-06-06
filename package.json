@@ -9,16 +9,17 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:cli": "tsc -p tsconfig.cli.json",
+    "build:cli": "tsc -b tsconfig.cli.json",
     "prepare": "npm run build:cli",
     "lint": "eslint .",
     "preview": "vite preview",
     "cli": "node dist/cli.js",
-    "test": "tsx tests/run.ts",
+    "test": "jest",
     "test:e2e": "cd tests && ./run-tests.sh",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:ai": "ts-node src/ai/test-ai.ts"
   },
   "dependencies": {
     "@babel/plugin-proposal-decorators": "^7.27.1",
@@ -99,15 +100,15 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@babel/core": "^7.27.1",
-    "@babel/generator": "^7.27.1",
+    "@babel/core": "^7.24.9",
+    "@babel/generator": "^7.24.9",
     "@babel/parser": "^7.27.2",
     "@babel/plugin-syntax-jsx": "^7.27.1",
     "@babel/plugin-transform-react-jsx": "^7.27.1",
     "@babel/plugin-transform-typescript": "^7.27.1",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
-    "@babel/traverse": "^7.27.3",
+    "@babel/traverse": "^7.24.9",
     "@babel/types": "^7.27.1",
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
@@ -117,9 +118,9 @@
     "@types/cors": "^2.8.18",
     "@types/dotenv": "^8.2.3",
     "@types/express": "^5.0.2",
-    "@types/inquirer": "^9.0.8",
+    "@types/inquirer": "^9.0.7",
     "@types/jsdom": "^21.1.7",
-    "@types/node": "^22.15.26",
+    "@types/node": "^20.14.9",
     "@types/ora": "^3.1.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -147,7 +148,11 @@
     "typescript-eslint": "^8.0.1",
     "uuid": "^11.1.0",
     "vite": "^5.4.1",
-    "vitest": "^1.4.0"
+    "vitest": "^1.4.0",
+    "@types/babel__core": "^7.20.5",
+    "@types/babel__generator": "^7.6.8",
+    "@types/babel__traverse": "^7.20.6",
+    "@types/jest": "^29.5.12"
   },
   "engines": {
     "node": ">=18.0.0"

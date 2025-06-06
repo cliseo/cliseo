@@ -8,8 +8,13 @@ import * as babel from '@babel/core';
 import * as t from '@babel/types';
 import { generate } from '@babel/generator';
 import _traverse from '@babel/traverse';
-const traverse = _traverse.default;
+import { JSDOM } from 'jsdom';
+import { NodePath, File } from '@babel/types';
 import prettier from 'prettier';
+import { parse } from '@babel/parser';
+import traverse, { NodePath } from '@babel/traverse';
+
+const traverse = _traverse.default;
 
 /**
  * Checks if the given component argument is a standalone Angular component.
@@ -456,6 +461,92 @@ async function transformAngularComponents(file) {
       console.log(` • Updated ${file} with Angular SEO optimizations.`);
     }
   }
+}
+
+async function addTitleToComponent(file: string, title: string) {
+  try {
+    const code = await fs.readFile(file, 'utf8');
+    const ast = babel.parseSync(code, {
+      sourceType: 'module',
+      plugins: [
+        '@babel/plugin-syntax-jsx',
+        ['@babel/plugin-syntax-typescript', { isTSX: true, allExtensions: true }],
+        ['@babel/plugin-proposal-decorators', { legacy: true }],
+      ],
+    });
+
+    if (ast) {
+      traverse(ast, {
+        ClassDeclaration(path: NodePath<t.ClassDeclaration>) {
+          const className = path.node.id.name;
+
+          // ... existing code ...
+          const titleServiceImport = t.importDeclaration(
+            [t.importSpecifier(t.identifier('Title'), t.identifier('Title'))],
+            t.stringLiteral('@angular/platform-browser'),
+          );
+
+          (ast as File).program.body.unshift(titleServiceImport);
+
+          // ... existing code ...
+        },
+      });
+
+      const output = generate(ast, {}, code);
+      await fs.writeFile(file, output.code, 'utf8');
+    }
+  } catch (err) {
+    console.error(`Error processing file ${file}:`, err);
+  }
+}
+
+async function addMetaTagsToComponent(
+  file: string,
+  metaTags: { name: string; content: string }[],
+) {
+  try {
+    const code = await fs.readFile(file, 'utf8');
+    const ast = babel.parseSync(code, {
+      sourceType: 'module',
+      plugins: [
+        '@babel/plugin-syntax-jsx',
+        ['@babel/plugin-syntax-typescript', { isTSX: true, allExtensions: true }],
+        ['@babel/plugin-proposal-decorators', { legacy: true }],
+      ],
+    });
+
+    if (ast) {
+      traverse(ast, {
+        ClassDeclaration(path: NodePath<t.ClassDeclaration>) {
+          const className = path.node.id.name;
+          const classBody = path.node.body.body;
+
+          // ... existing code ...
+          const metaServiceImport = t.importDeclaration(
+            [t.importSpecifier(t.identifier('Meta'), t.identifier('Meta'))],
+            t.stringLiteral('@angular/platform-browser'),
+          );
+
+          (ast as File).program.body.unshift(metaServiceImport);
+
+          // ... existing code ...
+        },
+      });
+
+      const output = generate(ast, {}, code);
+      await fs.writeFile(file, output.code, 'utf8');
+    }
+  } catch (err) {
+    console.error(`Error processing file ${file}:`, err);
+  }
+}
+
+async function addCanonicalUrl(file: string, url: string) {
+  const dom = new JSDOM(await fs.readFile(file, 'utf-8'));
+  const { document } = dom.window;
+
+  // ... existing code ...
+}
 
 /**
  * Optimizes Angular project components by ensuring proper title tags, meta tags, and image optimizations.
@@ -479,6 +570,18 @@ export async function optimizeAngularComponents() {
     } catch (err) {
       console.error(`Error processing ${file}:`, err);
     }
+  }
+
+  const files = await glob('src/app/**/*.component.ts');
+
+  for (const file of files) {
+    // These are example values. In a real scenario, you'd generate
+    // these dynamically based on the component's content or other logic.
+    await addTitleToComponent(file, 'Default Title');
+    await addMetaTagsToComponent(file, [
+      { name: 'description', content: 'This is a default description.' },
+      { name: 'keywords', content: 'default, keywords' },
+    ]);
   }
 }
 

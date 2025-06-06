@@ -12,6 +12,8 @@ import { ScanOptions, SeoIssue, ScanResult } from '../types/index.js';
 import fs from 'fs';
 import { file } from '@babel/types';
 import { is } from 'node_modules/cheerio/dist/esm/api/traversing.js';
+import { detectFramework, findProjectRoot } from '../utils/detect-framework.js';
+import { scanReactComponent } from '../frameworks/react.js';
 
 /** 
  * Find project root (where package.json is)
@@ -454,6 +456,10 @@ async function performAiScan(filePath: string, openai: OpenAI): Promise<SeoIssue
 
     const analysis = completion.choices[0].message.content;
     
+    if (!analysis) {
+      return [];
+    }
+
     // Parse AI response into structured issues
     return analysis.split('\n')
       .filter(line => line.trim().startsWith('ISSUE: '))
