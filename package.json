@@ -18,8 +18,7 @@
     "test:e2e": "cd tests && ./run-tests.sh",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui",
-    "test:ai": "ts-node src/ai/test-ai.ts"
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@babel/plugin-proposal-decorators": "^7.27.1",

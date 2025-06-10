@@ -6,7 +6,5 @@
     "noImplicitAny": false
   },
   "include": ["src/cli/**/*.ts", "src/pages/**/*.ts"],
-  "references": [
-    { "path": "./src/ai" }
-  ]
+  "references": []
 } 
