@@ -10,9 +10,9 @@ import path from 'path';
 import { optimizeReactComponents } from './optimize-react.js';
 import { optimizeAngularComponents } from './optimize-angular.js';
 import { optimizeNextjsComponents } from './optimize-next.js';
-import { ProjectAnalyzer } from '../../ai/src/services/analysis/project-analyzer.js';
 import inquirer from 'inquirer';
 import { execSync } from 'child_process';
+
 interface ProjectAnalysis {
   projectName: string;
   description: string;
@@ -224,31 +224,15 @@ async function addImagesAltAttributes() {
 export async function optimizeCommand(directory: string | undefined, options: { ai?: boolean; yes?: boolean; dryRun?: boolean }) {
   const dir = resolve(directory || '.');
   const spinner = ora('Starting SEO optimization...').start();
-  let aiAnalysisResult: ProjectAnalysis | null = null;
 
   try {
-    // --- AI Analysis Step (if enabled) ---
+    // Skip AI analysis since it's been removed
     if (options.ai) {
-      spinner.text = '🤖 AI mode enabled. Analyzing project...';
-      try {
-        const { ProjectAnalyzer } = await import('../../ai/src/index.js');
-        const analyzer = new ProjectAnalyzer();
-        aiAnalysisResult = await analyzer.analyzeProject(dir);
-        
-                  if (aiAnalysisResult) {
-            console.log(chalk.cyan(`   - Project: ${aiAnalysisResult.projectName}`));
-            console.log(chalk.cyan(`   - Desc: ${aiAnalysisResult.description.substring(0, 80)}...`));
-          }
-          spinner.succeed(chalk.green('✨ AI Analysis Complete!'));
-          console.log('');
-      } catch (error) {
-        spinner.fail(chalk.red('❌ AI analysis failed.'));
-        if (error instanceof Error) console.error(chalk.red(error.message));
-        return; 
-      }
+      spinner.warn(chalk.yellow('⚠️ AI analysis is currently disabled.'));
+      console.log('');
     }
 
-    // --- Standard SEO Optimizations ---
+    // Continue with the rest of the optimization...
     spinner.start('Running standard SEO optimizations...');
     
     spinner.text = 'Checking SEO files...';
