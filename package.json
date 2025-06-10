@@ -115,10 +115,14 @@
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
+    "@types/babel__core": "^7.20.5",
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.20.7",
     "@types/cors": "^2.8.18",
     "@types/dotenv": "^8.2.3",
     "@types/express": "^5.0.2",
     "@types/inquirer": "^9.0.7",
+    "@types/jest": "^29.5.12",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^20.14.9",
     "@types/ora": "^3.1.0",
@@ -148,11 +152,7 @@
     "typescript-eslint": "^8.0.1",
     "uuid": "^11.1.0",
     "vite": "^5.4.1",
-    "vitest": "^1.4.0",
-    "@types/babel__core": "^7.20.5",
-    "@types/babel__generator": "^7.6.8",
-    "@types/babel__traverse": "^7.20.6",
-    "@types/jest": "^29.5.12"
+    "vitest": "^1.4.0"
   },
   "engines": {
     "node": ">=18.0.0"

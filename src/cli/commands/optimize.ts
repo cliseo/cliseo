@@ -221,7 +221,7 @@ async function addImagesAltAttributes() {
 /**
  * * Main function to optimize SEO for the project.
  */
-export async function optimizeCommand(directory: string | undefined, options: { ai: boolean }) {
+export async function optimizeCommand(directory: string | undefined, options: { ai?: boolean; yes?: boolean; dryRun?: boolean }) {
   const dir = resolve(directory || '.');
   const spinner = ora('Starting SEO optimization...').start();
   let aiAnalysisResult: ProjectAnalysis | null = null;
@@ -316,47 +316,52 @@ export async function optimizeCommand(directory: string | undefined, options: { 
 
     spinner.succeed(chalk.bold.green('\n✅ SEO optimization complete!'));
 
-    // Check if we're in a git repository
-    try {
-      execSync('git rev-parse --is-inside-work-tree', { stdio: 'ignore' });
-      
-      // Ask about creating a PR
-      const { createPr } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'createPr',
-          message: 'Would you like to create a Pull Request with these changes?',
-          default: false
+    // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
+    const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
+
+    if (!skipPrompts) {
+      // Check if we're in a git repository
+      try {
+        execSync('git rev-parse --is-inside-work-tree', { stdio: 'ignore' });
+
+        // Ask about creating a PR
+        const { createPr } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'createPr',
+            message: 'Would you like to create a Pull Request with these changes?',
+            default: false
+          }
+        ]);
+
+        if (createPr) {
+          spinner.start('Creating Pull Request...');
+          try {
+            // Create a new branch
+            const branchName = `seo-optimization-${Date.now()}`;
+            execSync(`git checkout -b ${branchName}`);
+
+            // Add and commit changes
+            execSync('git add .');
+            execSync('git commit -m "chore: SEO optimizations"');
+
+            // Push branch and create PR
+            execSync(`git push -u origin ${branchName}`);
+
+            // Get the current repository URL
+            const repoUrl = execSync('git config --get remote.origin.url').toString().trim();
+            const prUrl = repoUrl.replace('.git', `/compare/${branchName}`);
+
+            spinner.succeed(chalk.green('Pull Request created!'));
+            console.log(chalk.cyan(`PR URL: ${prUrl}`));
+          } catch (error) {
+            spinner.fail(chalk.red('Failed to create Pull Request.'));
+            console.error(error);
+          }
         }
-      ]);
-
-      if (createPr) {
-        spinner.start('Creating Pull Request...');
-        try {
-          // Create a new branch
-          const branchName = `seo-optimization-${Date.now()}`;
-          execSync(`git checkout -b ${branchName}`);
-
-          // Add and commit changes
-          execSync('git add .');
-          execSync('git commit -m "chore: SEO optimizations"');
-
-          // Push branch and create PR
-          execSync(`git push -u origin ${branchName}`);
-          
-          // Get the current repository URL
-          const repoUrl = execSync('git config --get remote.origin.url').toString().trim();
-          const prUrl = repoUrl.replace('.git', `/compare/${branchName}`);
-          
-          spinner.succeed(chalk.green('Pull Request created!'));
-          console.log(chalk.cyan(`PR URL: ${prUrl}`));
-        } catch (error) {
-          spinner.fail(chalk.red('Failed to create Pull Request.'));
-          console.error(error);
-        }
+      } catch (error) {
+        // Not inside a git repository; silently skip PR creation
       }
-    } catch (error) {
-      // Not in a git repository, skip PR creation
     }
 
     console.log(chalk.magentaBright('Make sure to update the URLs in sitemap.xml to match your site.'));

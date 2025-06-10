@@ -173,6 +173,7 @@ async function transformFile(file: string): Promise<void> {
   let helmetImported = false;
   let modified = false;
 
+  // @ts-ignore – Babel traverse typing hiccup under certain module resolutions
   traverse(ast, {
     Program(path) {
       for (const node of path.node.body) {

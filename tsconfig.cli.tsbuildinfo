@@ -1,5 +1,1 @@
-<<<<<<< HEAD
 {"root":["./src/cli/cli.ts","./src/cli/commands/auth.ts","./src/cli/commands/connect.ts","./src/cli/commands/optimize-angular.ts","./src/cli/commands/optimize-next.ts","./src/cli/commands/optimize-react.ts","./src/cli/commands/optimize-vue.ts","./src/cli/commands/optimize.ts","./src/cli/commands/scan.ts","./src/cli/types/index.ts","./src/cli/utils/config.ts"],"version":"5.8.3"}
-=======
-{"root":["./src/cli/cli.ts","./src/cli/commands/auth.ts","./src/cli/commands/connect.ts","./src/cli/commands/optimize-angular.ts","./src/cli/commands/optimize-next.ts","./src/cli/commands/optimize-react.ts","./src/cli/commands/optimize-vue.ts","./src/cli/commands/optimize.ts","./src/cli/commands/scan.ts","./src/cli/commands/optimize-angular.ts, src/cli/commands/optimize-next.ts, src/cli/commands/optimize-react.ts","./src/cli/types/index.ts","./src/cli/utils/config.ts"],"errors":true,"version":"5.8.3"}
->>>>>>> bee1cc9249f6e8deb6636416808d7809eb7e2ec0

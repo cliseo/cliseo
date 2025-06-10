@@ -1,0 +1,29 @@
+cliseo Test Run: 06-09-2025 (21:20)
+
+--- Summary ---
+
+FRAMEWORK: NEXT
+  Build: ✅ Success
+  Functionality: ✅ Success
+  SEO Issues Fixed: 2 (Pre-scan: 2, Post-scan: 0)
+
+
+--- Detailed Scan Results ---
+
+==== FRAMEWORK: NEXT ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+
+  --- Post-Scan Data ---
+  No post-scan data available or no issues remaining.
+
+
