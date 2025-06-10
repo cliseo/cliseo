@@ -5,9 +5,7 @@ applications:
         preBuild:
           commands:
             - npm ci
-            # Configure Git to use the PAT stored in GH_PAT for all GitHub URLs
-            - git config --global credential.helper '!bash ./scripts/git-auth.sh'
-            # Now fetch sub-modules using the credential helper
+            - git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
             - git submodule update --init --recursive
         build:
           commands:
