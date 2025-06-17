@@ -10,6 +10,7 @@ import OpenAI from 'openai';
 import { loadConfig } from '../utils/config.js';
 import { ScanOptions, SeoIssue, ScanResult } from '../types/index.js';
 import fs from 'fs';
+import { authCommand } from './auth.js';
 // import { detectFramework, findProjectRoot } from '../utils/detect-framework.js';
 // import { scanReactComponent } from '../frameworks/react.js';
 
@@ -29,25 +30,47 @@ function findProjectRoot(startDir = process.cwd()): string {
 }
 
 /**
- * Scans project for framework type.
- * 
- * @param projectRoot - Path to project root directory
- * @returns Detected framework: 'angular', 'react', 'vue', or 'unknown'.
+ * Scans all package.json files in the project for framework dependencies.
+ * Returns the first framework found, or 'unknown' if none found.
  */
-function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'next.js' | 'unknown' {
-  const packageJsonPath = path.join(projectRoot, 'package.json');
-  if (!existsSync(packageJsonPath)) return 'unknown';
+async function detectFramework(projectRoot: string): Promise<'angular' | 'react' | 'vue' | 'next.js' | 'unknown'> {
+  // Find all package.json files, excluding node_modules and common build/test dirs
+  const packageJsonFiles = await glob('**/package.json', {
+    cwd: projectRoot,
+    ignore: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/.next/**',
+      '**/out/**',
+      '**/.git/**',
+      '**/coverage/**',
+      '**/test/**',
+      '**/tests/**',
+      '**/__tests__/**',
+      '**/__mocks__/**',
+      '**/vendor/**',
+      '**/public/**'
+    ],
+    absolute: true,
+    dot: true
+  });
 
-  const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-
-  if ('@angular/core' in deps) return 'angular';
-  if ('next' in deps) return 'next.js';
-  if ('react' in deps || 'react-dom' in deps) return 'react';
-  if ('vue' in deps) return 'vue';
-
+  for (const pkgPath of packageJsonFiles) {
+    try {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if ('@angular/core' in deps) return 'angular';
+      if ('next' in deps) return 'next.js';
+      if ('react' in deps || 'react-dom' in deps) return 'react';
+      if ('vue' in deps) return 'vue';
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }
   return 'unknown';
 }
+
 /**
  * Scans project for required SEO files (robots.txt, sitemap.xml).
  * 
@@ -372,7 +395,7 @@ async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
  */
 async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
 
-  const framework = detectFramework(findProjectRoot());
+  const framework = await detectFramework(findProjectRoot());
   // Skip HTML files for popular frameworks (we assume they handle SEO through components)
   if (framework != 'unknown') return [];
 
@@ -428,7 +451,7 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
 
 async function performAiScan(filePath: string, openai: OpenAI): Promise<SeoIssue[]> {
   const content = await readFile(filePath, 'utf-8');
-  const framework = detectFramework(findProjectRoot());
+  const framework = await detectFramework(findProjectRoot());
   
   try {
     const completion = await openai.chat.completions.create({
@@ -492,10 +515,72 @@ export async function scanCommand(options: ScanOptions) {
   let framework = 'unknown';
   
   try {
+    const root = findProjectRoot();
     const files = await glob('**/*.{html,jsx,tsx,ts,js}', {
-      ignore: ['node_modules/**', 'dist/**', 'build/**'],
+      cwd: root,
+      ignore: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/build/**',
+        '**/.next/**',
+        '**/out/**',
+        '**/.git/**',
+        '**/coverage/**',
+        '**/test/**',
+        '**/tests/**',
+        '**/__tests__/**',
+        '**/__mocks__/**',
+        '**/vendor/**',
+        '**/public/**'
+      ],
+      absolute: true,
+      dot: true
     });
-    framework = detectFramework(findProjectRoot());
+
+    // Filter out any files that still managed to get through (like nested node_modules)
+    const filteredFiles = files.filter(file => {
+      return !file.includes(`${path.sep}node_modules${path.sep}`) &&
+             !file.includes('/node_modules/') &&
+             !file.includes('node_modules\\') &&
+             !file.includes(`${path.sep}dist${path.sep}`) &&
+             !file.includes('/dist/') &&
+             !file.includes('dist\\') &&
+             !file.includes(`${path.sep}build${path.sep}`) &&
+             !file.includes('/build/') &&
+             !file.includes('build\\') &&
+             !file.includes(`${path.sep}.next${path.sep}`) &&
+             !file.includes('/.next/') &&
+             !file.includes('.next\\') &&
+             !file.includes(`${path.sep}out${path.sep}`) &&
+             !file.includes('/out/') &&
+             !file.includes('out\\') &&
+             !file.includes(`${path.sep}.git${path.sep}`) &&
+             !file.includes('/.git/') &&
+             !file.includes('.git\\') &&
+             !file.includes(`${path.sep}coverage${path.sep}`) &&
+             !file.includes('/coverage/') &&
+             !file.includes('coverage\\') &&
+             !file.includes(`${path.sep}test${path.sep}`) &&
+             !file.includes('/test/') &&
+             !file.includes('test\\') &&
+             !file.includes(`${path.sep}tests${path.sep}`) &&
+             !file.includes('/tests/') &&
+             !file.includes('tests\\') &&
+             !file.includes(`${path.sep}__tests__${path.sep}`) &&
+             !file.includes('/__tests__/') &&
+             !file.includes('__tests__\\') &&
+             !file.includes(`${path.sep}__mocks__${path.sep}`) &&
+             !file.includes('/__mocks__/') &&
+             !file.includes('__mocks__\\') &&
+             !file.includes(`${path.sep}vendor${path.sep}`) &&
+             !file.includes('/vendor/') &&
+             !file.includes('vendor\\') &&
+             !file.includes(`${path.sep}public${path.sep}`) &&
+             !file.includes('/public/') &&
+             !file.includes('public\\');
+    });
+
+    framework = await detectFramework(root);
     
     const seoFileIssues = await checkRequiredSeoFiles();
     if (seoFileIssues.length > 0) {
@@ -508,14 +593,26 @@ export async function scanCommand(options: ScanOptions) {
     // Initialize OpenAI if AI is enabled
     let openai: OpenAI | undefined;
     if (options.ai) {
+      // Check if user is authenticated
       if (!config.openaiApiKey) {
-        throw new Error('OpenAI API key not found. Please run `cliseo auth` first.');
+        spinner.stop();
+        console.log(chalk.yellow('\n⚠️  Authentication required for AI features'));
+        console.log(chalk.cyan('\nPlease log in to use AI-powered features:'));
+        await authCommand();
+        // Reload config after authentication
+        const newConfig = await loadConfig();
+        if (!newConfig.openaiApiKey) {
+          throw new Error('Authentication failed. Please try again.');
+        }
+        spinner.start('Running AI-powered deep analysis...');
+        openai = new OpenAI({ apiKey: newConfig.openaiApiKey });
+      } else {
+        openai = new OpenAI({ apiKey: config.openaiApiKey });
+        spinner.text = 'Running AI-powered deep analysis...';
       }
-      openai = new OpenAI({ apiKey: config.openaiApiKey });
-      spinner.text = 'Running AI-powered deep analysis...';
     }
 
-    for (const file of files) {
+    for (const file of filteredFiles) {
       const basicIssues = await performBasicScan(file);
       let frameworkIssues: SeoIssue[] = [];
       

@@ -3,9 +3,14 @@ import * as fs from 'fs/promises';
 import path from 'path';
 import { glob } from 'glob';
 import * as babel from '@babel/core';
-import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 import prettier from 'prettier';
+import jsxSyntax from '@babel/plugin-syntax-jsx';
+import typescriptSyntax from '@babel/plugin-syntax-typescript';
+import reactJsx from '@babel/plugin-transform-react-jsx';
+import typescriptTransform from '@babel/plugin-transform-typescript';
+import reactPreset from '@babel/preset-react';
+import typescriptPreset from '@babel/preset-typescript';
 
 const helmetImportName = 'Helmet';
 
@@ -149,32 +154,31 @@ function getJSXElementName(node: any): string | null {
  * @param {string} file - Absolute path to the source file
  */
 async function transformFile(file: string): Promise<void> {
-  const code = await fs.readFile(file, 'utf-8');
-
-  const ast = babel.parseSync(code, {
+  const source = await fs.readFile(file, 'utf-8');
+  const ast = babel.parse(source, {
     sourceType: 'module',
+    filename: file,
     plugins: [
-      '@babel/plugin-syntax-jsx',
-      [
-        '@babel/plugin-syntax-typescript',
-        {
-          isTSX: true,
-          allExtensions: true,
-        },
-      ],
+      [jsxSyntax, { allowNamespaces: true }],
+      [typescriptSyntax, { isTSX: true, allExtensions: true }],
+      reactJsx,
+      typescriptTransform
     ],
+    presets: [
+      [reactPreset, { runtime: 'automatic' }],
+      [typescriptPreset, { allExtensions: true, isTSX: true }]
+    ]
   });
 
   if (!ast) {
-    console.error(`Cannot parse ${file}`);
+    console.error(`[cliseo debug] Cannot parse ${file}`);
     return;
   }
 
   let helmetImported = false;
   let modified = false;
 
-  // @ts-ignore – Babel traverse typing hiccup under certain module resolutions
-  traverse(ast, {
+  babel.traverse(ast, {
     Program(path) {
       for (const node of path.node.body) {
         if (
@@ -335,9 +339,9 @@ async function transformFile(file: string): Promise<void> {
   });
 
   if (modified) {
-    console.log(` • Modifications made in file: ${file}, generating new code...`);
-    const output = babel.transformFromAstSync(ast, code, {
-      plugins: ['@babel/plugin-syntax-jsx', '@babel/plugin-syntax-typescript'],
+    console.log(`[cliseo debug] Modifications made in file: ${file}, writing changes...`);
+    const output = babel.transformFromAstSync(ast, source, {
+      configFile: true,
       generatorOpts: { retainLines: true, compact: false },
     });
 
@@ -355,25 +359,38 @@ async function transformFile(file: string): Promise<void> {
 
       await fs.writeFile(file, formatted, 'utf-8');
     }
+  } else {
+    console.log(`[cliseo debug] No modifications needed for file: ${file}`);
   }
+}
+
+async function findReactFiles(dir: string): Promise<string[]> {
+  const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: dir, absolute: true });
+  return files;
 }
 
 /**
  * Injects Helmet metadata into all relevant React page files in the project.
  * This skips files that don't appear to be top-level page components.
  */
-export async function optimizeReactComponents(targetDir?: string): Promise<void> {
-  const root = targetDir || findProjectRoot();
-  const srcDir = path.join(root, 'src');
-  const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: srcDir, absolute: true });
+export async function optimizeReactComponents(projectRoot: string): Promise<void> {
+  const srcDir = path.join(projectRoot, 'src');
+  const files = await findReactFiles(srcDir);
 
   for (const file of files) {
-    if (!isLikelyPageFile(file)) continue;
+    if (!isLikelyPageFile(file)) {
+      console.log(`Skipping (not a likely page file): ${file}`);
+      continue;
+    }
 
+    console.log(`Processing file: ${file}`);
     try {
       await transformFile(file);
-    } catch (err) {
-      console.error(`Failed to transform ${file}:`, err);
+      console.log(`Modifications made in file: ${file}, writing changes...`);
+    } catch (error) {
+      console.error(`Failed to transform ${file}: ${error}`);
     }
   }
+
+  console.log('React components optimized successfully!');
 } 

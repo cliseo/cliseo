@@ -129,55 +129,132 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
  */
 async function addMetaTagsToHtmlFiles() {
   const root = findProjectRoot();
-  const htmlFiles = await glob('**/*.html', { cwd: root, absolute: true });
+  const htmlFiles = await glob('**/*.html', {
+    cwd: root,
+    ignore: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/.next/**',
+      '**/out/**',
+      '**/.git/**',
+      '**/coverage/**',
+      '**/test/**',
+      '**/tests/**',
+      '**/__tests__/**',
+      '**/__mocks__/**',
+      '**/vendor/**',
+      '**/public/**'
+    ],
+    absolute: true,
+    dot: true
+  });
 
-  for(const file of htmlFiles) {
+  // Filter out any files that still managed to get through
+  const filteredFiles = htmlFiles.filter(file => {
+    return !file.includes(`${path.sep}node_modules${path.sep}`) &&
+           !file.includes('/node_modules/') &&
+           !file.includes('node_modules\\') &&
+           !file.includes(`${path.sep}dist${path.sep}`) &&
+           !file.includes('/dist/') &&
+           !file.includes('dist\\') &&
+           !file.includes(`${path.sep}build${path.sep}`) &&
+           !file.includes('/build/') &&
+           !file.includes('build\\') &&
+           !file.includes(`${path.sep}.next${path.sep}`) &&
+           !file.includes('/.next/') &&
+           !file.includes('.next\\') &&
+           !file.includes(`${path.sep}out${path.sep}`) &&
+           !file.includes('/out/') &&
+           !file.includes('out\\') &&
+           !file.includes(`${path.sep}.git${path.sep}`) &&
+           !file.includes('/.git/') &&
+           !file.includes('.git\\') &&
+           !file.includes(`${path.sep}coverage${path.sep}`) &&
+           !file.includes('/coverage/') &&
+           !file.includes('coverage\\') &&
+           !file.includes(`${path.sep}test${path.sep}`) &&
+           !file.includes('/test/') &&
+           !file.includes('test\\') &&
+           !file.includes(`${path.sep}tests${path.sep}`) &&
+           !file.includes('/tests/') &&
+           !file.includes('tests\\') &&
+           !file.includes(`${path.sep}__tests__${path.sep}`) &&
+           !file.includes('/__tests__/') &&
+           !file.includes('__tests__\\') &&
+           !file.includes(`${path.sep}__mocks__${path.sep}`) &&
+           !file.includes('/__mocks__/') &&
+           !file.includes('__mocks__\\') &&
+           !file.includes(`${path.sep}vendor${path.sep}`) &&
+           !file.includes('/vendor/') &&
+           !file.includes('vendor\\') &&
+           !file.includes(`${path.sep}public${path.sep}`) &&
+           !file.includes('/public/') &&
+           !file.includes('public\\');
+  });
+
+  for (const file of filteredFiles) {
     const content = await fs.promises.readFile(file, 'utf-8');
     const $ = cheerio.load(content);
-
-    const head = $('head');
-    if(head.length === 0) continue; 
-
-    if ($('meta[name="description"]').length === 0) {
-      head.append('<meta name="description" content="Your default description here">');
+    
+    // Add title if missing
+    if (!$('title').length) {
+      $('head').append('<title>Your Site Title</title>');
     }
-
-    if ($('meta[name="keywords"]').length === 0) {
-      head.append('\n<meta name="keywords" content="keyword1, keyword2, keyword3">');
+    
+    // Add viewport meta if missing
+    if (!$('meta[name="viewport"]').length) {
+      $('head').append('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
     }
-
-    if ($('meta[name="author"]').length === 0) {
-      head.append('\n<meta name="author" content="Your Name">');
+    
+    // Add description meta if missing
+    if (!$('meta[name="description"]').length) {
+      $('head').append('<meta name="description" content="Your site description">');
     }
-
-    if ($('link[rel="canonical"]').length === 0) {
-      head.append('\n<link rel="canonical" href="https://yourdomain.com/">');
-    }
-
+    
     await fs.promises.writeFile(file, $.html());
-
   }
 }
 
 /**
- * Scans project for framework type.
- * 
- * @param projectRoot - Path to project root directory
- * @returns Detected framework: 'angular', 'react', 'vue', or 'unknown'.
+ * Scans all package.json files in the project for framework dependencies.
+ * Returns the first framework found, or 'unknown' if none found.
  */
-function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'next.js' | 'unknown' {
-  const packageJsonPath = path.join(projectRoot, 'package.json');
-  if (!existsSync(packageJsonPath)) return 'unknown';
+async function detectFramework(projectRoot: string): Promise<'angular' | 'react' | 'vue' | 'next.js' | 'unknown'> {
+  // Find all package.json files, excluding node_modules and common build/test dirs
+  const packageJsonFiles = await glob('**/package.json', {
+    cwd: projectRoot,
+    ignore: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/.next/**',
+      '**/out/**',
+      '**/.git/**',
+      '**/coverage/**',
+      '**/test/**',
+      '**/tests/**',
+      '**/__tests__/**',
+      '**/__mocks__/**',
+      '**/vendor/**',
+      '**/public/**'
+    ],
+    absolute: true,
+    dot: true
+  });
 
-  const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-
-  // Check Next.js BEFORE React since Next.js projects also have React as a dependency
-  if ('next' in deps) return 'next.js';
-  if ('@angular/core' in deps) return 'angular';
-  if ('react' in deps || 'react-dom' in deps) return 'react';
-  if ('vue' in deps) return 'vue';
-
+  for (const pkgPath of packageJsonFiles) {
+    try {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if ('@angular/core' in deps) return 'angular';
+      if ('next' in deps) return 'next.js';
+      if ('react' in deps || 'react-dom' in deps) return 'react';
+      if ('vue' in deps) return 'vue';
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }
   return 'unknown';
 }
 
@@ -186,30 +263,86 @@ function detectFramework(projectRoot: string): 'angular' | 'react' | 'vue' | 'ne
  */
 async function addImagesAltAttributes() {
   const root = findProjectRoot();
-  const htmlFiles = await glob('**/*.html', { cwd: root, absolute: true });
+  const htmlFiles = await glob('**/*.html', {
+    cwd: root,
+    ignore: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/.next/**',
+      '**/out/**',
+      '**/.git/**',
+      '**/coverage/**',
+      '**/test/**',
+      '**/tests/**',
+      '**/__tests__/**',
+      '**/__mocks__/**',
+      '**/vendor/**',
+      '**/public/**'
+    ],
+    absolute: true,
+    dot: true
+  });
 
-  for (const file of htmlFiles) {
-    // read HTML file for images
+  // Filter out any files that still managed to get through
+  const filteredFiles = htmlFiles.filter(file => {
+    return !file.includes(`${path.sep}node_modules${path.sep}`) &&
+           !file.includes('/node_modules/') &&
+           !file.includes('node_modules\\') &&
+           !file.includes(`${path.sep}dist${path.sep}`) &&
+           !file.includes('/dist/') &&
+           !file.includes('dist\\') &&
+           !file.includes(`${path.sep}build${path.sep}`) &&
+           !file.includes('/build/') &&
+           !file.includes('build\\') &&
+           !file.includes(`${path.sep}.next${path.sep}`) &&
+           !file.includes('/.next/') &&
+           !file.includes('.next\\') &&
+           !file.includes(`${path.sep}out${path.sep}`) &&
+           !file.includes('/out/') &&
+           !file.includes('out\\') &&
+           !file.includes(`${path.sep}.git${path.sep}`) &&
+           !file.includes('/.git/') &&
+           !file.includes('.git\\') &&
+           !file.includes(`${path.sep}coverage${path.sep}`) &&
+           !file.includes('/coverage/') &&
+           !file.includes('coverage\\') &&
+           !file.includes(`${path.sep}test${path.sep}`) &&
+           !file.includes('/test/') &&
+           !file.includes('test\\') &&
+           !file.includes(`${path.sep}tests${path.sep}`) &&
+           !file.includes('/tests/') &&
+           !file.includes('tests\\') &&
+           !file.includes(`${path.sep}__tests__${path.sep}`) &&
+           !file.includes('/__tests__/') &&
+           !file.includes('__tests__\\') &&
+           !file.includes(`${path.sep}__mocks__${path.sep}`) &&
+           !file.includes('/__mocks__/') &&
+           !file.includes('__mocks__\\') &&
+           !file.includes(`${path.sep}vendor${path.sep}`) &&
+           !file.includes('/vendor/') &&
+           !file.includes('vendor\\') &&
+           !file.includes(`${path.sep}public${path.sep}`) &&
+           !file.includes('/public/') &&
+           !file.includes('public\\');
+  });
+
+  for (const file of filteredFiles) {
     const content = await fs.promises.readFile(file, 'utf-8');
     const $ = cheerio.load(content);
-
-    let modified = false;
-
-    const images = $('img');
-
-    for (const img of images.toArray()) {
-      // Check if alt attribute is missing
-      if (!$(img).attr('alt')) {
-        // Set a default alt text
-        $(img).attr('alt', 'Image description');
-        modified = true;
+    
+    $('img').each((_, element) => {
+      if (!$(element).attr('alt')) {
+        const src = $(element).attr('src') || '';
+        const alt = path.basename(src, path.extname(src))
+          .replace(/[-_]/g, ' ')
+          .replace(/([A-Z])/g, ' $1')
+          .trim();
+        $(element).attr('alt', alt);
       }
-      
-    }
-    if(modified) {
-        console.log(`Modified ${file}: Added alt attribute to image(s)`);
-        await fs.promises.writeFile(file, $.html());
-    }
+    });
+    
+    await fs.promises.writeFile(file, $.html());
   }
 }
 
@@ -255,25 +388,22 @@ export async function optimizeCommand(directory: string | undefined, options: { 
     await addImagesAltAttributes();
     spinner.succeed('Tags added to HTML files!');
 
-    const framework = detectFramework(dir);
+    const framework = await detectFramework(dir);
     const frameWorkColor = framework === 'angular' ? chalk.red : framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
     console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
 
-    // React optimizations
+    // Framework-specific optimizations
     if (framework === 'react') {
-      spinner.text = 'React detected but Helmet not found. Installing react-helmet...';
+      spinner.text = 'Optimizing React components...';
       try {
         await optimizeReactComponents(dir);
-        spinner.succeed('Injected react-helmet into React components!');
+        spinner.succeed('React components optimized successfully!');
       } catch (err) {
-        spinner.text = 'Failed to inject react-helmet.';
+        spinner.fail('Failed to optimize React components.');
         console.error(err);
       }
-    }
-
-    //Angular optimizations
-    if (framework === 'angular') {
-      spinner.text = 'Angular detected. Optimizing Angular components...';
+    } else if (framework === 'angular') {
+      spinner.text = 'Optimizing Angular components...';
       try {
         await optimizeAngularComponents();
         spinner.succeed('Angular components optimized successfully!');
@@ -281,14 +411,8 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         spinner.fail('Failed to optimize Angular components.');
         console.error(err);
       }
-    }
-
-    if (framework === 'vue') {
-      console.log(chalk.bgRedBright('cliseo does not currently support the Vue framework. \nWe recommend implementing @vueuse/head for SEO optimizations in Vue projects.'));
-    }
-
-    if (framework === 'next.js') {
-      spinner.text = 'Next.js detected. Optimizing Next.js components...';
+    } else if (framework === 'next.js') {
+      spinner.text = 'Optimizing Next.js components...';
       try {
         await optimizeNextjsComponents(dir);
         spinner.succeed('Next.js components optimized successfully!');
@@ -348,10 +472,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       }
     }
 
-    console.log(chalk.magentaBright('Make sure to update the URLs in sitemap.xml to match your site.'));
-    console.log(chalk.magentaBright('Ensure to update modified files with your actual content.'));
-    console.log(chalk.blue('For more information, visit: https://cliseo.com/seo-guide'));
-    console.log(chalk.whiteBright('Happy optimizing!\n\n'));
+    console.log(chalk.whiteBright('Done\n\n'));
   } catch (error) {
     spinner.fail(chalk.red('\n❌ An unexpected error occurred during optimization.'));
     if (error instanceof Error) console.error(chalk.red(error.message));
