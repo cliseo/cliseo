@@ -1,3 +1,4 @@
+<img height="80" src="https://cliseo.com/logo.png">
 # cliseo
 
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
