@@ -1,0 +1,156 @@
+cliseo Test Run: 06-20-2025 (00:40)
+
+--- Summary ---
+
+FRAMEWORK: REACT
+  Build: ✅ Success
+  Functionality: ✅ Success
+  SEO Issues Fixed: 0 (Pre-scan: 5, Post-scan: 5)
+
+FRAMEWORK: NEXT
+  Build: ✅ Success
+  Functionality: ✅ Success
+  SEO Issues Fixed: 0 (Pre-scan: 2, Post-scan: 2)
+
+FRAMEWORK: ANGULAR
+  Build: ✅ Success
+  Functionality: ✅ Success
+  SEO Issues Fixed: 0 (Pre-scan: 5, Post-scan: 5)
+
+
+--- Detailed Scan Results ---
+
+==== FRAMEWORK: REACT ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+  File: /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-react-5c83645a-4e00-4bf5-b9b8-d7da7c1e09cf/src/pages/Home.tsx
+    - Type: warning
+      Message: No meta tag management library found
+      Fix: Consider using react-helmet, next/head, or similar for managing meta tags
+
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+    - Type: warning
+      Message: Missing WebPage schema markup
+      Fix: Add basic WebPage schema.org markup
+
+
+  --- Post-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+  File: /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-react-5c83645a-4e00-4bf5-b9b8-d7da7c1e09cf/src/pages/Home.tsx
+    - Type: warning
+      Message: No meta tag management library found
+      Fix: Consider using react-helmet, next/head, or similar for managing meta tags
+
+    - Type: warning
+      Message: Image missing alt text
+      Element: <img src="/logo.png" />
+      Fix: Add descriptive alt text to the image
+
+    - Type: warning
+      Message: Missing WebPage schema markup
+      Fix: Add basic WebPage schema.org markup
+
+
+
+
+==== FRAMEWORK: NEXT ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+
+  --- Post-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+
+
+
+==== FRAMEWORK: ANGULAR ====
+
+  --- Pre-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+  File: /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-63b3eec1-88c0-485f-adb8-78485e082074/src/app/app.component.ts
+    - Type: warning
+      Message: No title and meta management found for app component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-63b3eec1-88c0-485f-adb8-78485e082074/src/app/pages/hero/hero.component.ts
+    - Type: warning
+      Message: No title and meta management found for standalone component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-63b3eec1-88c0-485f-adb8-78485e082074/src/app/pages/hero/hero.component.html
+    - Type: warning
+      Message: Image without ngOptimizedImage directive
+      Fix: Add ngOptimizedImage directive to optimize images for SEO
+
+
+  --- Post-Scan Data ---
+  File: SEO Files
+    - Type: error
+      Message: Missing robots.txt file
+      Fix: Run `cliseo optimize` to generate a robots.txt file with recommended settings
+
+    - Type: error
+      Message: Missing sitemap.xml file
+      Fix: Run `cliseo optimize` to generate a sitemap.xml file with your site structure
+
+  File: /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-63b3eec1-88c0-485f-adb8-78485e082074/src/app/app.component.ts
+    - Type: warning
+      Message: No title and meta management found for app component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-63b3eec1-88c0-485f-adb8-78485e082074/src/app/pages/hero/hero.component.ts
+    - Type: warning
+      Message: No title and meta management found for standalone component
+      Fix: Consider using @angular/platform-browser, to manage title and meta tags in standalone components
+
+  File: /private/var/folders/b7/3syr39bd24n_5m711ln6vz800000gn/T/cliseo-test-angular-63b3eec1-88c0-485f-adb8-78485e082074/src/app/pages/hero/hero.component.html
+    - Type: warning
+      Message: Image without ngOptimizedImage directive
+      Fix: Add ngOptimizedImage directive to optimize images for SEO
+
+
