@@ -36,15 +36,26 @@ function findProjectRoot(startDir = process.cwd()): string {
 /**
  * Ensures the existence of SEO files
  */
-async function ensureSeoFiles() {
+async function ensureSeoFiles(framework: string, projectRoot: string) {
   let robotsCreated = false;
   let sitemapCreated = false;
-  const root = findProjectRoot();
-  const robotsPath = join(root, 'robots.txt');
-  const sitemapPath = join(root, 'sitemap.xml');
+
+  // decide target directory based on framework
+  let targetDir = projectRoot;
+  if (framework === 'react' || framework === 'next.js') {
+    targetDir = join(projectRoot, 'public');
+  } else if (framework === 'angular') {
+    targetDir = join(projectRoot, 'src', 'assets');
+  }
+
+  // make sure directory exists
+  try { await fs.promises.mkdir(targetDir, { recursive: true }); } catch {}
+
+  const robotsPath = join(targetDir, 'robots.txt');
+  const sitemapPath = join(targetDir, 'sitemap.xml');
 
   // Enhanced robots.txt template
-  const robotsContent = `# robots.txt for ${root.split('/').pop() || 'your site'}
+  const robotsContent = `# robots.txt for ${projectRoot.split('/').pop() || 'your site'}
 
 # Allow all crawlers
 User-agent: *
@@ -107,93 +118,126 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
   </url>
 </urlset>`;
 
-  try {
-    await access(robotsPath);
-  } catch {
-    await writeFile(robotsPath, robotsContent);
-    robotsCreated = true;
-  }
+  try { await access(robotsPath); } catch { await writeFile(robotsPath, robotsContent); robotsCreated = true; }
+  try { await access(sitemapPath); } catch { await writeFile(sitemapPath, sitemapContent); sitemapCreated = true; }
 
-  try {
-    await access(sitemapPath);
-  } catch {
-    await writeFile(sitemapPath, sitemapContent);
-    sitemapCreated = true;
+  // special note for angular: remind user to include assets path
+  if (framework === 'angular' && sitemapCreated) {
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.log(chalk.yellow('ℹ️  Remember to ensure sitemap.xml is listed under assets in angular.json so it is copied to the build output.'));
+    }
   }
 
   return { robotsCreated, sitemapCreated };
 }
 
 /**
- * * Adds meta tags to HTML files in the project.
+ * Determines the pages directory for a given framework
  */
-async function addMetaTagsToHtmlFiles() {
-  const root = findProjectRoot();
-  const htmlFiles = await glob('**/*.html', {
-    cwd: root,
-    ignore: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/build/**',
-      '**/.next/**',
-      '**/out/**',
-      '**/.git/**',
-      '**/coverage/**',
-      '**/test/**',
-      '**/tests/**',
-      '**/__tests__/**',
-      '**/__mocks__/**',
-      '**/vendor/**',
-      '**/public/**'
-    ],
-    absolute: true,
-    dot: true
-  });
+function getPagesDirectory(projectRoot: string, framework: string): string[] {
+  const directories: string[] = [];
+  
+  switch (framework) {
+    case 'next.js':
+      // Check for both pages/ and app/ directories (Next.js supports both)
+      if (existsSync(join(projectRoot, 'pages'))) {
+        directories.push(join(projectRoot, 'pages'));
+      }
+      if (existsSync(join(projectRoot, 'app'))) {
+        directories.push(join(projectRoot, 'app'));
+      }
+      break;
+      
+    case 'react':
+      // Check for src/pages/ directory
+      if (existsSync(join(projectRoot, 'src', 'pages'))) {
+        directories.push(join(projectRoot, 'src', 'pages'));
+      }
+      break;
+      
+    case 'angular':
+      // Check for src/app/pages/ first, then fallback to src/app/
+      if (existsSync(join(projectRoot, 'src', 'app', 'pages'))) {
+        directories.push(join(projectRoot, 'src', 'app', 'pages'));
+      } else if (existsSync(join(projectRoot, 'src', 'app'))) {
+        directories.push(join(projectRoot, 'src', 'app'));
+      }
+      break;
+  }
+  
+  return directories;
+}
 
-  // Filter out any files that still managed to get through
-  const filteredFiles = htmlFiles.filter(file => {
-    return !file.includes(`${path.sep}node_modules${path.sep}`) &&
-           !file.includes('/node_modules/') &&
-           !file.includes('node_modules\\') &&
-           !file.includes(`${path.sep}dist${path.sep}`) &&
-           !file.includes('/dist/') &&
-           !file.includes('dist\\') &&
-           !file.includes(`${path.sep}build${path.sep}`) &&
-           !file.includes('/build/') &&
-           !file.includes('build\\') &&
-           !file.includes(`${path.sep}.next${path.sep}`) &&
-           !file.includes('/.next/') &&
-           !file.includes('.next\\') &&
-           !file.includes(`${path.sep}out${path.sep}`) &&
-           !file.includes('/out/') &&
-           !file.includes('out\\') &&
-           !file.includes(`${path.sep}.git${path.sep}`) &&
-           !file.includes('/.git/') &&
-           !file.includes('.git\\') &&
-           !file.includes(`${path.sep}coverage${path.sep}`) &&
-           !file.includes('/coverage/') &&
-           !file.includes('coverage\\') &&
-           !file.includes(`${path.sep}test${path.sep}`) &&
-           !file.includes('/test/') &&
-           !file.includes('test\\') &&
-           !file.includes(`${path.sep}tests${path.sep}`) &&
-           !file.includes('/tests/') &&
-           !file.includes('tests\\') &&
-           !file.includes(`${path.sep}__tests__${path.sep}`) &&
-           !file.includes('/__tests__/') &&
-           !file.includes('__tests__\\') &&
-           !file.includes(`${path.sep}__mocks__${path.sep}`) &&
-           !file.includes('/__mocks__/') &&
-           !file.includes('__mocks__\\') &&
-           !file.includes(`${path.sep}vendor${path.sep}`) &&
-           !file.includes('/vendor/') &&
-           !file.includes('vendor\\') &&
-           !file.includes(`${path.sep}public${path.sep}`) &&
-           !file.includes('/public/') &&
-           !file.includes('public\\');
-  });
+/**
+ * Gets framework-specific file extensions to optimize
+ */
+function getFrameworkFileExtensions(framework: string): string[] {
+  switch (framework) {
+    case 'next.js':
+    case 'react':
+      return ['**/*.{js,jsx,ts,tsx}']; // React/Next.js component files
+    case 'angular':
+      return ['**/*.ts', '**/*.html']; // Angular TypeScript components + templates
+    default:
+      return ['**/*.html']; // Fallback to HTML only
+  }
+}
 
-  for (const file of filteredFiles) {
+/**
+ * Gets all files to optimize based on framework and pages directory
+ */
+async function getFilesToOptimize(projectRoot: string, framework: string): Promise<string[]> {
+  const pagesDirectories = getPagesDirectory(projectRoot, framework);
+  const files: string[] = [];
+  
+  if (pagesDirectories.length === 0) {
+    console.log(chalk.yellow(`⚠️  No pages directory found for ${framework}. Skipping file optimizations.`));
+    return files;
+  }
+  
+  if (process.env.CLISEO_VERBOSE === 'true') {
+    console.log(chalk.cyan(`📁 Found pages directories: ${pagesDirectories.map(dir => path.relative(projectRoot, dir)).join(', ')}`));
+  }
+  
+  // Get framework-specific file extensions
+  const extensions = getFrameworkFileExtensions(framework);
+  
+  for (const pagesDir of pagesDirectories) {
+    for (const ext of extensions) {
+      const foundFiles = await glob(ext, {
+        cwd: pagesDir,
+        absolute: true,
+        ignore: ['**/node_modules/**']
+      });
+      files.push(...foundFiles);
+    }
+  }
+  
+  if (process.env.CLISEO_VERBOSE === 'true') {
+    console.log(chalk.cyan(`📄 Found ${files.length} files to optimize`));
+  }
+  return files;
+}
+
+/**
+ * Adds meta tags to HTML files in the pages directory.
+ */
+async function addMetaTagsToHtmlFiles(projectRoot: string, framework: string) {
+  const files = await getFilesToOptimize(projectRoot, framework);
+  
+  // Only process HTML files - framework-specific optimizers handle component files
+  const htmlFiles = files.filter(file => file.endsWith('.html'));
+  
+  if (htmlFiles.length === 0) {
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.log(chalk.gray(`No HTML files found in pages directory. Component files will be handled by ${framework} optimizer.`));
+    }
+    return;
+  }
+  
+  console.log(chalk.cyan(`🔧 Adding meta tags to ${htmlFiles.length} HTML files...`));
+  
+  for (const file of htmlFiles) {
     const content = await fs.promises.readFile(file, 'utf-8');
     const $ = cheerio.load(content);
     
@@ -217,10 +261,47 @@ async function addMetaTagsToHtmlFiles() {
 }
 
 /**
+ * Adds alt attributes to images in files in the pages directory.
+ */
+async function addImagesAltAttributes(projectRoot: string, framework: string) {
+  const files = await getFilesToOptimize(projectRoot, framework);
+  
+  // Only process HTML files for image alt attributes
+  const htmlFiles = files.filter(file => file.endsWith('.html'));
+  
+  if (htmlFiles.length === 0) {
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.log(chalk.gray(`No HTML files found in pages directory. Image alt attributes will be handled by framework-specific optimizers.`));
+    }
+    return;
+  }
+  
+  console.log(chalk.cyan(`🖼️  Adding alt attributes to images in ${htmlFiles.length} HTML files...`));
+  
+  for (const file of htmlFiles) {
+    const content = await fs.promises.readFile(file, 'utf-8');
+    const $ = cheerio.load(content);
+    
+    $('img').each((_, element) => {
+      if (!$(element).attr('alt')) {
+        const src = $(element).attr('src') || '';
+        const alt = path.basename(src, path.extname(src))
+          .replace(/[-_]/g, ' ')
+          .replace(/([A-Z])/g, ' $1')
+          .trim();
+        $(element).attr('alt', alt);
+      }
+    });
+    
+    await fs.promises.writeFile(file, $.html());
+  }
+}
+
+/**
  * Scans all package.json files in the project for framework dependencies.
  * Returns the first framework found, or 'unknown' if none found.
  */
-async function detectFramework(projectRoot: string): Promise<'angular' | 'react' | 'vue' | 'next.js' | 'unknown'> {
+async function detectFramework(projectRoot: string): Promise<'angular' | 'react' | 'next.js' | 'unknown'> {
   // Find all package.json files, excluding node_modules and common build/test dirs
   const packageJsonFiles = await glob('**/package.json', {
     cwd: projectRoot,
@@ -250,106 +331,12 @@ async function detectFramework(projectRoot: string): Promise<'angular' | 'react'
       if ('@angular/core' in deps) return 'angular';
       if ('next' in deps) return 'next.js';
       if ('react' in deps || 'react-dom' in deps) return 'react';
-      if ('vue' in deps) return 'vue';
     } catch (e) {
       // Ignore parse errors
     }
   }
   return 'unknown';
 }
-
-/**
- * * Adds alt attributes to images in HTML files.
- */
-async function addImagesAltAttributes() {
-  const root = findProjectRoot();
-  const htmlFiles = await glob('**/*.html', {
-    cwd: root,
-    ignore: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/build/**',
-      '**/.next/**',
-      '**/out/**',
-      '**/.git/**',
-      '**/coverage/**',
-      '**/test/**',
-      '**/tests/**',
-      '**/__tests__/**',
-      '**/__mocks__/**',
-      '**/vendor/**',
-      '**/public/**'
-    ],
-    absolute: true,
-    dot: true
-  });
-
-  // Filter out any files that still managed to get through
-  const filteredFiles = htmlFiles.filter(file => {
-    return !file.includes(`${path.sep}node_modules${path.sep}`) &&
-           !file.includes('/node_modules/') &&
-           !file.includes('node_modules\\') &&
-           !file.includes(`${path.sep}dist${path.sep}`) &&
-           !file.includes('/dist/') &&
-           !file.includes('dist\\') &&
-           !file.includes(`${path.sep}build${path.sep}`) &&
-           !file.includes('/build/') &&
-           !file.includes('build\\') &&
-           !file.includes(`${path.sep}.next${path.sep}`) &&
-           !file.includes('/.next/') &&
-           !file.includes('.next\\') &&
-           !file.includes(`${path.sep}out${path.sep}`) &&
-           !file.includes('/out/') &&
-           !file.includes('out\\') &&
-           !file.includes(`${path.sep}.git${path.sep}`) &&
-           !file.includes('/.git/') &&
-           !file.includes('.git\\') &&
-           !file.includes(`${path.sep}coverage${path.sep}`) &&
-           !file.includes('/coverage/') &&
-           !file.includes('coverage\\') &&
-           !file.includes(`${path.sep}test${path.sep}`) &&
-           !file.includes('/test/') &&
-           !file.includes('test\\') &&
-           !file.includes(`${path.sep}tests${path.sep}`) &&
-           !file.includes('/tests/') &&
-           !file.includes('tests\\') &&
-           !file.includes(`${path.sep}__tests__${path.sep}`) &&
-           !file.includes('/__tests__/') &&
-           !file.includes('__tests__\\') &&
-           !file.includes(`${path.sep}__mocks__${path.sep}`) &&
-           !file.includes('/__mocks__/') &&
-           !file.includes('__mocks__\\') &&
-           !file.includes(`${path.sep}vendor${path.sep}`) &&
-           !file.includes('/vendor/') &&
-           !file.includes('vendor\\') &&
-           !file.includes(`${path.sep}public${path.sep}`) &&
-           !file.includes('/public/') &&
-           !file.includes('public\\');
-  });
-
-  for (const file of filteredFiles) {
-    const content = await fs.promises.readFile(file, 'utf-8');
-    const $ = cheerio.load(content);
-    
-    $('img').each((_, element) => {
-      if (!$(element).attr('alt')) {
-        const src = $(element).attr('src') || '';
-        const alt = path.basename(src, path.extname(src))
-          .replace(/[-_]/g, ' ')
-          .replace(/([A-Z])/g, ' $1')
-          .trim();
-        $(element).attr('alt', alt);
-      }
-    });
-    
-    await fs.promises.writeFile(file, $.html());
-  }
-}
-
-
-
-// --- TODO: Ensure pages have <title> tags --- //
-// --- TODO: Add structured data (application/ld+json) --- //
 
 /**
  * * Main function to optimize SEO for the project.
@@ -369,27 +356,31 @@ export async function optimizeCommand(directory: string | undefined, options: { 
     spinner.start('Running standard SEO optimizations...');
     
     spinner.text = 'Checking SEO files...';
-    const { robotsCreated, sitemapCreated } = await ensureSeoFiles();
+    const framework = await detectFramework(dir);
+    
+    const { robotsCreated, sitemapCreated } = await ensureSeoFiles(framework, dir);
 
-    spinner.succeed('SEO file check complete!');
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      spinner.succeed('SEO file check complete!');
+    } else { spinner.stop(); }
 
-    if (robotsCreated) {
-      console.log(chalk.green('✔ Created robots.txt'));
-    }
-    if (sitemapCreated) {
-      console.log(chalk.green('✔ Created sitemap.xml'));
-    }
-    if (!robotsCreated && !sitemapCreated) {
-      console.log(chalk.gray('robots.txt and sitemap.xml already exist.'));
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      if (robotsCreated) console.log(chalk.green('✔ Created robots.txt'));
+      if (sitemapCreated) console.log(chalk.green('✔ Created sitemap.xml'));
+      if (!robotsCreated && !sitemapCreated) console.log(chalk.gray('robots.txt and sitemap.xml already exist.'));
     }
 
     spinner.text = 'Adding proper tags to HTML files...';
-    await addMetaTagsToHtmlFiles();
-    await addImagesAltAttributes();
-    spinner.succeed('Tags added to HTML files!');
+    
+    // Only process HTML files in the main function - framework-specific optimizers handle component files
+    if (framework !== 'unknown') {
+      await addMetaTagsToHtmlFiles(dir, framework);
+      await addImagesAltAttributes(dir, framework);
+    }
+    
+    if (process.env.CLISEO_VERBOSE === 'true') { spinner.succeed('Tags added to HTML files!'); } else { spinner.stop(); }
 
-    const framework = await detectFramework(dir);
-    const frameWorkColor = framework === 'angular' ? chalk.red : framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
+    const frameWorkColor = framework === 'angular' ? chalk.red : framework === 'react' ? chalk.blue : chalk.gray;
     console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
 
     // Framework-specific optimizations
@@ -397,7 +388,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       spinner.text = 'Optimizing React components...';
       try {
         await optimizeReactComponents(dir);
-        spinner.succeed('React components optimized successfully!');
+        if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('React components optimized successfully!'); else spinner.stop();
       } catch (err) {
         spinner.fail('Failed to optimize React components.');
         console.error(err);
@@ -406,7 +397,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       spinner.text = 'Optimizing Angular components...';
       try {
         await optimizeAngularComponents();
-        spinner.succeed('Angular components optimized successfully!');
+        if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('Angular components optimized successfully!'); else spinner.stop();
       } catch (err) {
         spinner.fail('Failed to optimize Angular components.');
         console.error(err);
@@ -415,19 +406,23 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       spinner.text = 'Optimizing Next.js components...';
       try {
         await optimizeNextjsComponents(dir);
-        spinner.succeed('Next.js components optimized successfully!');
+        if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('Next.js components optimized successfully!'); else spinner.stop();
       } catch (err) {
         spinner.fail('Failed to optimize Next.js components.');
         console.error(err);
       }
+    } else if (framework === 'unknown') {
+      console.log(chalk.yellow('⚠️  Unknown framework detected. Only basic SEO files were created.'));
     }
 
-    spinner.succeed(chalk.bold.green('\n✅ SEO optimization complete!'));
+    console.log(chalk.bold.green('\n✅ SEO optimization complete!'));
 
     // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
     const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
 
     if (!skipPrompts) {
+      // --- PR creation functionality temporarily disabled ---
+      /*
       // Check if we're in a git repository
       try {
         execSync('git rev-parse --is-inside-work-tree', { stdio: 'ignore' });
@@ -470,9 +465,9 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       } catch (error) {
         // Not inside a git repository; silently skip PR creation
       }
+      */
+      // --- End PR creation functionality ---
     }
-
-    console.log(chalk.whiteBright('Done\n\n'));
   } catch (error) {
     spinner.fail(chalk.red('\n❌ An unexpected error occurred during optimization.'));
     if (error instanceof Error) console.error(chalk.red(error.message));

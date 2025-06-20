@@ -16,14 +16,10 @@ const helmetImportName = 'Helmet';
 
 const schemaObject = {
   "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "Your Site Name",
-  "url": "https://yourdomain.com",
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": "https://yourdomain.com/search?q={search_term_string}",
-    "query-input": "required name=search_term_string"
-  }
+  "@type": "WebPage",
+  "name": "Your Page Title",
+  "description": "Your page description",
+  "url": "https://yourdomain.com/current-page"
 };
 
 const helmetJSXElement = t.jsxElement(
@@ -104,14 +100,18 @@ const helmetJSXElement = t.jsxElement(
 function isLikelyPageFile(filePath: string): boolean {
   const normalized = filePath.replace(/\\/g, '/');
   const base = path.basename(filePath);
+  
+  // Must be in pages directory
+  if (!/\/(pages|routes|views)\//.test(normalized)) {
+    return false;
+  }
+  
   // Exclude main entry files like App.tsx, App.jsx, index.tsx, index.jsx
   if (/^(App|index)\.(jsx?|tsx?)$/.test(base)) {
     return false;
   }
-  return (
-    /\/(pages|routes|views)\//.test(normalized) ||
-    /(Page|Screen|Route)\.(jsx?|tsx?)$/.test(base)
-  );
+  
+  return true;
 }
 
 /**
@@ -153,7 +153,7 @@ function getJSXElementName(node: any): string | null {
  * 
  * @param {string} file - Absolute path to the source file
  */
-async function transformFile(file: string): Promise<void> {
+async function transformFile(file: string): Promise<boolean> {
   const source = await fs.readFile(file, 'utf-8');
   const ast = babel.parse(source, {
     sourceType: 'module',
@@ -171,8 +171,10 @@ async function transformFile(file: string): Promise<void> {
   });
 
   if (!ast) {
-    console.error(`[cliseo debug] Cannot parse ${file}`);
-    return;
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.error(`[cliseo debug] Cannot parse ${file}`);
+    }
+    return false;
   }
 
   let helmetImported = false;
@@ -322,6 +324,108 @@ async function transformFile(file: string): Promise<void> {
       const opening = path.node.openingElement;
       const tagName = getJSXElementName(opening.name);
 
+      if (tagName === 'Helmet') {
+        let hasSchema = false;
+        let hasTitle = false;
+        let hasDescription = false;
+
+        path.node.children.forEach(child => {
+          if (t.isJSXElement(child)) {
+            const childName = getJSXElementName(child.openingElement.name);
+            if (childName === 'script') {
+              const typeAttr = child.openingElement.attributes.find(attr =>
+                t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'type');
+              if (
+                typeAttr &&
+                t.isJSXAttribute(typeAttr) &&
+                typeAttr.value &&
+                t.isStringLiteral(typeAttr.value) &&
+                typeAttr.value.value === 'application/ld+json'
+              ) {
+                hasSchema = true;
+              }
+            } else if (childName === 'title') {
+              hasTitle = true;
+            } else if (childName === 'meta') {
+              const nameAttr = child.openingElement.attributes.find(attr =>
+                t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'name');
+              if (
+                nameAttr &&
+                t.isJSXAttribute(nameAttr) &&
+                nameAttr.value &&
+                t.isStringLiteral(nameAttr.value) &&
+                nameAttr.value.value === 'description'
+              ) {
+                hasDescription = true;
+              }
+            }
+          }
+        });
+
+        if (!hasTitle) {
+          path.node.children.unshift(
+            t.jsxElement(
+              t.jsxOpeningElement(t.jsxIdentifier('title'), [], false),
+              t.jsxClosingElement(t.jsxIdentifier('title')),
+              [t.jsxText('Your Site Title')],
+              false
+            )
+          );
+          modified = true;
+        }
+
+        if (!hasDescription) {
+          path.node.children.unshift(
+            t.jsxElement(
+              t.jsxOpeningElement(
+                t.jsxIdentifier('meta'),
+                [
+                  t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('description')),
+                  t.jsxAttribute(
+                    t.jsxIdentifier('content'),
+                    t.stringLiteral('Default description for this page')
+                  )
+                ],
+                true
+              ),
+              null,
+              [],
+              true
+            )
+          );
+          modified = true;
+        }
+
+        if (!hasSchema) {
+          path.node.children.push(
+            t.jsxElement(
+              t.jsxOpeningElement(
+                t.jsxIdentifier('script'),
+                [
+                  t.jsxAttribute(t.jsxIdentifier('type'), t.stringLiteral('application/ld+json')),
+                  t.jsxAttribute(
+                    t.jsxIdentifier('dangerouslySetInnerHTML'),
+                    t.jsxExpressionContainer(
+                      t.objectExpression([
+                        t.objectProperty(
+                          t.identifier('__html'),
+                          t.stringLiteral(JSON.stringify(schemaObject, null, 2))
+                        )
+                      ])
+                    )
+                  )
+                ],
+                true
+              ),
+              null,
+              [],
+              true
+            )
+          );
+          modified = true;
+        }
+      }
+
       if (tagName === 'img') {
         // Add alt attribute if missing
         const hasAlt = opening.attributes.some(attr => 
@@ -339,13 +443,18 @@ async function transformFile(file: string): Promise<void> {
   });
 
   if (modified) {
-    console.log(`[cliseo debug] Modifications made in file: ${file}, writing changes...`);
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.log(`[cliseo debug] Modifications made in file: ${file}, writing changes...`);
+    }
     const output = babel.transformFromAstSync(ast, source, {
       configFile: true,
       generatorOpts: { retainLines: true, compact: false },
     });
 
     if (output && output.code) {
+      // Prettier formatting disabled to minimize diff noise
+      // If you prefer to format the output, uncomment the block below and add your own Prettier options
+      /*
       const formatted = await prettier.format(output.code, {
         parser: 'babel-ts',
         semi: true,
@@ -356,16 +465,29 @@ async function transformFile(file: string): Promise<void> {
         tabWidth: 2,
         useTabs: false,
       });
-
       await fs.writeFile(file, formatted, 'utf-8');
+      */
+
+      await fs.writeFile(file, output.code, 'utf-8');
     }
+    return true;
   } else {
-    console.log(`[cliseo debug] No modifications needed for file: ${file}`);
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.log(`[cliseo debug] No modifications needed for file: ${file}`);
+    }
+    return false;
   }
 }
 
 async function findReactFiles(dir: string): Promise<string[]> {
-  const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: dir, absolute: true });
+  // Only look in the pages directory
+  const pagesDir = path.join(dir, 'pages');
+  if (!existsSync(pagesDir)) {
+    console.log(`No pages directory found at ${pagesDir}`);
+    return [];
+  }
+  
+  const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: pagesDir, absolute: true });
   return files;
 }
 
@@ -377,20 +499,33 @@ export async function optimizeReactComponents(projectRoot: string): Promise<void
   const srcDir = path.join(projectRoot, 'src');
   const files = await findReactFiles(srcDir);
 
+  if (files.length === 0) {
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.log('No React page files found to optimize.');
+    }
+    return;
+  }
+
+  if (process.env.CLISEO_VERBOSE === 'true') {
+    console.log(`Found ${files.length} React page files to optimize:`);
+  }
+   
+  let modifiedCount = 0;
   for (const file of files) {
     if (!isLikelyPageFile(file)) {
-      console.log(`Skipping (not a likely page file): ${file}`);
+      if (process.env.CLISEO_VERBOSE === 'true') console.log(`Skipping: ${path.relative(projectRoot, file)}`);
       continue;
     }
 
-    console.log(`Processing file: ${file}`);
+    if (process.env.CLISEO_VERBOSE === 'true') console.log(`Processing: ${path.relative(projectRoot, file)}`);
     try {
-      await transformFile(file);
-      console.log(`Modifications made in file: ${file}, writing changes...`);
+      const changed = await transformFile(file);
+      if (changed) modifiedCount++;
     } catch (error) {
       console.error(`Failed to transform ${file}: ${error}`);
     }
   }
 
-  console.log('React components optimized successfully!');
+  const summaryMsg = `React components optimized${modifiedCount ? `: modified ${modifiedCount} file(s)` : ' (no changes needed)'}`;
+  console.log(summaryMsg);
 } 

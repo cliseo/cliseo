@@ -1,5 +1,4 @@
-<img height="80" src="https://cliseo.com/logo.png">
-# cliseo
+<img height="80" src="https://cliseo.com/Standalone Logo.png">
 
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 [![npm](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
@@ -51,7 +50,3 @@ Options:
 
 ### `cliseo optimize`
 Automatically applies SEO fixes to your codebase.
-
-## 📄 License
-
-[AGPL-3.0](LICENSE)
