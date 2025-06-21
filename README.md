@@ -84,5 +84,3 @@ Check out the [Issues](../../issues) tab for things marked with:
 
 - `good first issue`
 - `help wanted`
-
-Or [open a discussion](../../discussions) if you have an idea and want feedback before starting!
