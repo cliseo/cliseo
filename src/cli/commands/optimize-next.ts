@@ -4,8 +4,8 @@ import path from 'path';
 import { glob } from 'glob';
 import * as babel from '@babel/core';
 import { parse } from '@babel/parser';
-import traverse from '@babel/traverse';
-import { default as generate } from '@babel/generator';
+import _traverse from '@babel/traverse';
+import _generate from '@babel/generator';
 import * as t from '@babel/types';
 import { parseDocument } from 'htmlparser2';
 import { DomUtils } from 'htmlparser2';
@@ -13,6 +13,9 @@ import { default as render } from 'dom-serializer';
 import { JSDOM } from 'jsdom';
 import prettier from 'prettier';
 import chalk from 'chalk';
+
+const traverse = _traverse.default;
+const generate = _generate.default;
 
 /**
  * Recursively walks up the directory tree to find the project root.
@@ -305,76 +308,77 @@ function getJSXElementName(name: t.JSXIdentifier | t.JSXMemberExpression | t.JSX
  */
 export async function transformFile(file: string): Promise<void> {
   console.log(`Reading file: ${file}`);
-  
-  try {
-    let code = await fs.readFile(file, 'utf-8');
-    console.log(`File read successfully, length: ${code.length} characters`);
-    
-    let modified = false;
-    
-    // Simple string-based approach to avoid AST traversal hangs in E2E
-    // Add imports if not present
-    if (!code.includes("import Head from 'next/head'") && !code.includes('from "next/head"')) {
-      code = `import Head from 'next/head';\n${code}`;
-      modified = true;
-    }
-    
-    if (!code.includes("import Image from 'next/image'") && !code.includes('from "next/image"')) {
-      code = `import Image from 'next/image';\n${code}`;
-      modified = true;
-    }
-    
-    if (!code.includes("import Link from 'next/link'") && !code.includes('from "next/link"')) {
-      code = `import Link from 'next/link';\n${code}`;
-      modified = true;
-    }
-    
-    // Add basic SEO Head tag for page/layout files
-    const isPageOrLayout = /\/(page|layout)\.(tsx?|jsx?)$/.test(file);
-    if (isPageOrLayout && !code.includes('<Head>') && !code.includes('<head>')) {
-      // Find return statement and add Head tag
-      const headTag = `
-      <Head>
-        <title>SEO Optimized Page</title>
-        <meta name="description" content="SEO optimized description" />
-        <meta name="robots" content="index, follow" />
-      </Head>`;
-      
-      // Simple replacement for common patterns
-      if (code.includes('return (')) {
-        code = code.replace(/return \(\s*(<[^>]+>)/, `return (\n      ${headTag}\n      $1`);
-        modified = true;
-      } else if (code.includes('return <')) {
-        code = code.replace(/return (<[^>]+>)/, `return (\n      ${headTag}\n      $1\n    )`);
-        modified = true;
+  const code = await fs.readFile(file, 'utf8');
+
+  if (code.includes('@next/head')) {
+    console.log(chalk.yellow(`Skipping file with @next/head import: ${file}`));
+    return;
+  }
+
+  const ast = parse(code, {
+    sourceType: 'module',
+    plugins: ['jsx', 'typescript'],
+  });
+
+  let metadataVariable: t.VariableDeclarator | null = null;
+  let modified = false;
+
+  traverse(ast, {
+    ExportNamedDeclaration(path) {
+      if (t.isVariableDeclaration(path.node.declaration)) {
+        for (const declarator of path.node.declaration.declarations) {
+          if (t.isIdentifier(declarator.id) && declarator.id.name === 'metadata') {
+            metadataVariable = declarator;
+            break;
+          }
+        }
       }
-    }
-    
-    // Basic img to Image replacement
-    if (code.includes('<img ')) {
-      code = code.replace(/<img /g, '<Image width={500} height={300} ');
-      code = code.replace(/<\/img>/g, '</Image>');
-      modified = true;
-    }
-    
-    // Basic a to Link replacement for internal links
-    const internalLinkRegex = /<a href="\/[^"]*"/g;
-    if (internalLinkRegex.test(code)) {
-      code = code.replace(/<a href="(\/[^"]*)"/g, '<Link href="$1"><a');
-      code = code.replace(/<\/a>/g, '</a></Link>');
-      modified = true;
-    }
-    
-    if (modified) {
-      console.log(`Writing optimized file: ${file}`);
-      await fs.writeFile(file, code, 'utf-8');
-      console.log(` • Successfully injected SEO optimizations in file: ${file}`);
-    } else {
-      console.log(`No modifications needed for: ${file}`);
-    }
-    
-  } catch (error) {
-    console.error(`Error processing ${file}:`, error);
+    },
+  });
+
+  const seoProperties = [
+    t.objectProperty(t.identifier('description'), t.stringLiteral('SEO optimized description')),
+    t.objectProperty(t.identifier('robots'), t.stringLiteral('index, follow')),
+    t.objectProperty(
+      t.identifier('openGraph'),
+      t.objectExpression([
+        t.objectProperty(t.identifier('title'), t.stringLiteral('OpenGraph Title')),
+        t.objectProperty(t.identifier('description'), t.stringLiteral('OpenGraph Description')),
+      ])
+    ),
+  ];
+
+  if (metadataVariable && t.isObjectExpression(metadataVariable.init)) {
+    //
+    seoProperties.forEach(prop => {
+      if (t.isObjectProperty(prop)) {
+        const key = (prop.key as t.Identifier).name;
+        const exists = metadataVariable!.init as t.ObjectExpression;
+        if (!exists.properties.some(p => t.isObjectProperty(p) && (p.key as t.Identifier).name === key)) {
+          (metadataVariable.init as t.ObjectExpression).properties.push(prop);
+          modified = true;
+        }
+      }
+    });
+  } else {
+    //
+    const metadataExport = t.exportNamedDeclaration(
+      t.variableDeclaration('const', [
+        t.variableDeclarator(t.identifier('metadata'), t.objectExpression(seoProperties)),
+      ])
+    );
+    //
+    const program = (ast.program as t.Program);
+    program.body.unshift(metadataExport);
+    modified = true;
+  }
+
+  if (modified) {
+    const output = generate(ast, {}, code);
+    await fs.writeFile(file, output.code, 'utf8');
+    console.log(chalk.green(` • Successfully injected SEO optimizations in file: ${file}`));
+  } else {
+    console.log(`No modifications needed for: ${file}`);
   }
 }
 
