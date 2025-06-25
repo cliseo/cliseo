@@ -54,3 +54,37 @@ Options:
 
 ### `cliseo optimize`
 Automatically applies SEO fixes to your codebase.
+
+## 🤝 Contribute
+
+We welcome contributions of all kinds to **Cliseo** — whether it’s fixing bugs, adding new features, improving performance, or even enhancing the documentation!
+
+### How to Contribute
+
+1. **Fork this repo** and clone your fork.
+2. Create a new branch for your feature or fix:
+   ```bash
+   git checkout -b your-feature-name
+   ```
+3. Make your changes and commit them with clear messages.
+4. Push to your fork:
+   ```bash
+   git push origin your-feature-name
+   ```
+5. Open a Pull Request to the `main` branch of this repo.
+
+### Contribution Guidelines
+
+- 📑 Keep your code clean and well-commented.
+- 💡 If adding a new feature, include a brief description in the PR.
+- 🪲 If fixing a bug, describe the issue and how your fix solves it.
+- 🧪 Run any relevant tests (or add some if they don’t exist!).
+  - Tests for React, Next, and Angular applications can be found in `./tests/run-tests.sh`
+- ❌ Avoid making large unrelated changes in a single PR.
+
+### Not Sure Where to Start?
+
+Check out the [Issues](../../issues) tab for things marked with:
+
+- `good first issue`
+- `help wanted`
