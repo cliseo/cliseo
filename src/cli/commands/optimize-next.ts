@@ -386,97 +386,43 @@ export async function transformFile(file: string): Promise<void> {
  * Optimizes Next.js components by injecting SEO-friendly <Head> tags.
  */
 export async function optimizeNextjsComponents(targetDir?: string): Promise<void> {
-  const root = targetDir || findProjectRoot();
-  console.log(`Processing Next.js components from root: ${root}`);
-  
-  // Next.js projects can have different structures:
-  // 1. src/pages/ or src/app/ (when using src directory)
-  // 2. pages/ or app/ (traditional structure)
-  // 3. Mixed structures
-  
-  const searchDirs = [
-    path.join(root, 'src'),
-    path.join(root, 'pages'), 
-    path.join(root, 'app'),
-    root // fallback to root
-  ];
-  
-  let filesFound = 0;
-  const MAX_FILES_TO_PROCESS = 20; // Reduced from 50 for E2E stability
-  
-  for (const searchDir of searchDirs) {
-    if (!existsSync(searchDir)) {
-      console.log(`Directory ${searchDir} does not exist, skipping...`);
-      continue;
-    }
-    
-    try {
-      console.log(`Searching for Next.js files in: ${searchDir}`);
-      const files = await glob('**/*.{js,jsx,ts,tsx}', { 
-        cwd: searchDir, 
-        absolute: true,
-        ignore: [
-          '**/node_modules/**',
-          '**/dist/**', 
-          '**/.next/**',
-          '**/build/**',
-          '**/.git/**',
-          '**/coverage/**'
-        ]
-      });
-      
-      console.log(`Found ${files.length} files in ${searchDir}`);
-      
-      for (const file of files) {
-        // Extra safety check to skip node_modules and build directories
-        if (file.includes('/node_modules/') || 
-            file.includes('/.next/') || 
-            file.includes('/dist/') || 
-            file.includes('/build/') ||
-            file.includes('/.git/')) {
-          console.log(`Skipping build/dependency file: ${file}`);
-          continue;
-        }
-        
-        if (!isLikelyPageFile(file)) {
-          console.log(`Skipping non-page file: ${file}`);
-          continue;
-        }
-        
-        filesFound++;
-        console.log(`Processing Next.js file: ${file}`);
-        
-        // Safety limit check
-        if (filesFound > MAX_FILES_TO_PROCESS) {
-          console.log(`Reached maximum file limit (${MAX_FILES_TO_PROCESS}), stopping processing`);
-          break;
-        }
-        
-        try {
-          // Timeout to prevent hanging on any single file
-          await Promise.race([
-            transformFile(file),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Transform timeout')), 15000) // Reduced timeout
-            )
-          ]);
-        } catch (err) {
-          if (err instanceof Error && err.message === 'Transform timeout') {
-            console.error(`Timeout processing ${file} (skipping)`);
-          } else {
-            console.error(`Failed to transform ${file}:`, err);
-          }
-        }
+  const rootDir = targetDir || process.cwd();
+  console.log(chalk.blue(`Processing Next.js components from root: ${rootDir}`));
+
+  const pagesDir = path.join(rootDir, 'pages');
+  const appDir = path.join(rootDir, 'app');
+  const srcPagesDir = path.join(rootDir, 'src', 'pages');
+  const srcAppDir = path.join(rootDir, 'src', 'app');
+
+  const componentDirs = [pagesDir, appDir, srcPagesDir, srcAppDir].filter(dir =>
+    existsSync(dir)
+  );
+
+  if (componentDirs.length === 0) {
+    console.log(chalk.yellow('No pages or app directory found. Skipping component optimization.'));
+    return;
+  }
+
+  let totalFilesProcessed = 0;
+
+  for (const dir of componentDirs) {
+    console.log(chalk.cyan(`Searching for Next.js files in: ${dir}`));
+    const files = await glob('**/*.{js,jsx,ts,tsx}', {
+      cwd: dir,
+      absolute: true,
+      ignore: ['**/node_modules/**', '**/*.test.*', '**/*.spec.*'],
+    });
+
+    console.log(chalk.cyan(`Found ${files.length} files in ${dir}`));
+
+    for (const file of files) {
+      try {
+        await transformFile(file);
+        totalFilesProcessed++;
+      } catch (error) {
+        console.error(chalk.red(`Failed to transform ${file}:`), error);
       }
-    } catch (err) {
-      console.error(`Error globbing in ${searchDir}:`, err);
-    }
-    
-    // Break out of outer loop if we hit the limit
-    if (filesFound > MAX_FILES_TO_PROCESS) {
-      break;
     }
   }
-  
-  console.log(`Processed ${filesFound} Next.js files total`);
+  console.log(`\nProcessed ${totalFilesProcessed} Next.js files total.\n`);
 } 
