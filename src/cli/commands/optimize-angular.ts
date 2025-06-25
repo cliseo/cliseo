@@ -1,496 +1,322 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
+import * as fs from 'fs/promises';
+import path from 'path';
 import { glob } from 'glob';
-import { parseDocument } from 'htmlparser2';
-import { DomUtils } from 'htmlparser2';
-import { default as render } from 'dom-serializer';
 import * as babel from '@babel/core';
-import * as t from '@babel/types';
+import _traverse, { NodePath } from '@babel/traverse';
 import _generate from '@babel/generator';
-import _traverse from '@babel/traverse';
-import { JSDOM } from 'jsdom';
-import prettier from 'prettier';
+import * as t from '@babel/types';
+import chalk from 'chalk';
+import * as cheerio from 'cheerio';
+import * as prettier from 'prettier';
+import ora from 'ora';
 
-const traverse = _traverse.default;
-const generate = _generate.default;
+const traverse = (_traverse as any).default || _traverse;
+const generate = (_generate as any).default || _generate;
 
-/**
- * Checks if the given component argument is a standalone Angular component.
- * 
- * @param {t.ObjectExpression} componentArg - The object expression representing the component's metadata.
- * @returns {boolean} - True if the component is standalone, false otherwise.
- */
-function isStandaloneComponent(componentArg: t.ObjectExpression): boolean {
-  return componentArg.properties.some(
-    (prop) =>
-      t.isObjectProperty(prop) &&
-      t.isIdentifier(prop.key, { name: 'standalone' }) &&
-      t.isBooleanLiteral(prop.value, { value: true })
-  );
-}
+const SEO_IMPORTS = {
+    OnInit: '@angular/core',
+    Title: '@angular/platform-browser',
+    Meta: '@angular/platform-browser',
+    Renderer2: '@angular/core',
+    Inject: '@angular/core',
+    DOCUMENT: '@angular/common',
+    NgOptimizedImage: '@angular/common',
+    RouterLink: '@angular/router',
+};
 
-/**
- * Updates the NgModule imports to include NgOptimizedImage if necessary.
- * 
- * @param componentArg - The object expression representing the component's metadata.
- */
-function updateNgModuleImports(componentArg: t.ObjectExpression) {
-  // Find the 'imports' property, narrowing type to ObjectProperty
-  const importsProp = componentArg.properties.find(
-    (p): p is t.ObjectProperty =>
-      t.isObjectProperty(p) &&
-      t.isIdentifier(p.key, { name: 'imports' })
-  );
+const META_SERVICE_NAME = 'meta';
+const TITLE_SERVICE_NAME = 'title';
 
-  if (importsProp) {
-    // importsProp.value must be an ArrayExpression to add new imports
-    if (t.isArrayExpression(importsProp.value)) {
-      // Example: add NgOptimizedImage to the imports array if not already there
-      const hasNgOptimizedImage = importsProp.value.elements.some(el =>
-        t.isIdentifier(el, { name: 'NgOptimizedImage' })
-      );
+// Main function to orchestrate the optimization of an Angular project
+export async function optimizeAngular(projectDir: string): Promise<void> {
+    console.log(chalk.blue('Optimizing Angular project...'));
+    const componentTsFiles = await glob('src/app/**/*.component.ts', {
+        cwd: projectDir,
+        absolute: true,
+        ignore: ['**/node_modules/**'],
+    });
 
-      if (!hasNgOptimizedImage) {
-        importsProp.value.elements.push(t.identifier('NgOptimizedImage'));
-      }
+    let modifiedCount = 0;
+    for (const tsFile of componentTsFiles) {
+        const modified = await processComponent(tsFile);
+        if (modified) {
+            modifiedCount++;
+        }
     }
+
+    if (modifiedCount > 0) {
+        console.log(chalk.green.bold(`\nSuccessfully optimized ${modifiedCount} Angular components.`));
   } else {
-    // No imports property found — create one
-    const newImportsProp = t.objectProperty(
-      t.identifier('imports'),
-      t.arrayExpression([t.identifier('NgOptimizedImage')])
-    );
-    componentArg.properties.push(newImportsProp);
-  }
+        console.log(chalk.yellow('No Angular components required modification.'));
+    }
 }
 
-/**
- * Optimizes Angular images by converting <img> tags to use ngOptimizedImage.
- * It also updates the associated TypeScript files to import NgOptimizedImage
- * and adds it to the component's imports if necessary.
- * 
- * @param file - The path to the Angular HTML file to optimize.
- */
-export async function optimizeAngularImages(file: string) {
-  console.log(`Processing ${file}...`);
-  const original = readFileSync(file, 'utf8');
-  const dom = parseDocument(original);
-  let updated = false;
+// Processes a single component file (.ts) and its corresponding template (.html)
+async function processComponent(tsFilePath: string): Promise<boolean> {
+    const tsCode = await fs.readFile(tsFilePath, 'utf8');
+    const ast = babel.parse(tsCode, { sourceType: 'module', plugins: ['typescript', 'decorators'] });
 
-  // Modify <img> tags
-  DomUtils.findAll(elem => {
-    if (elem.name === 'img' && elem.attribs && elem.attribs.src) {
-      const src = elem.attribs.src;
+    let tsModified = false;
+    let htmlModified = false;
+    let templateUrl = '';
 
-      if (elem.attribs['ngOptimizedImage']) return false;
-
-      delete elem.attribs.src;
-      console.log(` • Converting <img src="${src}"> to ngOptimizedImage in ${file}`);
-      elem.attribs['ngOptimizedImage'] = '';
-      elem.attribs['[src]'] = `'${src}'`;
-      updated = true;
+    if (ast) {
+        traverse(ast, {
+            Decorator(decoratorPath) {
+                const decoratorNode = decoratorPath.node;
+                if (t.isCallExpression(decoratorNode.expression) && t.isIdentifier(decoratorNode.expression.callee) && decoratorNode.expression.callee.name === 'Component') {
+                    const componentOptions = decoratorNode.expression.arguments[0];
+                    if (t.isObjectExpression(componentOptions)) {
+                        const templateUrlProp = componentOptions.properties.find(p => t.isObjectProperty(p) && t.isIdentifier(p.key) && p.key.name === 'templateUrl');
+                        if (templateUrlProp && t.isObjectProperty(templateUrlProp) && t.isStringLiteral(templateUrlProp.value)) {
+                            templateUrl = path.resolve(path.dirname(tsFilePath), templateUrlProp.value.value);
+                        }
+                    }
+                }
+            },
+            ClassDeclaration(path) {
+                if (isAngularComponent(path)) {
+                    if (updateClass(path)) {
+                        tsModified = true;
+                    }
+                }
+            },
+        });
     }
-    return false; // Always return boolean
-  }, dom.children);
 
-  // TS file variables
-  let ast: babel.ParseResult | null = null;
-  let tsUpdated = false;
-  let tsFile: string | null = null;
-
-  if (updated) {
-    // Write updated HTML
-    const output = render(dom, { encodeEntities: 'utf8' });
-    writeFileSync(file, output, 'utf8');
-    console.log(` • Updated ${file} with ngOptimizedImage.`);
-
-    // Attempt to locate associated .ts file
-    tsFile = file.replace(/\.html$/, '.ts');
-    if (existsSync(tsFile)) {
-      const tsCode = readFileSync(tsFile, 'utf8');
-      ast = babel.parseSync(tsCode, {
-        sourceType: 'module',
-        plugins: [
-          '@babel/plugin-syntax-typescript',
-          ['@babel/plugin-proposal-decorators', { legacy: true }],
-        ],
-      });
-      
-      if (!ast) {
-        console.error(`Cannot parse ${tsFile}`);
-        return;
-      }
-
-      // @ts-ignore – traverse typing mismatch under certain module resolutions
-      traverse(ast, {
-        Program(path) {
-          const hasNgOptimizedImageImport = path.node.body.some(
-            (n) =>
-              t.isImportDeclaration(n) &&
-              n.source.value === '@angular/common' &&
-              n.specifiers.some(
-                (s) =>
-                  t.isImportSpecifier(s) &&
-                  t.isIdentifier(s.imported) && s.imported.name === 'NgOptimizedImage'
-              )
-          );
-
-          if (!hasNgOptimizedImageImport) {
-            path.node.body.unshift(
-              t.importDeclaration(
-                [
-                  t.importSpecifier(
-                    t.identifier('NgOptimizedImage'),
-                    t.identifier('NgOptimizedImage')
-                  ),
-                ],
-                t.stringLiteral('@angular/common')
-              )
-            );
-            tsUpdated = true;
-          }
-        },
-        ClassDeclaration(path) {
-          const decorators = path.node.decorators;
-          if (!decorators) return;
-
-          decorators.forEach((decorator) => {
-            if (
-              t.isDecorator(decorator) &&
-              t.isCallExpression(decorator.expression) &&
-              t.isIdentifier(decorator.expression.callee, { name: 'Component' })
-            ) {
-              const componentArg = decorator.expression.arguments[0];
-              if (!t.isObjectExpression(componentArg)) return;
-
-              if (isStandaloneComponent(componentArg)) {
-                updateNgModuleImports(componentArg); // only if standalone
-                tsUpdated = true;
-              }
-            }
-          });
-        }
-      });
+    if (templateUrl && existsSync(templateUrl)) {
+        htmlModified = await updateTemplate(templateUrl);
     }
-  }
-  
-  if (tsUpdated && ast && tsFile) { 
-    // @ts-ignore – generate typing mismatch under certain module resolutions
-    const updatedCode = generate(ast, {
-      retainLines: true,
-    }).code;
 
-    // Format the updated TypeScript code
-    const formattedCode = await prettier.format(updatedCode, {
-      parser: 'babel-ts',
-      semi: true,
-      singleQuote: false,
-      jsxSingleQuote: false,
-      trailingComma: 'none',
-      printWidth: 80,
-      tabWidth: 2,
-      useTabs: false,
-    });
+    if (tsModified) {
+        const { code } = generate(ast, { retainLines: true });
+        const formattedCode = await prettier.format(code, { parser: 'typescript', semi: false, singleQuote: true });
+        await fs.writeFile(tsFilePath, formattedCode, 'utf8');
+        console.log(chalk.green(` • Updated component logic: ${path.basename(tsFilePath)}`));
+    }
     
-    writeFileSync(tsFile, formattedCode, 'utf8');
-  }
+    return tsModified || htmlModified;
 }
 
-/**
- * Transforms Angular component files to ensure they implement OnInit, and Title and Meta services are injected.
- * 
- * @param file - The path to the Angular component file to transform.
- */
-async function transformAngularComponents(file: string) {
-  console.log(`Processing ${file}...`);
-  const code = readFileSync(file, 'utf-8');
-  const ast = babel.parseSync(code, {
-    sourceType: 'module',
-    plugins: [
-      '@babel/plugin-syntax-jsx',
-      ['@babel/plugin-syntax-typescript', { isTSX: true, allExtensions: true }],
-      ['@babel/plugin-proposal-decorators', { legacy: true }],
-    ],
-  });
+// Updates the TypeScript class (.ts) for SEO
+function updateClass(classPath: NodePath<t.ClassDeclaration>): boolean {
+    let modified = false;
 
-  if (!ast) {
-    console.error(`Cannot parse ${file}`);
-    return;
-  }
-
-  let updated = false;
-  let needsSeoLogic = false;
-
-  // @ts-ignore – traverse typing mismatch under certain module resolutions
-  traverse(ast, {
-    ClassDeclaration(path) {
-      // Add implements OnInit if missing
-      const hasImplementsOnInit = path.node.implements?.some(
-        (impl) =>
-          t.isTSExpressionWithTypeArguments(impl) &&
-          t.isIdentifier(impl.expression, { name: 'OnInit' })
-      );
-
-      if (!hasImplementsOnInit) {
-        if (!path.node.implements) path.node.implements = [];
-        path.node.implements.push(
-          t.tsExpressionWithTypeArguments(t.identifier('OnInit'))
-        );
-        updated = true;
-        needsSeoLogic = true;
-      }
-
-      // Ensure constructor injects Title and Meta
-      let constructorFound = false;
-
-      path.get('body.body').forEach((childPath) => {
-        if (childPath.isClassMethod({ kind: 'constructor' })) {
-          constructorFound = true;
-
-          const hasParam = (name: string) =>
-            childPath.node.params.some(
-              (p) =>
-                // constructor parameters could be TSParameterProperty or Identifier with typeAnnotation
-                (t.isTSParameterProperty(p) && t.isIdentifier(p.parameter, { name })) ||
-                (t.isIdentifier(p) && p.name === name)
-            );
-
-          const addParam = (name: string, typeName: string) => {
-            const id = t.identifier(name);
-            id.typeAnnotation = t.tsTypeAnnotation(
-              t.tsTypeReference(t.identifier(typeName))
-            );
-            const param = t.tsParameterProperty(id);
-            param.accessibility = 'private';
-            childPath.node.params.push(param);
-          };
-
-          if (!hasParam('titleService')) {
-            addParam('titleService', 'Title');
-            updated = true;
-            needsSeoLogic = true;
-          }
-
-          if (!hasParam('metaService')) {
-            addParam('metaService', 'Meta');
-            updated = true;
-            needsSeoLogic = true;
-          }
+    // 1. Ensure class implements OnInit
+    const implementsOnInit = classPath.node.implements?.some(impl => t.isTSExpressionWithTypeArguments(impl) && t.isIdentifier(impl.expression) && impl.expression.name === 'OnInit') ?? false;
+    if (!implementsOnInit) {
+        const onInitIdentifier = t.tsExpressionWithTypeArguments(t.identifier('OnInit'));
+        if (classPath.node.implements) {
+            classPath.node.implements.push(onInitIdentifier);
+        } else {
+            classPath.node.implements = [onInitIdentifier];
         }
-      });
+        modified = true;
+    }
 
-      if (!constructorFound) {
-        // create constructor with injected Title and Meta
-        const titleId = t.identifier('titleService');
-        titleId.typeAnnotation = t.tsTypeAnnotation(
-          t.tsTypeReference(t.identifier('Title'))
-        );
+    // 2. Inject services in constructor
+    const servicesToInject = { title: 'Title', meta: 'Meta', renderer: 'Renderer2' };
+    let constructorPath = classPath.get('body').get('body').find(p => p.isClassMethod({ kind: 'constructor' })) as NodePath<t.ClassMethod> | undefined;
 
-        const metaId = t.identifier('metaService');
-        metaId.typeAnnotation = t.tsTypeAnnotation(
-          t.tsTypeReference(t.identifier('Meta'))
-        );
+    if (!constructorPath) {
+        const newConstructor = t.classMethod('constructor', t.identifier('constructor'), [], t.blockStatement([]));
+        classPath.get('body').unshiftContainer('body', newConstructor);
+        constructorPath = classPath.get('body').get('body')[0] as NodePath<t.ClassMethod>;
+        modified = true;
+    }
+    
+    Object.entries(servicesToInject).forEach(([propName, serviceName]) => {
+        const alreadyInjected = constructorPath.node.params.some(p => {
+            if (t.isTSParameterProperty(p)) {
+                const identifier = p.parameter;
+                if (t.isIdentifier(identifier)) {
+                    return identifier.name === propName;
+                }
+            }
+            return false;
+        });
 
-        const titleParam = t.tsParameterProperty(titleId);
-        titleParam.accessibility = 'private';
+        if (!alreadyInjected) {
+            const paramId = t.identifier(propName);
+            paramId.typeAnnotation = t.tsTypeAnnotation(t.tsTypeReference(t.identifier(serviceName)));
+            
+            const param = t.tsParameterProperty(paramId);
+            param.accessibility = 'public';
 
-        const metaParam = t.tsParameterProperty(metaId);
-        metaParam.accessibility = 'private';
-
-        const constructorMethod = t.classMethod(
-          'constructor',
-          t.identifier('constructor'),
-          [titleParam, metaParam],
-          t.blockStatement([])
-        );
-
-        path.node.body.body.unshift(constructorMethod);
-        updated = true;
-        needsSeoLogic = true;
-      }
-
-      // Add or update ngOnInit method
-      const ngOnInitMethod = path.node.body.body.find(
-        (m) => t.isClassMethod(m) && t.isIdentifier(m.key, { name: 'ngOnInit' })
-      );
-
-      const titleSetCall = t.expressionStatement(
-        t.callExpression(
-          t.memberExpression(
-            t.memberExpression(t.thisExpression(), t.identifier('titleService')),
-            t.identifier('setTitle')
-          ),
-          [t.stringLiteral('Example Page')]
-        )
-      );
-
-      const metaUpdateCall = t.expressionStatement(
-        t.callExpression(
-          t.memberExpression(
-            t.memberExpression(t.thisExpression(), t.identifier('metaService')),
-            t.identifier('updateTag')
-          ),
-          [
-            t.objectExpression([
-              t.objectProperty(t.identifier('name'), t.stringLiteral('description')),
-              t.objectProperty(t.identifier('content'), t.stringLiteral('This is an example page for SEO.')),
-            ]),
-          ]
-        )
-      );
-
-      if (ngOnInitMethod) {
-        const body = (ngOnInitMethod as t.ClassMethod).body.body;
-
-        const hasTitleCall = body.some(
-          (stmt) =>
-            t.isExpressionStatement(stmt) &&
-            t.isCallExpression(stmt.expression) &&
-            t.isMemberExpression(stmt.expression.callee) &&
-            t.isIdentifier(stmt.expression.callee.property, { name: 'setTitle' })
-        );
-
-        const hasMetaCall = body.some(
-          (stmt) =>
-            t.isExpressionStatement(stmt) &&
-            t.isCallExpression(stmt.expression) &&
-            t.isMemberExpression(stmt.expression.callee) &&
-            t.isIdentifier(stmt.expression.callee.property, { name: 'updateTag' })
-        );
-
-        if (!hasTitleCall) {
-          body.push(titleSetCall);
-          updated = true;
-          needsSeoLogic = true;
+            constructorPath.node.params.push(param);
+            modified = true;
         }
-        if (!hasMetaCall) {
-          body.push(metaUpdateCall);
-          updated = true;
-          needsSeoLogic = true;
-        }
-      } else {
-        const method = t.classMethod(
-          'method',
-          t.identifier('ngOnInit'),
-          [],
-          t.blockStatement([titleSetCall, metaUpdateCall])
-        );
-        method.returnType = t.tsTypeAnnotation(t.tsVoidKeyword());
-        path.node.body.body.push(method);
-        updated = true;
-        needsSeoLogic = true;
-      }
-    },
-
-    Program: {
-      exit(path) {
-        if (!needsSeoLogic) return;
-
-        // Add imports only if needed
-
-        // Import Title & Meta
-        const hasTitleMetaImport = path.node.body.some(
-          (n) =>
-            t.isImportDeclaration(n) &&
-            n.source.value === '@angular/platform-browser'
-        );
-
-        if (!hasTitleMetaImport) {
-          path.node.body.unshift(
-            t.importDeclaration(
-              [
-                t.importSpecifier(t.identifier('Title'), t.identifier('Title')),
-                t.importSpecifier(t.identifier('Meta'), t.identifier('Meta')),
-              ],
-              t.stringLiteral('@angular/platform-browser')
-            )
-          );
-          updated = true;
-        }
-
-        // Ensure OnInit is imported
-        const hasOnInitImport = path.node.body.some(
-          (n) =>
-            t.isImportDeclaration(n) &&
-            n.source.value === '@angular/core' &&
-            n.specifiers.some(
-              (s) =>
-                t.isImportSpecifier(s) &&
-                t.isIdentifier(s.imported, { name: 'OnInit' })
-            )
-        );
-
-        if (!hasOnInitImport) {
-          const angularCoreImport = path.node.body.find(
-            (n) =>
-              t.isImportDeclaration(n) && n.source.value === '@angular/core'
-          );
-
-          if (angularCoreImport && t.isImportDeclaration(angularCoreImport)) {
-            angularCoreImport.specifiers.push(
-              t.importSpecifier(t.identifier('OnInit'), t.identifier('OnInit'))
-            );
-          } else {
-            path.node.body.unshift(
-              t.importDeclaration(
-                [t.importSpecifier(t.identifier('OnInit'), t.identifier('OnInit'))],
-                t.stringLiteral('@angular/core')
-              )
-            );
-          }
-          updated = true;
-        }
-      },
-    },
-  });
-
-  if (updated) {
-    // @ts-ignore – generate typing mismatch under certain module resolutions
-    const output = generate(
-      ast,
-      {
-        retainLines: true,
-        retainFunctionParens: true,
-      },
-      code
-    );
-    const formatted = await prettier.format(output.code, {
-      parser: 'babel-ts',
-      semi: true,
-      singleQuote: false,
-      jsxSingleQuote: false,
-      trailingComma: 'none',
-      printWidth: 80,
-      tabWidth: 2,
-      useTabs: false,
     });
-    writeFileSync(file, formatted, 'utf-8');
-    console.log(` • Updated ${file} with Angular SEO optimizations.`);
-  }
+
+    const hasDocumentInjection = constructorPath.node.params.some(p => t.isTSParameterProperty(p) && p.parameter.decorators?.some(d => t.isCallExpression(d.expression) && t.isIdentifier(d.expression.callee) && d.expression.callee.name === 'Inject'));
+    if (!hasDocumentInjection) {
+        const docIdentifier = t.identifier('document');
+        docIdentifier.typeAnnotation = t.tsTypeAnnotation(t.tsTypeReference(t.identifier('Document')));
+
+        const docParam = t.tsParameterProperty(docIdentifier);
+        docParam.accessibility = 'private';
+        docParam.decorators = [t.decorator(t.callExpression(t.identifier('Inject'), [t.identifier('DOCUMENT')]))];
+        
+        constructorPath.node.params.push(docParam);
+        modified = true;
+    }
+
+    // 3. Create or update ngOnInit for meta tags
+    let ngOnInitPath = classPath.get('body').get('body').find(p => {
+        return p.isClassMethod({ kind: 'method' }) && t.isIdentifier(p.node.key) && p.node.key.name === 'ngOnInit';
+    }) as NodePath<t.ClassMethod> | undefined;
+
+    if (!ngOnInitPath) {
+        const newNgOnInit = t.classMethod('method', t.identifier('ngOnInit'), [], t.blockStatement([]));
+        constructorPath.insertAfter(newNgOnInit);
+        ngOnInitPath = constructorPath.getNextSibling() as NodePath<t.ClassMethod>;
+        modified = true;
+    }
+
+    const tags = [
+        `this.title.setTitle('SEO Optimized Title');`,
+        `this.meta.addTag({ name: 'description', content: 'SEO Description' });`,
+        `this.meta.addTag({ name: 'robots', content: 'index, follow' });`,
+        `this.meta.addTag({ rel: 'canonical', href: 'https://your-domain.com/page' });`,
+        `this.meta.addTag({ property: 'og:title', content: 'Open Graph Title' });`,
+        `this.meta.addTag({ property: 'og:description', content: 'Open Graph Description' });`,
+        `this.meta.addTag({ name: 'twitter:card', content: 'summary_large_image' });`,
+        `this.meta.addTag({ name: 'twitter:title', content: 'Twitter Title' });`,
+    ];
+
+    const existingStatements = ngOnInitPath.get('body').get('body').map(stmt => generate(stmt).code);
+    tags.forEach(tagCode => {
+        if (!existingStatements.some(s => s.includes(tagCode.slice(0, -1)))) {
+            ngOnInitPath.get('body').pushContainer('body', t.expressionStatement(t.identifier(tagCode)));
+            modified = true;
+        }
+    });
+
+    const ngOnInitSource = generate(ngOnInitPath.node).code;
+    if (!ngOnInitSource.includes("createElement('script')")) {
+        const jsonLdObject = {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Your Site Name",
+            "url": "https://your-domain.com/"
+        };
+
+        const jsonLdAstNodes = [
+            t.variableDeclaration('const', [
+                t.variableDeclarator(
+                    t.identifier('script'),
+                    t.callExpression(
+                        t.memberExpression(t.memberExpression(t.thisExpression(), t.identifier('renderer')), t.identifier('createElement')),
+                        [t.stringLiteral('script')]
+                    )
+                )
+            ]),
+            t.expressionStatement(t.callExpression(
+                t.memberExpression(t.memberExpression(t.thisExpression(), t.identifier('renderer')), t.identifier('setAttribute')),
+                [t.identifier('script'), t.stringLiteral('type'), t.stringLiteral('application/ld+json')]
+            )),
+            t.expressionStatement(t.assignmentExpression(
+                '=',
+                t.memberExpression(t.identifier('script'), t.identifier('textContent')),
+                t.stringLiteral(JSON.stringify(jsonLdObject, null, 2))
+            )),
+            t.expressionStatement(t.callExpression(
+                t.memberExpression(t.memberExpression(t.thisExpression(), t.identifier('renderer')), t.identifier('appendChild')),
+                [t.memberExpression(t.memberExpression(t.thisExpression(), t.identifier('document')), t.identifier('head')), t.identifier('script')]
+            ))
+        ];
+        jsonLdAstNodes.forEach(node => {
+            ngOnInitPath.get('body').pushContainer('body', node);
+        });
+        modified = true;
+    }
+
+    // 4. Add imports if they don't exist
+    const programPath = classPath.findParent(p => p.isProgram()) as NodePath<t.Program>;
+    if (programPath) {
+        Object.entries(SEO_IMPORTS).forEach(([name, source]) => {
+            addImportIfNeeded(programPath, source, name);
+        });
+    }
+
+    return modified;
 }
 
-/**
- * Optimizes Angular project components by ensuring proper title tags, meta tags, and image optimizations.
- **/
-export async function optimizeAngularComponents() {
-  const htmlFiles = glob.sync('src/app/pages/**/*.html');
+// Updates the HTML template (.html) for SEO
+async function updateTemplate(templatePath: string): Promise<boolean> {
+    let html = await fs.readFile(templatePath, 'utf8');
+    const $ = cheerio.load(html, { xmlMode: true });
+    let modified = false;
 
-  for (const file of htmlFiles) {
-    try {
-      await optimizeAngularImages(file);
-    } catch (err) {
-      console.error(`Error processing ${file}:`, err);
+    // 1. Modernize <img> tags
+    $('img').each((i, el) => {
+        const img = $(el);
+        if (img.attr('src') && !img.attr('ngSrc')) {
+            img.attr('ngSrc', img.attr('src'));
+            img.removeAttr('src');
+            img.attr('width', '500'); // Placeholder
+            img.attr('height', '300'); // Placeholder
+            modified = true;
+        }
+        if (!img.attr('alt')) {
+            img.attr('alt', 'Placeholder alt text');
+            modified = true;
+        }
+    });
+
+    // 2. Modernize <a> tags
+    $('a[href^="/"]').each((i, el) => {
+        const link = $(el);
+        if (!link.attr('routerLink')) {
+            link.attr('routerLink', link.attr('href'));
+            link.removeAttr('href');
+            modified = true;
+        }
+    });
+
+    if (modified) {
+        const newHtml = $.html();
+        const formattedHtml = await prettier.format(newHtml, {
+            parser: 'html',
+        });
+        await fs.writeFile(templatePath, formattedHtml, 'utf8');
+        console.log(chalk.green(` • Modernized template: ${path.basename(templatePath)}`));
     }
-  }
 
-  const tsFiles = glob.sync('src/app/pages/**/*.component.ts');
-
-  for (const file of tsFiles) {
-    try {
-      await transformAngularComponents(file);
-    } catch (err) {
-      console.error(`Error processing ${file}:`, err);
-    }
-  }
+    return modified;
 }
 
+// Helper to add a TypeScript import if it's missing
+function addImportIfNeeded(programPath: NodePath<t.Program>, moduleName: string, importName: string) {
+    let importExists = false;
+    programPath.get('body').forEach(nodePath => {
+        if (nodePath.isImportDeclaration() && nodePath.node.source.value === moduleName) {
+            const hasSpecifier = nodePath.node.specifiers.some(spec => t.isImportSpecifier(spec) && t.isIdentifier(spec.local) && spec.local.name === importName);
+            if(hasSpecifier) {
+                importExists = true;
+            }
+        }
+    });
 
+    if (!importExists) {
+        let importDeclaration = programPath.get('body').find(p => p.isImportDeclaration() && p.node.source.value === moduleName) as NodePath<t.ImportDeclaration> | undefined;
+        
+        if (importDeclaration) { // Module imported, but not the specifier
+            importDeclaration.node.specifiers.push(t.importSpecifier(t.identifier(importName), t.identifier(importName)));
+        } else { // Module not imported at all
+            programPath.unshiftContainer('body', t.importDeclaration(
+                [t.importSpecifier(t.identifier(importName), t.identifier(importName))],
+                t.stringLiteral(moduleName)
+            ));
+        }
+    }
+}
+
+function isAngularComponent(path: NodePath<t.ClassDeclaration>): boolean {
+    return path.node.decorators?.some(d => 
+        t.isCallExpression(d.expression) &&
+        t.isIdentifier(d.expression.callee) &&
+        d.expression.callee.name === 'Component'
+    ) ?? false;
+} 

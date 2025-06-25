@@ -13,9 +13,10 @@ import { default as render } from 'dom-serializer';
 import { JSDOM } from 'jsdom';
 import prettier from 'prettier';
 import chalk from 'chalk';
+import ora from 'ora';
 
-const traverse = _traverse.default;
-const generate = _generate.default;
+const traverse = (_traverse as any).default || _traverse;
+const generate = (_generate as any).default || _generate;
 
 /**
  * Recursively walks up the directory tree to find the project root.
@@ -301,128 +302,291 @@ function getJSXElementName(name: t.JSXIdentifier | t.JSXMemberExpression | t.JSX
   return t.isJSXIdentifier(name) ? name.name : '';
 }
 
-/**
- * Injects next/head tags into a Next.js component file.
- * 
- * @param {string} file - Path to the file to transform
- */
-export async function transformFile(file: string): Promise<void> {
-  console.log(`Reading file: ${file}`);
-  const code = await fs.readFile(file, 'utf8');
-
-  if (code.includes('@next/head')) {
-    console.log(chalk.yellow(`Skipping file with @next/head import: ${file}`));
-    return;
-  }
-
-  const ast = parse(code, {
-    sourceType: 'module',
-    plugins: ['jsx', 'typescript'],
+function addImportIfNeeded(programPath: babel.NodePath<t.Program>, moduleName: string, importName: string, isDefault = false) {
+  let importExists = false;
+  programPath.get('body').forEach(nodePath => {
+    if (nodePath.isImportDeclaration() && nodePath.node.source.value === moduleName) {
+      importExists = true;
+    }
   });
 
-  let metadataVariable: t.VariableDeclarator | null = null;
-  let modified = false;
+  if (!importExists) {
+    let newImport;
+    if (isDefault) {
+      newImport = t.importDeclaration(
+        [t.importDefaultSpecifier(t.identifier(importName))],
+        t.stringLiteral(moduleName)
+      );
+    } else {
+      newImport = t.importDeclaration(
+        [t.importSpecifier(t.identifier(importName), t.identifier(importName))],
+        t.stringLiteral(moduleName)
+      );
+    }
+    programPath.unshiftContainer('body', newImport);
+  }
+}
 
+async function transformAppFile(file: string): Promise<void> {
+  const code = await fs.readFile(file, 'utf8');
+  const ast = parse(code, { sourceType: 'module', plugins: ['jsx', 'typescript'] });
+    
+    let modified = false;
+    
+  // 1. Modify metadata object
   traverse(ast, {
     ExportNamedDeclaration(path) {
-      if (t.isVariableDeclaration(path.node.declaration)) {
-        for (const declarator of path.node.declaration.declarations) {
-          if (t.isIdentifier(declarator.id) && declarator.id.name === 'metadata') {
-            metadataVariable = declarator;
-            break;
+      const declaration = path.node.declaration;
+      if (t.isVariableDeclaration(declaration)) {
+        declaration.declarations.forEach(declarator => {
+          if (t.isIdentifier(declarator.id) && declarator.id.name === 'metadata' && t.isObjectExpression(declarator.init)) {
+            const properties = declarator.init.properties;
+            const existingKeys = properties.map(p => t.isObjectProperty(p) && t.isIdentifier(p.key) ? p.key.name : null);
+            
+            const seoProperties = {
+              description: 'SEO optimized description',
+              canonical: 'https://your-domain.com/your-page',
+              openGraph: { title: 'OG Title', description: 'OG Description' },
+              twitter: { card: 'summary_large_image', title: 'Twitter Title' }
+            };
+
+            if (!existingKeys.includes('description')) {
+              properties.push(t.objectProperty(t.identifier('description'), t.stringLiteral(seoProperties.description)));
+      modified = true;
+    }
+            if (!existingKeys.includes('canonical')) {
+              properties.push(t.objectProperty(t.identifier('canonical'), t.stringLiteral(seoProperties.canonical)));
+      modified = true;
+    }
+             if (!existingKeys.includes('openGraph')) {
+              properties.push(t.objectProperty(t.identifier('openGraph'), t.objectExpression([
+                t.objectProperty(t.identifier('title'), t.stringLiteral(seoProperties.openGraph.title)),
+                t.objectProperty(t.identifier('description'), t.stringLiteral(seoProperties.openGraph.description)),
+              ])));
+      modified = true;
+    }
+             if (!existingKeys.includes('twitter')) {
+              properties.push(t.objectProperty(t.identifier('twitter'), t.objectExpression([
+                 t.objectProperty(t.identifier('card'), t.stringLiteral(seoProperties.twitter.card)),
+                t.objectProperty(t.identifier('title'), t.stringLiteral(seoProperties.twitter.title)),
+              ])));
+        modified = true;
+            }
+          }
+        });
+      }
+    }
+  });
+  
+  // 2. Code Modernization (Image and Link)
+  let imageImportNeeded = false;
+  let linkImportNeeded = false;
+  
+  traverse(ast, {
+    JSXElement(path) {
+      const openingElement = path.node.openingElement;
+      if (t.isJSXIdentifier(openingElement.name)) {
+        if (openingElement.name.name === 'img') {
+          openingElement.name.name = 'Image';
+          openingElement.attributes.push(t.jsxAttribute(t.jsxIdentifier('width'), t.jsxExpressionContainer(t.numericLiteral(500))));
+          openingElement.attributes.push(t.jsxAttribute(t.jsxIdentifier('height'), t.jsxExpressionContainer(t.numericLiteral(300))));
+          if (!openingElement.attributes.some(attr => t.isJSXAttribute(attr) && attr.name.name === 'alt')) {
+            openingElement.attributes.push(t.jsxAttribute(t.jsxIdentifier('alt'), t.stringLiteral('Description of image')));
+          }
+          imageImportNeeded = true;
+          modified = true;
+        } else if (openingElement.name.name === 'a') {
+          const hrefAttr = openingElement.attributes.find(attr => t.isJSXAttribute(attr) && attr.name.name === 'href');
+          if (hrefAttr && t.isStringLiteral(hrefAttr.value) && hrefAttr.value.value.startsWith('/')) {
+            openingElement.name.name = 'Link';
+            linkImportNeeded = true;
+      modified = true;
+    }
+        }
+      }
+    },
+  });
+
+  if (imageImportNeeded || linkImportNeeded) {
+    traverse(ast, {
+      Program(path) {
+        if (imageImportNeeded) addImportIfNeeded(path, 'next/image', 'Image', true);
+        if (linkImportNeeded) addImportIfNeeded(path, 'next/link', 'Link', true);
+        path.stop();
+      }
+    });
+    }
+    
+    if (modified) {
+    const output = generate(ast, {}, code);
+    const formattedCode = await prettier.format(output.code, {
+        parser: 'typescript',
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'all',
+    });
+    await fs.writeFile(file, formattedCode, 'utf8');
+    console.log(chalk.green(` • Successfully optimized (App Router): ${path.basename(file)}`));
+  }
+}
+
+async function transformPagesFile(file: string): Promise<void> {
+  const code = await fs.readFile(file, 'utf8');
+  const ast = parse(code, { sourceType: 'module', plugins: ['jsx', 'typescript'] });
+  
+  let modified = false;
+
+  const jsonLdObject = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "url": "https://your-domain.com/",
+    "name": "Your Site Name",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://your-domain.com/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+
+  const headChildren = [
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('title'), [], false), t.jsxClosingElement(t.jsxIdentifier('title')), [t.jsxText('SEO Title')]),
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('meta'), [t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('description')), t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('SEO Description'))], true), null, [], true),
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('meta'), [t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('robots')), t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('index, follow'))], true), null, [], true),
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('link'), [t.jsxAttribute(t.jsxIdentifier('rel'), t.stringLiteral('canonical')), t.jsxAttribute(t.jsxIdentifier('href'), t.stringLiteral('https://your-domain.com/your-page'))], true), null, [], true),
+    
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('meta'), [t.jsxAttribute(t.jsxIdentifier('property'), t.stringLiteral('og:type')), t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('website'))], true), null, [], true),
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('meta'), [t.jsxAttribute(t.jsxIdentifier('property'), t.stringLiteral('og:title')), t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('Open Graph Title'))], true), null, [], true),
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('meta'), [t.jsxAttribute(t.jsxIdentifier('property'), t.stringLiteral('og:description')), t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('Open Graph Description'))], true), null, [], true),
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('meta'), [t.jsxAttribute(t.jsxIdentifier('property'), t.stringLiteral('og:url')), t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('https://your-domain.com/your-page'))], true), null, [], true),
+
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('meta'), [t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('twitter:card')), t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('summary_large_image'))], true), null, [], true),
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('meta'), [t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('twitter:title')), t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('Twitter Title'))], true), null, [], true),
+    t.jsxElement(t.jsxOpeningElement(t.jsxIdentifier('meta'), [t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('twitter:description')), t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral('Twitter Description'))], true), null, [], true),
+
+    t.jsxElement(
+      t.jsxOpeningElement(t.jsxIdentifier('script'), [
+          t.jsxAttribute(t.jsxIdentifier('type'), t.stringLiteral('application/ld+json')),
+          t.jsxAttribute(
+              t.jsxIdentifier('dangerouslySetInnerHTML'),
+              t.jsxExpressionContainer(
+                  t.objectExpression([
+                      t.objectProperty(
+                          t.identifier('__html'),
+                          t.callExpression(
+                            t.memberExpression(t.identifier('JSON'), t.identifier('stringify')),
+                            [t.valueToNode(jsonLdObject)]
+                          )
+                      )
+                  ])
+              )
+          )
+      ], false),
+      t.jsxClosingElement(t.jsxIdentifier('script')),
+      []
+    )
+  ];
+
+  const headElement = t.jsxElement(
+    t.jsxOpeningElement(t.jsxIdentifier('Head'), [], false),
+    t.jsxClosingElement(t.jsxIdentifier('Head')),
+    headChildren
+  );
+
+  traverse(ast, {
+    ReturnStatement(path) {
+      if (t.isJSXElement(path.node.argument)) {
+        const rootElement = path.node.argument;
+        if (!rootElement.children.some(child => t.isJSXElement(child) && t.isJSXIdentifier(child.openingElement.name) && child.openingElement.name.name === 'Head')) {
+            // Find JSX Fragment and add head, otherwise create a new one
+            if(t.isJSXFragment(rootElement)){
+                 rootElement.children.unshift(headElement);
+            } else {
+                 const newFragment = t.jsxFragment(t.jsxOpeningFragment(), t.jsxClosingFragment(), [headElement, rootElement]);
+                 path.get('argument').replaceWith(newFragment);
+            }
+            modified = true;
+        }
+        path.stop();
+      }
+    },
+  });
+
+  let headImportNeeded = modified;
+  let imageImportNeeded = false;
+  let linkImportNeeded = false;
+
+   traverse(ast, {
+    JSXElement(path) {
+      const openingElement = path.node.openingElement;
+      if (t.isJSXIdentifier(openingElement.name)) {
+        if (openingElement.name.name === 'img') {
+          openingElement.name.name = 'Image';
+          openingElement.attributes.push(t.jsxAttribute(t.jsxIdentifier('width'), t.jsxExpressionContainer(t.numericLiteral(500))));
+          openingElement.attributes.push(t.jsxAttribute(t.jsxIdentifier('height'), t.jsxExpressionContainer(t.numericLiteral(300))));
+           if (!openingElement.attributes.some(attr => t.isJSXAttribute(attr) && attr.name.name === 'alt')) {
+            openingElement.attributes.push(t.jsxAttribute(t.jsxIdentifier('alt'), t.stringLiteral('Description of image')));
+          }
+          imageImportNeeded = true;
+          modified = true;
+        } else if (openingElement.name.name === 'a') {
+          const hrefAttr = openingElement.attributes.find(attr => t.isJSXAttribute(attr) && attr.name.name === 'href');
+          if (hrefAttr && t.isStringLiteral(hrefAttr.value) && hrefAttr.value.value.startsWith('/')) {
+            openingElement.name.name = 'Link';
+            linkImportNeeded = true;
+            modified = true;
           }
         }
       }
     },
   });
 
-  const seoProperties = [
-    t.objectProperty(t.identifier('description'), t.stringLiteral('SEO optimized description')),
-    t.objectProperty(t.identifier('robots'), t.stringLiteral('index, follow')),
-    t.objectProperty(
-      t.identifier('openGraph'),
-      t.objectExpression([
-        t.objectProperty(t.identifier('title'), t.stringLiteral('OpenGraph Title')),
-        t.objectProperty(t.identifier('description'), t.stringLiteral('OpenGraph Description')),
-      ])
-    ),
-  ];
-
-  if (metadataVariable && t.isObjectExpression(metadataVariable.init)) {
-    //
-    seoProperties.forEach(prop => {
-      if (t.isObjectProperty(prop)) {
-        const key = (prop.key as t.Identifier).name;
-        const exists = metadataVariable!.init as t.ObjectExpression;
-        if (!exists.properties.some(p => t.isObjectProperty(p) && (p.key as t.Identifier).name === key)) {
-          (metadataVariable.init as t.ObjectExpression).properties.push(prop);
-          modified = true;
-        }
+  if (headImportNeeded || imageImportNeeded || linkImportNeeded) {
+    traverse(ast, {
+      Program(path) {
+        if (headImportNeeded) addImportIfNeeded(path, 'next/head', 'Head', true);
+        if (imageImportNeeded) addImportIfNeeded(path, 'next/image', 'Image', true);
+        if (linkImportNeeded) addImportIfNeeded(path, 'next/link', 'Link', true);
+        path.stop();
       }
     });
-  } else {
-    //
-    const metadataExport = t.exportNamedDeclaration(
-      t.variableDeclaration('const', [
-        t.variableDeclarator(t.identifier('metadata'), t.objectExpression(seoProperties)),
-      ])
-    );
-    //
-    const program = (ast.program as t.Program);
-    program.body.unshift(metadataExport);
-    modified = true;
   }
 
   if (modified) {
     const output = generate(ast, {}, code);
-    await fs.writeFile(file, output.code, 'utf8');
-    console.log(chalk.green(` • Successfully injected SEO optimizations in file: ${file}`));
-  } else {
-    console.log(`No modifications needed for: ${file}`);
+    const formattedCode = await prettier.format(output.code, {
+        parser: 'typescript',
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'all',
+    });
+    await fs.writeFile(file, formattedCode, 'utf8');
+    console.log(chalk.green(` • Successfully optimized (Pages Router): ${path.basename(file)}`));
   }
 }
 
-/**
- * Optimizes Next.js components by injecting SEO-friendly <Head> tags.
- */
 export async function optimizeNextjsComponents(targetDir?: string): Promise<void> {
   const rootDir = targetDir || process.cwd();
   console.log(chalk.blue(`Processing Next.js components from root: ${rootDir}`));
 
-  const pagesDir = path.join(rootDir, 'pages');
-  const appDir = path.join(rootDir, 'app');
-  const srcPagesDir = path.join(rootDir, 'src', 'pages');
-  const srcAppDir = path.join(rootDir, 'src', 'app');
+  const appDirs = [path.join(rootDir, 'app'), path.join(rootDir, 'src', 'app')].filter(dir => existsSync(dir));
+  const pagesDirs = [path.join(rootDir, 'pages'), path.join(rootDir, 'src', 'pages')].filter(dir => existsSync(dir));
 
-  const componentDirs = [pagesDir, appDir, srcPagesDir, srcAppDir].filter(dir =>
-    existsSync(dir)
-  );
-
-  if (componentDirs.length === 0) {
+  if (appDirs.length === 0 && pagesDirs.length === 0) {
     console.log(chalk.yellow('No pages or app directory found. Skipping component optimization.'));
     return;
   }
 
-  let totalFilesProcessed = 0;
-
-  for (const dir of componentDirs) {
-    console.log(chalk.cyan(`Searching for Next.js files in: ${dir}`));
-    const files = await glob('**/*.{js,jsx,ts,tsx}', {
-      cwd: dir,
-      absolute: true,
-      ignore: ['**/node_modules/**', '**/*.test.*', '**/*.spec.*'],
-    });
-
-    console.log(chalk.cyan(`Found ${files.length} files in ${dir}`));
-
+  for (const dir of appDirs) {
+    const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: dir, absolute: true, ignore: ['**/node_modules/**', '**/*.test.*'] });
     for (const file of files) {
-      try {
-        await transformFile(file);
-        totalFilesProcessed++;
-      } catch (error) {
-        console.error(chalk.red(`Failed to transform ${file}:`), error);
-      }
+      try { await transformAppFile(file); } catch (e) { console.error(chalk.red(`Failed to transform ${file}`), e); }
     }
   }
-  console.log(`\nProcessed ${totalFilesProcessed} Next.js files total.\n`);
+
+  for (const dir of pagesDirs) {
+    const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: dir, absolute: true, ignore: ['**/node_modules/**', '**/*.test.*'] });
+    for (const file of files) {
+      try { await transformPagesFile(file); } catch (e) { console.error(chalk.red(`Failed to transform ${file}`), e); }
+    }
+  }
 } 
