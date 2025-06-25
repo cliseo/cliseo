@@ -5,10 +5,13 @@ import { DomUtils } from 'htmlparser2';
 import { default as render } from 'dom-serializer';
 import * as babel from '@babel/core';
 import * as t from '@babel/types';
-import generate from '@babel/generator';
-import traverse from '@babel/traverse';
+import _generate from '@babel/generator';
+import _traverse from '@babel/traverse';
 import { JSDOM } from 'jsdom';
 import prettier from 'prettier';
+
+const traverse = _traverse.default;
+const generate = _generate.default;
 
 /**
  * Checks if the given component argument is a standalone Angular component.
