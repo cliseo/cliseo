@@ -5,7 +5,11 @@
 [![GitHub stars](https://img.shields.io/github/stars/cliseo/cliseo.svg)](https://github.com/cliseo/cliseo/stargazers)
 [![E2E Tests](https://github.com/cliseo/cliseo/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/cliseo/cliseo/actions/workflows/e2e-tests.yml)
 
+[Website](https://cliseo.com) | [Documentation](https://docs.cliseo.com) | [Support](https://cliseo.com/support)
+
+
 > Free SEO Optimization CLI for JavaScript/TypeScript Projects (AI features coming soon!)
+> cliseo.com
 
 ## 🚀 Features
 

@@ -23,3 +23,8 @@ frontend:
     paths:
       - '.npm/**/*'
     appRoot: . 
+
+# Local Environment Variables
+# Exclude .env files from git to prevent exposing secret keys
+.env
+.env*.local 
