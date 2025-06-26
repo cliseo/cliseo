@@ -75,11 +75,6 @@ app.post('/api/check-compatibility', function (req, res) { return __awaiter(void
                     document_1.querySelector('[data-v-')) {
                     framework = 'Vue.js';
                 }
-                // Angular detection
-                else if (html.includes('ng-version') ||
-                    document_1.querySelector('[ng-version]')) {
-                    framework = 'Angular';
-                }
                 // Svelte detection
                 else if (html.includes('svelte-')) {
                     framework = 'Svelte';

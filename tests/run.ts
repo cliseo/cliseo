@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 
 const execAsync = promisify(exec);
 
-type Framework = 'react' | 'next' | 'angular';
+type Framework = 'react' | 'next';
 
 interface FixtureInfo {
   framework: Framework;
@@ -46,13 +46,9 @@ const FIXTURES: FixtureInfo[] = [
     framework: 'next',
     fixtureDir: path.resolve(__dirname, '__fixtures__', 'next-app'),
   },
-  {
-    framework: 'angular',
-    fixtureDir: path.resolve(__dirname, '__fixtures__', 'angular-app'),
-  },
 ];
 
-const frameworkArg = process.argv[2]; // e.g., "react", "next", "angular"
+const frameworkArg = process.argv[2]; // e.g., "react", "next"
 let selectedFixtures = FIXTURES;
 if (frameworkArg) {
   selectedFixtures = FIXTURES.filter(f => f.framework === frameworkArg);
@@ -108,9 +104,6 @@ async function runCliseoOptimize(framework: Framework, tempDir: string): Promise
     case 'next':
       optimizeCommand = `npx cliseo optimize next`;
       break;
-    case 'angular':
-      optimizeCommand = `npx cliseo optimize angular`;
-      break;
     default:
       throw new Error(`Unsupported framework for optimization: ${framework}`);
   }
@@ -121,9 +114,6 @@ async function runBuild(framework: Framework, tempDir: string): Promise<{ succes
   try {
     let buildCmd: string;
     switch (framework) {
-      case 'angular':
-        buildCmd = 'npx ng build --configuration=production';
-        break;
       case 'next':
         buildCmd = 'npm run build';
         break;
@@ -141,7 +131,7 @@ async function runBuild(framework: Framework, tempDir: string): Promise<{ succes
 }
 
 async function checkFunctionality(framework: Framework, cwd: string): Promise<{ success: boolean; error?: string }> {
-  const port = framework === 'next' ? 3000 : framework === 'angular' ? 4200 : 5173;
+  const port = framework === 'next' ? 3000 : 5173;
   const url = `http://localhost:${port}`;
   
   let serverProcess: import('child_process').ChildProcess | undefined;
@@ -159,13 +149,7 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     }
     const commandOptions = { cwd, detached: true };
 
-    if (framework === 'angular') {
-      const ngPath = path.join(cwd, 'node_modules', '.bin', 'ng');
-      serverProcess = exec(`${ngPath} serve --host=0.0.0.0 --poll=2000 --port=${port} --watch=false --verbose`, {
-        ...commandOptions,
-        env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' }
-      });
-    } else if (framework === 'next') {
+    if (framework === 'next') {
       // Use production server to avoid watcher-related permission errors
       console.log(`[${framework} Debug] Starting Next.js production server (next start)`);
       serverProcess = exec(`npm run start -- -p ${port}`, commandOptions);
@@ -197,7 +181,7 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     
     const maxRetries = 6;
     const retryDelay = 20000;
-    const initialDelay = framework === 'angular' ? 30000 : 10000;
+    const initialDelay = 10000;
     let isServerReady = false;
     let lastError: string | undefined;
 
@@ -339,26 +323,6 @@ async function main() {
       const cliseoProjectRoot = path.resolve(__dirname, '..');
       await runCommand(`npm install && npm install file:${cliseoProjectRoot}`, tempDir);
 
-      if (framework === 'angular') {
-        const criticalFiles = [
-          'tsconfig.json',
-          'tsconfig.app.json',
-          'angular.json',
-          'src/main.ts',
-          'src/styles.css',
-          'src/index.html'
-        ];
-        
-        for (const file of criticalFiles) {
-          const filePath = path.join(tempDir, file);
-          try {
-            await fs.access(filePath);
-          } catch (error) {
-            throw new Error(`Critical file missing after copy for ${framework} in ${tempDir}: ${file}. Error: ${error}`);
-          }
-        }
-      }
-      
       console.log(`[${framework}] Running pre-scan...`);
       const preScan = await runCliseoScan(tempDir);
       

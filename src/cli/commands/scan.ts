@@ -33,7 +33,7 @@ function findProjectRoot(startDir = process.cwd()): string {
  * Scans all package.json files in the project for framework dependencies.
  * Returns the first framework found, or 'unknown' if none found.
  */
-async function detectFramework(projectRoot: string): Promise<'angular' | 'react' | 'vue' | 'next.js' | 'unknown'> {
+async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | 'next.js' | 'unknown'> {
   // Find all package.json files, excluding node_modules and common build/test dirs
   const packageJsonFiles = await glob('**/package.json', {
     cwd: projectRoot,
@@ -60,7 +60,6 @@ async function detectFramework(projectRoot: string): Promise<'angular' | 'react'
     try {
       const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
       const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-      if ('@angular/core' in deps) return 'angular';
       if ('next' in deps) return 'next.js';
       if ('react' in deps || 'react-dom' in deps) return 'react';
       if ('vue' in deps) return 'vue';
@@ -315,44 +314,6 @@ async function scanReactComponent(filePath: string): Promise<SeoIssue[]> {
   // Check for schema markup
   const schemaIssues = await checkSchemaMarkup(filePath);
   issues.push(...schemaIssues);
-
-  return issues;
-}
-
-/**
- * Checks Angular component for SEO issues.
- * 
- * @param filePath - Path to Angular component file to scan.
- * @returns List of SEO issues found.
- */
-async function scanAngularComponent(filePath: string): Promise<SeoIssue[]> {
-  const issues: SeoIssue[] = [];
-  const content = await readFile(filePath, 'utf-8');
-
-  if (filePath.endsWith('app.component.ts') && !(content.includes('titleService: Title') || content.includes('metaService: Meta'))) {
-    issues.push({
-      type: 'warning',
-      message: 'No title and meta management found for app component',
-      file: filePath,
-      fix: 'Consider using @angular/platform-browser, to manage title and meta tags in standalone components',
-    });
-  }
-  else if (content.includes('standalone: true') && !(content.includes('titleService: Title') || content.includes('metaService: Meta'))) {
-    issues.push({
-      type: 'warning',
-      message: 'No title and meta management found for standalone component',
-      file: filePath,
-      fix: 'Consider using @angular/platform-browser, to manage title and meta tags in standalone components',
-    });
-  } 
-  else if (content.includes('<img') && !content.includes('ngOptimizedImage')) {
-    issues.push({
-      type: 'warning',
-      message: 'Image without ngOptimizedImage directive',
-      file: filePath,
-      fix: 'Add ngOptimizedImage directive to optimize images for SEO',
-    });
-  }
 
   return issues;
 }
@@ -618,8 +579,6 @@ export async function scanCommand(options: ScanOptions) {
       
       if (framework === 'react') {
         frameworkIssues = await scanReactComponent(file);
-      } else if (framework === 'angular') {
-        frameworkIssues = await scanAngularComponent(file);
       } else if (framework === 'next.js') {
         frameworkIssues = await scanNextComponent(file);
       }
@@ -643,7 +602,7 @@ export async function scanCommand(options: ScanOptions) {
       console.log(JSON.stringify(results, null, 2));
     } else {
       spinner.succeed('Scan complete!');
-      const frameWorkColor = framework === 'angular' ? chalk.red : framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
+      const frameWorkColor = framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
       console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
 
       results.forEach(result => {

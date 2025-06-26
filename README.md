@@ -57,7 +57,7 @@ Automatically applies SEO fixes to your codebase.
 
 ## 🤝 Contribute
 
-We welcome contributions of all kinds to **Cliseo** — whether it’s fixing bugs, adding new features, improving performance, or even enhancing the documentation!
+We welcome contributions of all kinds to **Cliseo** — whether it's fixing bugs, adding new features, improving performance, or even enhancing the documentation!
 
 ### How to Contribute
 
@@ -78,8 +78,8 @@ We welcome contributions of all kinds to **Cliseo** — whether it’s fixing bu
 - 📑 Keep your code clean and well-commented.
 - 💡 If adding a new feature, include a brief description in the PR.
 - 🪲 If fixing a bug, describe the issue and how your fix solves it.
-- 🧪 Run any relevant tests (or add some if they don’t exist!).
-  - Tests for React, Next, and Angular applications can be found in `./tests/run-tests.sh`
+- 🧪 Run any relevant tests (or add some if they don't exist!).
+  - Tests for React and Next applications can be found in `./tests/run-tests.sh`
 - ❌ Avoid making large unrelated changes in a single PR.
 
 ### Not Sure Where to Start?

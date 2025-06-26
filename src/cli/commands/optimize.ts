@@ -8,7 +8,6 @@ import { glob } from 'glob';
 import fs from 'fs';
 import path from 'path';
 import { optimizeReactComponents } from './optimize-react.js';
-import { optimizeAngularComponents } from './optimize-angular.js';
 import { optimizeNextjsComponents } from './optimize-next.js';
 import inquirer from 'inquirer';
 import { execSync } from 'child_process';
@@ -44,8 +43,6 @@ async function ensureSeoFiles(framework: string, projectRoot: string) {
   let targetDir = projectRoot;
   if (framework === 'react' || framework === 'next.js') {
     targetDir = join(projectRoot, 'public');
-  } else if (framework === 'angular') {
-    targetDir = join(projectRoot, 'src');
   }
 
   // make sure directory exists
@@ -121,74 +118,7 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
   try { await access(robotsPath); } catch { await writeFile(robotsPath, robotsContent); robotsCreated = true; }
   try { await access(sitemapPath); } catch { await writeFile(sitemapPath, sitemapContent); sitemapCreated = true; }
 
-  // For angular, update angular.json to include the new assets
-  if (framework === 'angular') {
-    await updateAngularJson(projectRoot);
-  }
-
-  // special note for angular: remind user to include assets path
-  if (framework === 'angular' && sitemapCreated) {
-    if (process.env.CLISEO_VERBOSE === 'true') {
-      console.log(chalk.yellow('ℹ️  Remember to ensure sitemap.xml is listed under assets in angular.json so it is copied to the build output.'));
-    }
-  }
-
   return { robotsCreated, sitemapCreated };
-}
-
-/**
- * Updates angular.json to include robots.txt and sitemap.xml in assets.
- */
-async function updateAngularJson(projectRoot: string) {
-    const angularJsonPath = join(projectRoot, 'angular.json');
-    if (!existsSync(angularJsonPath)) {
-        if (process.env.CLISEO_VERBOSE === 'true') {
-            console.log(chalk.yellow('Could not find angular.json. Skipping update.'));
-        }
-        return;
-    }
-
-    try {
-        const angularJsonContent = await readFile(angularJsonPath, 'utf-8');
-        const angularJson = JSON.parse(angularJsonContent);
-
-        const projectName = angularJson.defaultProject || (angularJson.projects && Object.keys(angularJson.projects)[0]);
-
-        if (!projectName || !angularJson.projects[projectName]) {
-            console.log(chalk.red('Could not find a project in angular.json.'));
-            return;
-        }
-        
-        const buildOptions = angularJson.projects[projectName]?.architect?.build?.options;
-        if (buildOptions && Array.isArray(buildOptions.assets)) {
-            let updated = false;
-            if (!buildOptions.assets.find(a => a === 'src/robots.txt' || (typeof a === 'object' && a.glob === 'robots.txt'))) {
-                buildOptions.assets.push('src/robots.txt');
-                updated = true;
-            }
-            if (!buildOptions.assets.find(a => a === 'src/sitemap.xml' || (typeof a === 'object' && a.glob === 'sitemap.xml'))) {
-                buildOptions.assets.push('src/sitemap.xml');
-                updated = true;
-            }
-
-            if (updated) {
-                await writeFile(angularJsonPath, JSON.stringify(angularJson, null, 2));
-                 if (process.env.CLISEO_VERBOSE === 'true') {
-                    console.log(chalk.green('✔ Updated angular.json with sitemap.xml and robots.txt'));
-                 }
-            } else {
-                if (process.env.CLISEO_VERBOSE === 'true') {
-                    console.log(chalk.gray('angular.json already includes sitemap.xml and robots.txt'));
-                }
-            }
-        } else {
-             if (process.env.CLISEO_VERBOSE === 'true') {
-                console.log(chalk.yellow('Could not find "assets" array in angular.json build options. You may need to add "src/robots.txt" and "src/sitemap.xml" manually.'));
-             }
-        }
-    } catch (error) {
-        console.error(chalk.red('Error updating angular.json:'), error);
-    }
 }
 
 /**
@@ -196,10 +126,8 @@ async function updateAngularJson(projectRoot: string) {
  */
 function getPagesDirectory(projectRoot: string, framework: string): string[] {
   const directories: string[] = [];
-  
   switch (framework) {
     case 'next.js':
-      // Check for both pages/ and app/ directories (Next.js supports both)
       if (existsSync(join(projectRoot, 'pages'))) {
         directories.push(join(projectRoot, 'pages'));
       }
@@ -207,24 +135,13 @@ function getPagesDirectory(projectRoot: string, framework: string): string[] {
         directories.push(join(projectRoot, 'app'));
       }
       break;
-      
     case 'react':
-      // Check for src/pages/ directory
       if (existsSync(join(projectRoot, 'src', 'pages'))) {
         directories.push(join(projectRoot, 'src', 'pages'));
       }
       break;
-      
-    case 'angular':
-      // Check for src/app/pages/ first, then fallback to src/app/
-      if (existsSync(join(projectRoot, 'src', 'app', 'pages'))) {
-        directories.push(join(projectRoot, 'src', 'app', 'pages'));
-      } else if (existsSync(join(projectRoot, 'src', 'app'))) {
-        directories.push(join(projectRoot, 'src', 'app'));
-      }
-      break;
+    // Angular support removed
   }
-  
   return directories;
 }
 
@@ -235,11 +152,10 @@ function getFrameworkFileExtensions(framework: string): string[] {
   switch (framework) {
     case 'next.js':
     case 'react':
-      return ['**/*.{js,jsx,ts,tsx}']; // React/Next.js component files
-    case 'angular':
-      return ['**/*.ts', '**/*.html']; // Angular TypeScript components + templates
+      return ['**/*.{js,jsx,ts,tsx}'];
+    // Angular support removed
     default:
-      return ['**/*.html']; // Fallback to HTML only
+      return ['**/*.html'];
   }
 }
 
@@ -361,8 +277,7 @@ async function addImagesAltAttributes(projectRoot: string, framework: string) {
  * Scans all package.json files in the project for framework dependencies.
  * Returns the first framework found, or 'unknown' if none found.
  */
-async function detectFramework(projectRoot: string): Promise<'angular' | 'react' | 'next.js' | 'unknown'> {
-  // Find all package.json files, excluding node_modules and common build/test dirs
+async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | 'next.js' | 'unknown'> {
   const packageJsonFiles = await glob('**/package.json', {
     cwd: projectRoot,
     ignore: [
@@ -383,17 +298,14 @@ async function detectFramework(projectRoot: string): Promise<'angular' | 'react'
     absolute: true,
     dot: true
   });
-
   for (const pkgPath of packageJsonFiles) {
     try {
       const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
       const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-      if ('@angular/core' in deps) return 'angular';
       if ('next' in deps) return 'next.js';
       if ('react' in deps || 'react-dom' in deps) return 'react';
-    } catch (e) {
-      // Ignore parse errors
-    }
+      if ('vue' in deps) return 'vue';
+    } catch (e) {}
   }
   return 'unknown';
 }
@@ -440,7 +352,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
     
     if (process.env.CLISEO_VERBOSE === 'true') { spinner.succeed('Tags added to HTML files!'); } else { spinner.stop(); }
 
-    const frameWorkColor = framework === 'angular' ? chalk.red : framework === 'react' ? chalk.blue : chalk.gray;
+    const frameWorkColor = framework === 'react' ? chalk.blue : chalk.gray;
     console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
 
     // Framework-specific optimizations
@@ -451,15 +363,6 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('React components optimized successfully!'); else spinner.stop();
       } catch (err) {
         spinner.fail('Failed to optimize React components.');
-        console.error(err);
-      }
-    } else if (framework === 'angular') {
-      spinner.text = 'Optimizing Angular components...';
-      try {
-        await optimizeAngularComponents();
-        if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('Angular components optimized successfully!'); else spinner.stop();
-      } catch (err) {
-        spinner.fail('Failed to optimize Angular components.');
         console.error(err);
       }
     } else if (framework === 'next.js') {

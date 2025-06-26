@@ -24,9 +24,6 @@ cd "$TESTS_DIR/__fixtures__/react-app" && npm install && cd "$TESTS_DIR"
 echo "Installing dependencies for Next.js fixture..."
 cd "$TESTS_DIR/__fixtures__/next-app" && npm install && cd "$TESTS_DIR"
 
-echo "Installing dependencies for Angular fixture..."
-cd "$TESTS_DIR/__fixtures__/angular-app" && npm install && cd "$TESTS_DIR"
-
 # Ensure tsx is available (it's in root devDependencies, but npx will handle it)
 # We can add a specific check/install for tsx if needed, but npx should find it.
 

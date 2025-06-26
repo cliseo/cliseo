@@ -101,57 +101,6 @@ const testSites: TestSite[] = [
       // Footer
       'footer'
     ]
-  },
-  {
-    name: 'angular-app',
-    path: path.join('__fixtures__', 'angular-app'),
-    framework: 'angular' as const,
-    expectedIssues: [
-      {
-        type: 'img-alt',
-        description: 'Images missing alt text',
-        severity: 'high',
-        location: {
-          file: 'src/app/hero/hero.component.ts'
-        }
-      },
-      {
-        type: 'heading-structure',
-        description: 'Invalid heading hierarchy',
-        severity: 'medium',
-        location: {
-          file: 'src/app/about/about.component.ts'
-        }
-      }
-    ],
-    criticalPages: [
-      '/',
-      '/about',
-      '/products',
-      '/contact'  // Angular specific route
-    ],
-    criticalSelectors: [
-      // Angular app root
-      'app-root',
-      // Navigation
-      'app-nav',
-      'a[routerLink="/about"]',
-      'a[routerLink="/products"]',
-      'a[routerLink="/contact"]',
-      // Main components
-      'app-hero',
-      'app-about',
-      'app-products',
-      // Dynamic content
-      '.product-list',
-      'app-product-card',
-      // Forms
-      'form',
-      'input[type="text"]',
-      'button[type="submit"]',
-      // Footer
-      'app-footer'
-    ]
   }
 ];
 

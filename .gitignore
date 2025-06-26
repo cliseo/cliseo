@@ -48,6 +48,5 @@ tests/test_run_logs/
 tests/**/dist/
 tests/**/*.tsbuildinfo
 tests/**/_metadata.json
-tests/**/.angular/
 tests/**/*.js
 tests/**/*.js.map
