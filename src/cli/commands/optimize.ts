@@ -45,7 +45,7 @@ async function ensureSeoFiles(framework: string, projectRoot: string) {
   if (framework === 'react' || framework === 'next.js') {
     targetDir = join(projectRoot, 'public');
   } else if (framework === 'angular') {
-    targetDir = join(projectRoot, 'src', 'assets');
+    targetDir = join(projectRoot, 'src');
   }
 
   // make sure directory exists
@@ -121,6 +121,11 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
   try { await access(robotsPath); } catch { await writeFile(robotsPath, robotsContent); robotsCreated = true; }
   try { await access(sitemapPath); } catch { await writeFile(sitemapPath, sitemapContent); sitemapCreated = true; }
 
+  // For angular, update angular.json to include the new assets
+  if (framework === 'angular') {
+    await updateAngularJson(projectRoot);
+  }
+
   // special note for angular: remind user to include assets path
   if (framework === 'angular' && sitemapCreated) {
     if (process.env.CLISEO_VERBOSE === 'true') {
@@ -129,6 +134,61 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
   }
 
   return { robotsCreated, sitemapCreated };
+}
+
+/**
+ * Updates angular.json to include robots.txt and sitemap.xml in assets.
+ */
+async function updateAngularJson(projectRoot: string) {
+    const angularJsonPath = join(projectRoot, 'angular.json');
+    if (!existsSync(angularJsonPath)) {
+        if (process.env.CLISEO_VERBOSE === 'true') {
+            console.log(chalk.yellow('Could not find angular.json. Skipping update.'));
+        }
+        return;
+    }
+
+    try {
+        const angularJsonContent = await readFile(angularJsonPath, 'utf-8');
+        const angularJson = JSON.parse(angularJsonContent);
+
+        const projectName = angularJson.defaultProject || (angularJson.projects && Object.keys(angularJson.projects)[0]);
+
+        if (!projectName || !angularJson.projects[projectName]) {
+            console.log(chalk.red('Could not find a project in angular.json.'));
+            return;
+        }
+        
+        const buildOptions = angularJson.projects[projectName]?.architect?.build?.options;
+        if (buildOptions && Array.isArray(buildOptions.assets)) {
+            let updated = false;
+            if (!buildOptions.assets.find(a => a === 'src/robots.txt' || (typeof a === 'object' && a.glob === 'robots.txt'))) {
+                buildOptions.assets.push('src/robots.txt');
+                updated = true;
+            }
+            if (!buildOptions.assets.find(a => a === 'src/sitemap.xml' || (typeof a === 'object' && a.glob === 'sitemap.xml'))) {
+                buildOptions.assets.push('src/sitemap.xml');
+                updated = true;
+            }
+
+            if (updated) {
+                await writeFile(angularJsonPath, JSON.stringify(angularJson, null, 2));
+                 if (process.env.CLISEO_VERBOSE === 'true') {
+                    console.log(chalk.green('✔ Updated angular.json with sitemap.xml and robots.txt'));
+                 }
+            } else {
+                if (process.env.CLISEO_VERBOSE === 'true') {
+                    console.log(chalk.gray('angular.json already includes sitemap.xml and robots.txt'));
+                }
+            }
+        } else {
+             if (process.env.CLISEO_VERBOSE === 'true') {
+                console.log(chalk.yellow('Could not find "assets" array in angular.json build options. You may need to add "src/robots.txt" and "src/sitemap.xml" manually.'));
+             }
+        }
+    } catch (error) {
+        console.error(chalk.red('Error updating angular.json:'), error);
+    }
 }
 
 /**
