@@ -9,6 +9,8 @@
 
 
 > Free SEO Optimization CLI for JavaScript/TypeScript Projects (AI features coming soon!)
+![Comparison Image](https://cliseo.com/Diff.png)
+
 
 ## 🚀 Features
 
