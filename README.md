@@ -1,4 +1,4 @@
-![Comparison Image](https://cliseo.com/Standalone%2Logo.png)
+![Comparison Image](https://cliseo.com/Standalone%20Logo.png)
 
 [![Website](https://img.shields.io/badge/website-visit-read-blue)](https://cliseo.com)
 [![Documentation](https://img.shields.io/badge/docs-read-blue)](https://cliseo.com/docs/)
@@ -7,7 +7,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/cliseo/cliseo.svg)](https://github.com/cliseo/cliseo/stargazers)
 > Free SEO Optimization CLI for JavaScript/TypeScript Projects (AI features coming soon!)
 
-![Comparison Image](https://cliseo.com/Copy%2of%2Diff.png)
+![Comparison Image](https://cliseo.com/Copy%20of%20Diff.png)
 
 ## 🚀 Features
 
