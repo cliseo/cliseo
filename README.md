@@ -14,7 +14,7 @@
 ## 🚀 Features
 
 ### Current Features
-- 🔍 Deep scanning of React, Next.js, and plain HTML/JSX/TSX projects
+- 🔍 Deep scanning of React and Next.js projects
 - 🛠️ Automatic SEO fixes for common issues
 - 📁 SEO file generation (robots.txt, sitemap.xml)
 - ⚡ Cross-platform support
