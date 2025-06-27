@@ -1,6 +1,6 @@
 <div style="font-family: 'Roboto Mono', monospace;">
 
-<img src="https://cliseo.com/Standalone%20Logo.png?v=1" width="700px" style="border: none;">
+<img src="https://cliseo.com/Standalone%20Logo.png?v=2" width="700px" style="border: none;">
 
 ![Website](https://img.shields.io/website?url=https%3A%2F%2Fcliseo.com&up_message=cliseo.com&up_color=blue)
 [![Documentation](https://img.shields.io/badge/docs-read-blue)](https://cliseo.com/docs/)
@@ -9,7 +9,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/cliseo/cliseo.svg)](https://github.com/cliseo/cliseo/stargazers)
 > SEO Optimization CLI for JavaScript/TypeScript Projects
 
-<img src="https://cliseo.com/Copy%20of%20Diff.png?v=1" width="700px" style="border: none;">
+<img src="https://cliseo.com/Copy%20of%20Diff.png?v=2" width="700px" style="border: none;">
 
 ## 🚀 Features
 
