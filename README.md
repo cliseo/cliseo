@@ -1,6 +1,8 @@
-# cliseo
+<div style="font-family: 'Roboto Mono', monospace;">
 
-[![Website](https://img.shields.io/website?url=https%3A%2F%2Fcliseo.com)]
+<h1 style="font-size: 2.5em;">cliseo</h1>
+
+[![Website](https://img.shields.io/website?url=https%3A%2F%2Fcliseo.com)](https://cliseo.com)
 [![Documentation](https://img.shields.io/badge/docs-read-blue)](https://cliseo.com/docs/)
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 [![npm](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
@@ -8,6 +10,7 @@
 > Free SEO Optimization CLI for JavaScript/TypeScript Projects (AI features coming soon!)
 
 <img src="https://cliseo.com/Copy%20of%20Diff.png" width="700px" style="border: none;">
+
 ## 🚀 Features
 
 ### Current Features
@@ -85,3 +88,5 @@ Check out the [Issues](../../issues) tab for things marked with:
 
 - `good first issue`
 - `help wanted`
+
+</div>
