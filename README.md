@@ -1,16 +1,14 @@
-<img height="80" src="https://cliseo.com/Standalone Logo.png">
+![Comparison Image](https://cliseo.com/Standalone-Logo.png)
 
+[![Website](https://img.shields.io/badge/website-visit-brightgreen)](https://cliseo.com)
+[![Documentation](https://img.shields.io/badge/docs-read-blue)](https://cliseo.com/docs/)
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 [![npm](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
 [![GitHub stars](https://img.shields.io/github/stars/cliseo/cliseo.svg)](https://github.com/cliseo/cliseo/stargazers)
 [![E2E Tests](https://github.com/cliseo/cliseo/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/cliseo/cliseo/actions/workflows/e2e-tests.yml)
-
-[Website](https://cliseo.com) | [Documentation](https://cliseo.com/docs/) | [Github](https://github.com/cliseo/cliseo)
-
-
 > Free SEO Optimization CLI for JavaScript/TypeScript Projects (AI features coming soon!)
-![Comparison Image](https://cliseo.com/Diff.png)
 
+![Comparison Image](https://cliseo.com/Copy-of-Diff.png)
 
 ## 🚀 Features
 
