@@ -1,8 +1,8 @@
 <div style="font-family: 'Roboto Mono', monospace;">
 
-<h1 style="font-size: 2.5em;">cliseo</h1>
+<h1 style="font-size: 4em;">cliseo</h1>
 
-[![Website](https://img.shields.io/website?url=https%3A%2F%2Fcliseo.com)](https://cliseo.com)
+![Website](https://img.shields.io/website?url=https%3A%2F%2Fcliseo.com&up_message=cliseo.com&up_color=blue)
 [![Documentation](https://img.shields.io/badge/docs-read-blue)](https://cliseo.com/docs/)
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 [![npm](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
