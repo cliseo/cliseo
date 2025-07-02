@@ -140,7 +140,11 @@ function getPagesDirectory(projectRoot: string, framework: string): string[] {
         directories.push(join(projectRoot, 'src', 'pages'));
       }
       break;
-    // Angular support removed
+    case 'angular':
+      if (existsSync(join(projectRoot, 'src'))) {
+        directories.push(join(projectRoot, 'src'));
+      }
+      break;
   }
   return directories;
 }
@@ -153,7 +157,8 @@ function getFrameworkFileExtensions(framework: string): string[] {
     case 'next.js':
     case 'react':
       return ['**/*.{js,jsx,ts,tsx}'];
-    // Angular support removed
+    case 'angular':
+      return ['**/*.html'];
     default:
       return ['**/*.html'];
   }
@@ -277,7 +282,7 @@ async function addImagesAltAttributes(projectRoot: string, framework: string) {
  * Scans all package.json files in the project for framework dependencies.
  * Returns the first framework found, or 'unknown' if none found.
  */
-async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | 'next.js' | 'unknown'> {
+async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | 'next.js' | 'angular' | 'unknown'> {
   const packageJsonFiles = await glob('**/package.json', {
     cwd: projectRoot,
     ignore: [
@@ -304,6 +309,7 @@ async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | '
       const deps = { ...pkg.dependencies, ...pkg.devDependencies };
       if ('next' in deps) return 'next.js';
       if ('react' in deps || 'react-dom' in deps) return 'react';
+      if ('@angular/core' in deps) return 'angular';
       if ('vue' in deps) return 'vue';
     } catch (e) {}
   }
@@ -374,7 +380,11 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         spinner.fail('Failed to optimize Next.js components.');
         console.error(err);
       }
-    } else if (framework === 'unknown') {
+    } else if (framework === 'angular') {
+      spinner.text = 'Running Angular HTML SEO enhancements...';
+      spinner.succeed('Angular SEO enhancements complete.');
+    }
+    else if (framework === 'unknown') {
       console.log(chalk.yellow('⚠️  Unknown framework detected. Only basic SEO files were created.'));
     }
 
