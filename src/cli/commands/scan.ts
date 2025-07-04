@@ -11,6 +11,7 @@ import { loadConfig } from '../utils/config.js';
 import { ScanOptions, SeoIssue, ScanResult } from '../types/index.js';
 import fs from 'fs';
 import { authCommand } from './auth.js';
+import { file } from '@babel/types';
 // import { detectFramework, findProjectRoot } from '../utils/detect-framework.js';
 // import { scanReactComponent } from '../frameworks/react.js';
 
@@ -206,7 +207,7 @@ async function checkSchemaMarkup(filePath: string): Promise<SeoIssue[]> {
  * @returns List of SEO issues found.
  */
 async function scanReactComponent(filePath: string): Promise<SeoIssue[]> {
-  //ignor entry point files
+  //ignore entry point files
   if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx') || filePath.endsWith('App.tsx')) {
     return [];
   }
@@ -318,6 +319,59 @@ async function scanReactComponent(filePath: string): Promise<SeoIssue[]> {
   return issues;
 }
 
+/**
+ * Checks Vue component for SEO issues.
+ * 
+ * @param filePath - Path to Vue component file to scan.
+ * @returns List of SEO issues found.
+ */
+async function scanVueComponent(filePath: string): Promise<SeoIssue[]> {
+  const issues: SeoIssue[] = [];
+  const content = await readFile(filePath, 'utf-8');
+
+  //entry point files
+  
+  if (filePath.endsWith('main.tsx') || filePath.endsWith('main.js')) {
+    const usesVueMeta = /['"]vue-meta['"]/.test(content) || content.includes('createMetaManager');
+
+      if (!usesVueMeta) {
+        issues.push({
+        type: 'warning',
+        message: 'No meta tag management library found',
+        file: filePath,
+        fix: 'Consider using vue-meta or @vueuse/head for managing meta tags.',
+      });
+      }
+
+  }
+ 
+  
+  // Check if file uses Vue-meta or similar
+  const hasMeta = /metaInfo\s*\(|\bmeta\s*:\s*\[/.test(content);
+  
+  if (!hasMeta && isPageComponent(filePath)) {
+      issues.push({
+        type: 'warning',
+        message: 'No meta tag management library found',
+        file: filePath,
+        fix: 'Add a metaInfo() block using vue-meta or define meta:[] for SEO.',
+      });
+    
+  }
+
+  // Check for schema markup
+  const schemaIssues = await checkSchemaMarkup(filePath);
+  issues.push(...schemaIssues);
+
+  return issues;
+}
+
+/**
+ * Checks Next component for SEO issues.
+ * 
+ * @param filePath - Path to Next component file to scan.
+ * @returns List of SEO issues found.
+ */
 async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
   const issues: SeoIssue[] = [];
   const content = await readFile(filePath, 'utf-8');
@@ -477,7 +531,7 @@ export async function scanCommand(options: ScanOptions) {
   
   try {
     const root = findProjectRoot();
-    const files = await glob('**/*.{html,jsx,tsx,ts,js}', {
+    const files = await glob('**/*.{html,jsx,tsx,ts,js,vue}', {
       cwd: root,
       ignore: [
         '**/node_modules/**',
@@ -581,6 +635,8 @@ export async function scanCommand(options: ScanOptions) {
         frameworkIssues = await scanReactComponent(file);
       } else if (framework === 'next.js') {
         frameworkIssues = await scanNextComponent(file);
+      } else if (framework == 'vue') {
+        frameworkIssues = await scanVueComponent(file);
       }
 
       // Perform AI analysis if enabled
