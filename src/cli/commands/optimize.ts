@@ -384,6 +384,9 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       spinner.text = 'Running Angular HTML SEO enhancements...';
       spinner.succeed('Angular SEO enhancements complete.');
     }
+    else if (framework == 'vue') {
+      console.log(chalk.yellow('Optimizations for the Vue framwork are still under development.'));
+    }
     else if (framework === 'unknown') {
       console.log(chalk.yellow('⚠️  Unknown framework detected. Only basic SEO files were created.'));
     }
