@@ -28,7 +28,7 @@ program
 program
   .command('scan')
   .description('Scan project for SEO issues')
-  .option('--ai', 'Enable AI-powered deep analysis')
+  .option('--ai', 'Enable AI-powered deep analysis (requires authentication)')
   .option('--verbose', 'Show detailed output')
   .option('--json', 'Output results in JSON format')
   .action(scanCommand);
@@ -36,14 +36,14 @@ program
 program
   .command('optimize [directory]')
   .description('Apply SEO optimizations to codebase')
-  .option('--ai', 'Use AI for generating improvements')
+  .option('--ai', 'Use AI for generating improvements (requires authentication)')
   .option('--dry-run', 'Preview changes without applying')
   .option('--yes', 'Skip confirmation prompts')
   .action(optimizeCommand);
 
 program
   .command('auth')
-  .description('Authenticate with GitHub')
+  .description('Authenticate with cliseo for AI features')
   .action(authCommand);
 
 program

@@ -38,6 +38,9 @@ export interface Config {
   openaiApiKey?: string;
   githubToken?: string;
   googleApiKey?: string;
+  authToken?: string;
+  userEmail?: string;
+  aiAccess?: boolean;
   aiModel?: string;
   createPRs?: boolean;
   seoDirectory?: boolean;
@@ -53,4 +56,13 @@ export interface GitPrOptions {
   description: string;
   branch: string;
   files: string[];
+}
+
+// Authentication Types
+export interface AuthenticationResult {
+  success: boolean;
+  token?: string;
+  email?: string;
+  aiAccess?: boolean;
+  error?: string;
 } 

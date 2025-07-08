@@ -64,4 +64,36 @@ export async function getApiKey(key: 'openaiApiKey' | 'githubToken' | 'googleApi
 
 export async function setApiKey(key: 'openaiApiKey' | 'githubToken' | 'googleApiKey', value: string): Promise<void> {
   await updateConfig({ [key]: value }, true); // Always save API keys in global config
+}
+
+// Authentication utilities
+export async function getAuthToken(): Promise<string | undefined> {
+  const config = await loadConfig();
+  return config.authToken;
+}
+
+export async function setAuthToken(token: string, email: string, aiAccess: boolean): Promise<void> {
+  await updateConfig({ 
+    authToken: token,
+    userEmail: email,
+    aiAccess 
+  }, true); // Always save auth token in global config
+}
+
+export async function clearAuthToken(): Promise<void> {
+  await updateConfig({ 
+    authToken: undefined,
+    userEmail: undefined,
+    aiAccess: undefined 
+  }, true);
+}
+
+export async function isAuthenticated(): Promise<boolean> {
+  const config = await loadConfig();
+  return !!(config.authToken && config.userEmail);
+}
+
+export async function hasAiAccess(): Promise<boolean> {
+  const config = await loadConfig();
+  return !!(config.authToken && config.aiAccess);
 } 

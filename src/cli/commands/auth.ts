@@ -1,159 +1,121 @@
-import inquirer from 'inquirer';
-import axios from 'axios';
-import * as path from 'path';
 import chalk from 'chalk';
-import { fileURLToPath } from 'url';
-import ora from 'ora';
-import { setApiKey } from '../utils/config.js';
-import dotenv from 'dotenv';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load .env from project root
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
-const API_URL = process.env.API_URL;
+import inquirer from 'inquirer';
+import { authenticateUser, logoutUser, verifyAuthentication } from '../utils/auth.js';
+import { isAuthenticated, hasAiAccess, loadConfig } from '../utils/config.js';
 
 export async function authCommand() {
-  console.log(chalk.bold('\nLogin to your cliseo account!\nIf you don\'t have an account, you can sign up at https://cliseo.com/\n'));
+  console.log(chalk.bold('\n🔐 cliseo Authentication\n'));
+  
+  // Check current authentication status
+  const isCurrentlyAuth = await isAuthenticated();
+  const hasAi = await hasAiAccess();
+  
+  if (isCurrentlyAuth) {
+    const config = await loadConfig();
+    console.log(chalk.green('✅ You are currently authenticated'));
+    console.log(chalk.cyan(`📧 Email: ${config.userEmail}`));
+    console.log(chalk.cyan(`🤖 AI Access: ${hasAi ? 'Enabled' : 'Disabled'}`));
+    
+    const { action } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'What would you like to do?',
+        choices: [
+          { name: 'Verify authentication status', value: 'verify' },
+          { name: 'Log out', value: 'logout' },
+          { name: 'Cancel', value: 'cancel' },
+        ],
+      },
+    ]);
 
-  const { email, password } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'email',
-      message: 'Enter your email:',
-      validate: (input: string) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(input) ? true : 'Please enter a valid email address';
-      }
-    },
-    {
-      type: 'password',
-      name: 'password',
-      message: 'Enter your password:',
+    switch (action) {
+      case 'verify':
+        await verifyAuthenticationStatus();
+        break;
+      case 'logout':
+        await performLogout();
+        break;
+      case 'cancel':
+        console.log(chalk.gray('Authentication cancelled.'));
+        break;
     }
+  } else {
+    console.log(chalk.yellow('🔓 You are not currently authenticated'));
+    console.log(chalk.cyan('To use AI-powered features, you need to authenticate with your cliseo account.'));
+    console.log(chalk.gray('If you don\'t have an account, you can sign up at https://cliseo.com/\n'));
+
+    const { shouldLogin } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'shouldLogin',
+        message: 'Would you like to authenticate now?',
+        default: true,
+      },
+    ]);
+
+    if (shouldLogin) {
+      await performAuthentication();
+    } else {
+      console.log(chalk.gray('Authentication cancelled. You can authenticate later using `cliseo auth`.'));
+    }
+  }
+}
+
+async function performAuthentication() {
+  console.log(chalk.cyan('\n🌐 Starting browser-based authentication...'));
+  console.log(chalk.gray('A browser window will open for you to log in with your cliseo account.'));
+  
+  const result = await authenticateUser();
+
+  if (result.success) {
+    console.log(chalk.green('\n✅ Authentication successful!'));
+    console.log(chalk.cyan(`📧 Email: ${result.email}`));
+    console.log(chalk.cyan(`🤖 AI Access: ${result.aiAccess ? 'Enabled' : 'Disabled'}`));
+    
+    if (result.aiAccess) {
+      console.log(chalk.green('\n🎉 You can now use AI-powered features with the --ai flag:'));
+      console.log(chalk.cyan('  cliseo scan --ai'));
+      console.log(chalk.cyan('  cliseo optimize --ai'));
+    } else {
+      console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account.'));
+      console.log(chalk.gray('Contact support or upgrade your plan to access AI features.'));
+    }
+  } else {
+    console.log(chalk.red('\n❌ Authentication failed:'));
+    console.log(chalk.red(result.error || 'Unknown error occurred'));
+    console.log(chalk.gray('\nPlease try again or visit https://cliseo.com/ for support.'));
+  }
+}
+
+async function verifyAuthenticationStatus() {
+  console.log(chalk.cyan('\n🔍 Verifying authentication status...'));
+  
+  const isValid = await verifyAuthentication();
+  
+  if (isValid) {
+    console.log(chalk.green('✅ Authentication is valid and active'));
+  } else {
+    console.log(chalk.red('❌ Authentication is invalid or expired'));
+    console.log(chalk.yellow('Please re-authenticate using `cliseo auth`'));
+  }
+}
+
+async function performLogout() {
+  const { confirmLogout } = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'confirmLogout',
+      message: 'Are you sure you want to log out?',
+      default: false,
+    },
   ]);
 
-  const spinner = ora('Authenticating...').start();
-
-  try {
-    // API Call to authenticate user
-    const response = await axios.post(`${API_URL}/login`, {
-    email,
-    password,
-  });
-    if (response.status !== 200) {
-      throw new Error('Authentication failed');
-    }
-
-  } 
-  catch (error) {
-    spinner.fail('Authentication failed\n Please check your email and password.');
-    console.error(error);
-    process.exit(1);
+  if (confirmLogout) {
+    await logoutUser();
+    console.log(chalk.green('\n✅ Successfully logged out'));
+    console.log(chalk.gray('You can re-authenticate anytime using `cliseo auth`'));
+  } else {
+    console.log(chalk.gray('Logout cancelled.'));
   }
-  
-  spinner.succeed('Login successful!');
-  console.log(chalk.green('Welcome to cliseo!'));
-
-
-
-//   console.log(chalk.bold('\n🔑 API Key Setup\n'));
-  
-//   const { service } = await inquirer.prompt([{
-//     type: 'list',
-//     name: 'service',
-//     message: 'Which service would you like to authenticate?',
-//     choices: [
-//       { name: 'OpenAI API', value: 'openai' },
-//       { name: 'GitHub', value: 'github' },
-//       { name: 'Google Search Console', value: 'google' }
-//     ]
-//   }]);
-
-//   let apiKey: string;
-  
-//   switch (service) {
-//     case 'openai':
-//       const { openaiKey } = await inquirer.prompt([{
-//         type: 'password',
-//         name: 'openaiKey',
-//         message: 'Enter your OpenAI API key:',
-//         validate: (input: string) => {
-//           if (!input.startsWith('sk-')) {
-//             return 'OpenAI API keys should start with "sk-"';
-//           }
-//           return true;
-//         }
-//       }]);
-//       apiKey = openaiKey;
-//       break;
-
-//     case 'github':
-//       console.log('\nTo create a GitHub token:');
-//       console.log('1. Go to https://github.com/settings/tokens');
-//       console.log('2. Click "Generate new token"');
-//       console.log('3. Select the following scopes:');
-//       console.log('   - repo');
-//       console.log('   - workflow\n');
-
-//       const { githubToken } = await inquirer.prompt([{
-//         type: 'password',
-//         name: 'githubToken',
-//         message: 'Enter your GitHub token:',
-//         validate: (input: string) => {
-//           if (!input.match(/^ghp_[a-zA-Z0-9]{36}$/)) {
-//             return 'Invalid GitHub token format';
-//           }
-//           return true;
-//         }
-//       }]);
-//       apiKey = githubToken;
-//       break;
-
-//     case 'google':
-//       console.log('\nTo get Google Search Console API access:');
-//       console.log('1. Go to Google Cloud Console');
-//       console.log('2. Create a project or select an existing one');
-//       console.log('3. Enable the Search Console API');
-//       console.log('4. Create credentials (OAuth 2.0 client ID)\n');
-
-//       const { googleKey } = await inquirer.prompt([{
-//         type: 'password',
-//         name: 'googleKey',
-//         message: 'Enter your Google API key:',
-//         validate: (input: string) => input.length > 0
-//       }]);
-//       apiKey = googleKey;
-//       break;
-
-//     default:
-//       console.error('Invalid service selected');
-//       process.exit(1);
-//   }
-
-//   const spinner = ora('Saving API key...').start();
-  
-//   try {
-//     await setApiKey(
-//       service === 'openai' ? 'openaiApiKey' :
-//       service === 'github' ? 'githubToken' : 'googleApiKey',
-//       apiKey
-//     );
-    
-//     spinner.succeed('API key saved successfully!');
-    
-//     if (service === 'github') {
-//       console.log('\nTo create pull requests, run:');
-//       console.log(chalk.cyan('cliseo optimize --ai --git-pr'));
-//     } else if (service === 'google') {
-//       console.log('\nTo connect Search Console, run:');
-//       console.log(chalk.cyan('cliseo connect --google-search-console'));
-//     }
-    
-//   } catch (error) {
-//     spinner.fail('Failed to save API key');
-//     console.error(error);
-//     process.exit(1);
-//   }
 } 

@@ -10,10 +10,11 @@ import OpenAI from 'openai';
 import { loadConfig } from '../utils/config.js';
 import { ScanOptions, SeoIssue, ScanResult } from '../types/index.js';
 import fs from 'fs';
-import { authCommand } from './auth.js';
-import { file } from '@babel/types';
+// import { authCommand } from './auth.js'; // Removed - no longer needed
+// import { file } from '@babel/types'; // Removed - unused import
 // import { detectFramework, findProjectRoot } from '../utils/detect-framework.js';
 // import { scanReactComponent } from '../frameworks/react.js';
+import axios from 'axios';
 
 /** 
  * Find project root (where package.json is)
@@ -530,6 +531,28 @@ export async function scanCommand(options: ScanOptions) {
   let framework = 'unknown';
   
   try {
+    // Check authentication if AI is requested
+    if (options.ai) {
+      const { isAuthenticated, hasAiAccess } = await import('../utils/config.js');
+      const isAuth = await isAuthenticated();
+      const hasAi = await hasAiAccess();
+      
+      if (!isAuth) {
+        spinner.stop();
+        console.log(chalk.yellow('\n⚠️  Authentication required for AI features'));
+        console.log(chalk.cyan('Please authenticate first:'));
+        console.log(chalk.gray('  cliseo auth\n'));
+        return;
+      }
+      
+      if (!hasAi) {
+        spinner.stop();
+        console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account'));
+        console.log(chalk.gray('Contact support or upgrade your plan to access AI features.\n'));
+        return;
+      }
+    }
+
     const root = findProjectRoot();
     const files = await glob('**/*.{html,jsx,tsx,ts,js,vue}', {
       cwd: root,
@@ -552,48 +575,21 @@ export async function scanCommand(options: ScanOptions) {
       dot: true
     });
 
-    // Filter out any files that still managed to get through (like nested node_modules)
-    const filteredFiles = files.filter(file => {
-      return !file.includes(`${path.sep}node_modules${path.sep}`) &&
-             !file.includes('/node_modules/') &&
-             !file.includes('node_modules\\') &&
-             !file.includes(`${path.sep}dist${path.sep}`) &&
-             !file.includes('/dist/') &&
-             !file.includes('dist\\') &&
-             !file.includes(`${path.sep}build${path.sep}`) &&
-             !file.includes('/build/') &&
-             !file.includes('build\\') &&
-             !file.includes(`${path.sep}.next${path.sep}`) &&
-             !file.includes('/.next/') &&
-             !file.includes('.next\\') &&
-             !file.includes(`${path.sep}out${path.sep}`) &&
-             !file.includes('/out/') &&
-             !file.includes('out\\') &&
-             !file.includes(`${path.sep}.git${path.sep}`) &&
-             !file.includes('/.git/') &&
-             !file.includes('.git\\') &&
-             !file.includes(`${path.sep}coverage${path.sep}`) &&
-             !file.includes('/coverage/') &&
-             !file.includes('coverage\\') &&
-             !file.includes(`${path.sep}test${path.sep}`) &&
-             !file.includes('/test/') &&
-             !file.includes('test\\') &&
-             !file.includes(`${path.sep}tests${path.sep}`) &&
-             !file.includes('/tests/') &&
-             !file.includes('tests\\') &&
-             !file.includes(`${path.sep}__tests__${path.sep}`) &&
-             !file.includes('/__tests__/') &&
-             !file.includes('__tests__\\') &&
-             !file.includes(`${path.sep}__mocks__${path.sep}`) &&
-             !file.includes('/__mocks__/') &&
-             !file.includes('__mocks__\\') &&
-             !file.includes(`${path.sep}vendor${path.sep}`) &&
-             !file.includes('/vendor/') &&
-             !file.includes('vendor\\') &&
-             !file.includes(`${path.sep}public${path.sep}`) &&
-             !file.includes('/public/') &&
-             !file.includes('public\\');
-    });
+    if (files.length === 0) {
+      spinner.fail('No files found to scan. Make sure you are in a project directory.');
+      return;
+    }
+
+    if (options.verbose || process.env.CLISEO_VERBOSE === 'true') {
+      console.log(chalk.cyan(`📁 Found ${files.length} files to scan`));
+    }
+
+    // Limit files for performance
+    const MAX_FILES = 500;
+    const filteredFiles = files.slice(0, MAX_FILES);
+    if (files.length > MAX_FILES) {
+      console.log(chalk.yellow(`⚠️  Limited scan to first ${MAX_FILES} files for performance`));
+    }
 
     framework = await detectFramework(root);
     
@@ -608,23 +604,17 @@ export async function scanCommand(options: ScanOptions) {
     // Initialize OpenAI if AI is enabled
     let openai: OpenAI | undefined;
     if (options.ai) {
-      // Check if user is authenticated
-      if (!config.openaiApiKey) {
-        spinner.stop();
-        console.log(chalk.yellow('\n⚠️  Authentication required for AI features'));
-        console.log(chalk.cyan('\nPlease log in to use AI-powered features:'));
-        await authCommand();
-        // Reload config after authentication
-        const newConfig = await loadConfig();
-        if (!newConfig.openaiApiKey) {
-          throw new Error('Authentication failed. Please try again.');
-        }
-        spinner.start('Running AI-powered deep analysis...');
-        openai = new OpenAI({ apiKey: newConfig.openaiApiKey });
-      } else {
-        openai = new OpenAI({ apiKey: config.openaiApiKey });
-        spinner.text = 'Running AI-powered deep analysis...';
+      spinner.text = 'Initializing AI analysis...';
+      const { getAuthToken } = await import('../utils/config.js');
+      const token = await getAuthToken();
+      
+      if (!token) {
+        throw new Error('Authentication token not found');
       }
+
+      // For AI features, we'll use the backend's OpenAI integration
+      // rather than initializing OpenAI directly in the CLI
+      spinner.text = 'Running AI-powered deep analysis...';
     }
 
     for (const file of filteredFiles) {
@@ -641,8 +631,8 @@ export async function scanCommand(options: ScanOptions) {
 
       // Perform AI analysis if enabled
       let aiIssues: SeoIssue[] = [];
-      if (options.ai && openai) {
-        aiIssues = await performAiScan(file, openai);
+      if (options.ai) {
+        aiIssues = await performAiScanWithAuth(file);
       }
 
       if (basicIssues.length > 0 || frameworkIssues.length > 0 || aiIssues.length > 0) {
@@ -653,39 +643,100 @@ export async function scanCommand(options: ScanOptions) {
       }
     }
 
+    spinner.succeed('Scan completed successfully!');
+
+    // Output results
     if (options.json) {
-      spinner.stop();
       console.log(JSON.stringify(results, null, 2));
     } else {
-      spinner.succeed('Scan complete!');
-      const frameWorkColor = framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
-      console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
-
-      results.forEach(result => {
-        if (result.issues.length > 0) {
-          console.log(chalk.underline('\nFile:', result.file));
-          result.issues.forEach(issue => {
-            const icon = issue.type === 'error' ? '❌' : issue.type === 'ai-suggestion' ? '🤖' : '⚠️';
-            console.log(`${icon} ${chalk.bold(issue.message)}`);
-            console.log(`   ${chalk.gray('Fix:')} ${issue.fix}`);
-            if (issue.element) {
-              console.log(`   ${chalk.gray('Element:')} ${issue.element}`);
-            }
-          });
-        }
-      });
-
-      const totalIssues = results.reduce((sum, r) => sum + r.issues.length, 0);
-      const filesWithIssues = results.filter(r => r.issues.length > 0).length;
-      console.log(chalk.bold('\nSummary:'));
-      console.log(`Found ${totalIssues} issue${totalIssues === 1 ? '' : 's'} in ${filesWithIssues} file${filesWithIssues === 1 ? '' : 's'} (scanned ${files.length} files total).`);
+      displayScanResults(results, framework, options.ai);
     }
 
   } catch (error) {
-    if (!options.json) {
-      spinner.fail('Scan failed!');
+    spinner.fail('Scan failed');
+    if (error instanceof Error) {
+      console.error(chalk.red(error.message));
+    } else {
+      console.error(chalk.red('An unexpected error occurred'));
     }
-    console.error(error);
     process.exit(1);
   }
+}
+
+/**
+ * Perform AI scan using authenticated backend request
+ */
+async function performAiScanWithAuth(file: string): Promise<SeoIssue[]> {
+  try {
+    const { getAuthToken } = await import('../utils/config.js');
+    const token = await getAuthToken();
+    
+    if (!token) {
+      return [];
+    }
+
+    // Read file content
+    const content = await readFile(file, 'utf-8');
+    
+    // Make request to backend AI endpoint
+    const response = await axios.post('https://a8iza6csua.execute-api.us-east-2.amazonaws.com/ask-openai', {
+      prompt: `Analyze this file for SEO issues and provide specific recommendations:\n\nFile: ${file}\n\nContent:\n${content}`,
+      context: 'seo-analysis'
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Parse AI response into issues
+    const aiResponse = response.data.response;
+    
+    // Simple parsing - in a real implementation, you'd want more sophisticated parsing
+    const issues: SeoIssue[] = [];
+    if (aiResponse && aiResponse.includes('SEO')) {
+      issues.push({
+        type: 'ai-suggestion',
+        message: 'AI-powered SEO recommendations available',
+        file,
+        fix: aiResponse,
+      });
+    }
+
+    return issues;
+  } catch (error) {
+    console.warn(chalk.yellow('⚠️  AI analysis failed for file:', file));
+    return [];
+  }
+}
+
+/**
+ * Helper function to display scan results.
+ * 
+ * @param results - Array of ScanResult objects.
+ * @param framework - Detected framework.
+ * @param aiEnabled - Boolean indicating if AI is enabled.
+ */
+function displayScanResults(results: ScanResult[], framework: string, aiEnabled: boolean) {
+  const frameWorkColor = framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
+  console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
+
+  results.forEach(result => {
+    if (result.issues.length > 0) {
+      console.log(chalk.underline('\nFile:', result.file));
+      result.issues.forEach(issue => {
+        const icon = issue.type === 'error' ? '❌' : issue.type === 'ai-suggestion' ? '🤖' : '⚠️';
+        console.log(`${icon} ${chalk.bold(issue.message)}`);
+        console.log(`   ${chalk.gray('Fix:')} ${issue.fix}`);
+        if (issue.element) {
+          console.log(`   ${chalk.gray('Element:')} ${issue.element}`);
+        }
+      });
+    }
+  });
+
+     const totalIssues = results.reduce((sum, r) => sum + r.issues.length, 0);
+   const filesWithIssues = results.filter(r => r.issues.length > 0).length;
+   console.log(chalk.bold('\nSummary:'));
+   console.log(`Found ${totalIssues} issue${totalIssues === 1 ? '' : 's'} in ${filesWithIssues} file${filesWithIssues === 1 ? '' : 's'}.`);
 } 
