@@ -18,6 +18,23 @@ interface ProjectAnalysis {
   description: string;
 }
 
+// Helper function to format email display
+function formatEmailDisplay(email: string): string {
+  // For GitHub users without public email
+  if (email && email.includes('@github.user')) {
+    const username = email.split('@')[0];
+    return `Github: ${username}`;
+  }
+  
+  // For Google users, check if it's a placeholder
+  if (email && email.includes('placeholder')) {
+    return 'Google: (private email)';
+  }
+  
+  // For real emails, show as-is
+  return email || 'Not provided';
+}
+
 /**
  * Finds the project root directory
  * 
@@ -318,46 +335,290 @@ async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | '
 }
 
 /**
+ * Display next steps guidance after optimization
+ */
+function showNextSteps(robotsCreated: boolean, sitemapCreated: boolean, aiUsed: boolean) {
+  console.log(chalk.bold.cyan('\n📋 Next Steps to Complete Your SEO Setup:'));
+  
+  let stepNumber = 1;
+  
+  // Step 1: Update URLs in generated files
+  if (robotsCreated || sitemapCreated) {
+    console.log(chalk.yellow(`\n${stepNumber}. Update placeholder URLs in generated files:`));
+    if (sitemapCreated) {
+      console.log(chalk.gray(`   • Edit ${chalk.white('public/sitemap.xml')} - replace "yourdomain.com" with your actual domain`));
+    }
+    if (robotsCreated) {
+      console.log(chalk.gray(`   • Edit ${chalk.white('public/robots.txt')} - update the sitemap URL to your domain`));
+    }
+    stepNumber++;
+  }
+
+  // Step 2: Build and deploy
+  console.log(chalk.yellow(`\n${stepNumber}. Build and deploy your changes:`));
+  console.log(chalk.gray(`   • Run your build command: ${chalk.white('npm run build')} or ${chalk.white('yarn build')}`));
+  console.log(chalk.gray(`   • Deploy to your hosting platform`));
+  stepNumber++;
+
+  // Step 3: Submit to Google Search Console
+  console.log(chalk.yellow(`\n${stepNumber}. Submit your sitemap to Google Search Console:`));
+  console.log(chalk.gray(`   • Visit: ${chalk.underline.blue('https://search.google.com/search-console')}`));
+  console.log(chalk.gray(`   • Add your property if not already added`));
+  console.log(chalk.gray(`   • Go to ${chalk.white('Sitemaps')} section`));
+  console.log(chalk.gray(`   • Submit: ${chalk.white('https://yourdomain.com/sitemap.xml')}`));
+  stepNumber++;
+
+  // Step 4: Test your SEO improvements
+  console.log(chalk.yellow(`\n${stepNumber}. Test your SEO improvements:`));
+  console.log(chalk.gray(`   • Google Rich Results Test: ${chalk.underline.blue('https://search.google.com/test/rich-results')}`));
+  console.log(chalk.gray(`   • Facebook Sharing Debugger: ${chalk.underline.blue('https://developers.facebook.com/tools/debug/')}`));
+  console.log(chalk.gray(`   • Twitter Card Validator: ${chalk.underline.blue('https://cards-dev.twitter.com/validator')}`));
+  
+  if (aiUsed) {
+    stepNumber++;
+    console.log(chalk.yellow(`\n${stepNumber}. AI-Enhanced SEO:`));
+    console.log(chalk.gray(`   • Review AI-generated meta descriptions and titles in your components`));
+    console.log(chalk.gray(`   • Consider running ${chalk.white('cliseo scan')} to verify all optimizations applied`));
+  }
+
+  // Additional tips
+  console.log(chalk.bold.blue('\n💡 Pro Tips:'));
+  console.log(chalk.gray(`   • Monitor your SEO performance in Google Search Console`));
+  console.log(chalk.gray(`   • Run ${chalk.white('cliseo scan')} regularly to catch new SEO issues`));
+  console.log(chalk.gray(`   • Consider setting up Google Analytics to track improvements`));
+  
+  console.log(chalk.bold.green('\n🚀 Your site is now optimized for search engines!'));
+  console.log(chalk.gray('   Changes may take a few days to appear in search results.'));
+}
+
+/**
  * * Main function to optimize SEO for the project.
  */
 export async function optimizeCommand(directory: string | undefined, options: { ai?: boolean; yes?: boolean; dryRun?: boolean }) {
   const dir = resolve(directory || '.');
   const spinner = ora('Starting SEO optimization...').start();
-
   try {
     // Check authentication if AI is requested
     if (options.ai) {
-      const { isAuthenticated, hasAiAccess } = await import('../utils/config.js');
+      const { isAuthenticated, hasAiAccess, loadConfig } = await import('../utils/config.js');
       const isAuth = await isAuthenticated();
       const hasAi = await hasAiAccess();
       
-      if (!isAuth) {
-        spinner.stop();
+      // Show account status
+      spinner.stop();
+      if (isAuth) {
+        try {
+          const config = await loadConfig();
+          console.log(chalk.cyan(`👤 ${formatEmailDisplay(config.userEmail || '')}`));
+          console.log(chalk.gray(`🤖 AI Access: ${hasAi ? 'Enabled' : 'Disabled'}`));
+        } catch {
+          console.log(chalk.yellow('👤 Authentication status unclear'));
+        }
+      } else {
+        console.log(chalk.gray('👤 Not logged in'));
+      }
+      
+              if (!isAuth) {
         console.log(chalk.yellow('\n⚠️  Authentication required for AI features'));
-        console.log(chalk.cyan('Please authenticate first:'));
-        console.log(chalk.gray('  cliseo auth\n'));
-        return;
+        console.log(chalk.gray('You need to sign in to use AI-powered optimizations.'));
+        
+        // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
+        const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
+        
+        if (!skipPrompts) {
+          const { shouldAuth } = await inquirer.prompt([
+            {
+              type: 'confirm',
+              name: 'shouldAuth',
+              message: 'Would you like to sign in now?',
+              default: true,
+            },
+          ]);
+
+          if (shouldAuth) {
+            console.log(chalk.cyan('\n🌐 Starting authentication...'));
+            try {
+              const { authenticateUser } = await import('../utils/auth.js');
+              const authResult = await authenticateUser();
+              
+                             if (authResult.success) {
+                 console.log(chalk.green('\n✅ Authentication successful!'));
+                 console.log(chalk.cyan(`👤 ${formatEmailDisplay(authResult.email || '')}`));
+                 console.log(chalk.gray(`🤖 AI Access: ${authResult.aiAccess ? 'Enabled' : 'Disabled'}`));
+                 
+                 if (authResult.aiAccess) {
+                   // Continue with AI optimization - spinner will be started in main flow
+                 } else {
+                  console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account.'));
+                  console.log(chalk.gray('Upgrade your plan to access AI features.'));
+                  return;
+                }
+              } else {
+                console.log(chalk.red('\n❌ Authentication failed:'));
+                console.log(chalk.red(authResult.error || 'Unknown error occurred'));
+                return;
+              }
+            } catch (authError) {
+              console.log(chalk.red('\n❌ Authentication failed'));
+              console.log(chalk.gray('Please try again later or visit https://cliseo.com/ for support.'));
+              return;
+            }
+          } else {
+            console.log(chalk.gray('Authentication cancelled.'));
+            return;
+          }
+        } else {
+          console.log(chalk.cyan('Please authenticate first:'));
+          console.log(chalk.gray('  cliseo auth\n'));
+          return;
+        }
       }
       
       if (!hasAi) {
-        spinner.stop();
         console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account'));
-        console.log(chalk.gray('Contact support or upgrade your plan to access AI features.\n'));
+        console.log(chalk.gray('Your account doesn\'t have access to AI features.'));
+        console.log('');
+        console.log(chalk.green('Visit https://cliseo.com to upgrade'));
+        console.log('');
         return;
       }
 
       // AI MODE: Do AI optimizations ONLY
-      spinner.text = 'Running AI-powered optimization...';
-      console.log(chalk.green('\n🤖 AI-powered optimization enabled!'));
+      if (!spinner.isSpinning) {
+        spinner.start('Running AI-powered optimization...');
+      } else {
+        spinner.text = 'Running AI-powered optimization...';
+      }
       
       try {
         await performAiOptimizations(dir);
         spinner.succeed(chalk.green('✅ AI optimizations applied successfully!'));
+        
+        // Show next steps for AI mode (no files created, but still need deployment steps)
+        showNextSteps(false, false, true);
       } catch (err) {
-        spinner.fail('Failed to apply AI optimizations.');
-        console.error(err);
-        console.log(chalk.yellow('\n⚠️  AI mode was requested but failed. No optimizations were applied.'));
-        console.log(chalk.gray('To run standard optimizations instead, use: cliseo optimize (without --ai flag)\n'));
+        spinner.fail('AI optimization failed');
+        
+        // Clean, user-friendly error handling
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        
+        if (errorMessage.includes('Authentication failed')) {
+          console.log(chalk.yellow('\n🔐 Authentication expired'));
+          console.log(chalk.gray('Your session has expired and you need to sign in again.'));
+          
+          // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
+          const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
+          
+          if (!skipPrompts) {
+            const { shouldAuth } = await inquirer.prompt([
+              {
+                type: 'confirm',
+                name: 'shouldAuth',
+                message: 'Would you like to sign in now?',
+                default: true,
+              },
+            ]);
+
+            if (shouldAuth) {
+              console.log(chalk.cyan('\n🌐 Starting authentication...'));
+              try {
+                const { authenticateUser } = await import('../utils/auth.js');
+                const authResult = await authenticateUser();
+                
+                                 if (authResult.success) {
+                   console.log(chalk.green('\n✅ Authentication successful!'));
+                   console.log(chalk.cyan(`👤 ${formatEmailDisplay(authResult.email || '')}`));
+                   console.log(chalk.gray(`🤖 AI Access: ${authResult.aiAccess ? 'Enabled' : 'Disabled'}`));
+                   
+                   if (authResult.aiAccess) {
+                    console.log(chalk.cyan('\n🔄 Retrying AI optimization...'));
+                    await performAiOptimizations(dir);
+                    console.log(chalk.green('✅ AI optimizations applied successfully!'));
+                    showNextSteps(false, false, true);
+                    return;
+                  } else {
+                    console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account.'));
+                    console.log(chalk.gray('Upgrade your plan to access AI features.'));
+                  }
+                } else {
+                  console.log(chalk.red('\n❌ Authentication failed:'));
+                  console.log(chalk.red(authResult.error || 'Unknown error occurred'));
+                }
+              } catch (authError) {
+                console.log(chalk.red('\n❌ Authentication failed'));
+                console.log(chalk.gray('Please try again later or visit https://cliseo.com/ for support.'));
+              }
+            } else {
+              console.log(chalk.gray('Authentication cancelled.'));
+            }
+          } else {
+            console.log(chalk.cyan('Please authenticate first:'));
+            console.log(chalk.white('  cliseo auth'));
+            console.log(chalk.gray('\nThen try running the AI optimization again.'));
+          }
+        } else if (errorMessage.includes('AI features not enabled')) {
+          console.log(chalk.yellow('\n⚠️  AI features not available'));
+          console.log(chalk.gray('There\'s a permission mismatch with your account.'));
+          
+          // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
+          const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
+          
+          if (!skipPrompts) {
+            const { action } = await inquirer.prompt([
+              {
+                type: 'list',
+                name: 'action',
+                message: 'What would you like to do?',
+                choices: [
+                  { name: 'Sign out and try again (recommended)', value: 'logout' },
+                  { name: 'Use standard optimization instead', value: 'standard' },
+                  { name: 'Cancel', value: 'cancel' }
+                ],
+              },
+            ]);
+
+            if (action === 'logout') {
+              console.log(chalk.cyan('\n🔓 Signing you out...'));
+              try {
+                const { logoutUser } = await import('../utils/auth.js');
+                await logoutUser();
+                console.log(chalk.green('✅ Successfully signed out'));
+                console.log(chalk.gray('Please run the command again to sign in with fresh credentials.'));
+              } catch (logoutError) {
+                console.log(chalk.red('❌ Failed to sign out'));
+                console.log(chalk.gray('You may need to clear your credentials manually.'));
+              }
+            } else if (action === 'standard') {
+              console.log(chalk.cyan('\n🔄 Switching to standard optimization...'));
+              // Restart the command with standard optimization
+              return optimizeCommand(directory, { ...options, ai: false });
+            } else {
+              console.log(chalk.gray('Operation cancelled.'));
+            }
+          } else {
+            console.log(chalk.cyan('Options:'));
+            console.log(chalk.white('  • Sign out and retry: cliseo auth (logout) && cliseo optimize --ai'));
+            console.log(chalk.white('  • Use standard optimization: cliseo optimize'));
+          }
+        } else if (errorMessage.includes('AI service temporarily unavailable')) {
+          console.log(chalk.yellow('\n⚠️  AI service temporarily unavailable'));
+          console.log(chalk.gray('Please try again in a few minutes.'));
+          console.log(chalk.cyan('Alternative:'));
+          console.log(chalk.white('  cliseo optimize  # Use standard optimization'));
+        } else if (errorMessage.includes('Could not gather enough website context')) {
+          console.log(chalk.yellow('\n⚠️  Insufficient content for AI analysis'));
+          console.log(chalk.gray('AI needs a README.md file or page components to analyze.'));
+          console.log(chalk.cyan('To fix this:'));
+          console.log(chalk.white('  • Add a README.md file describing your project'));
+          console.log(chalk.white('  • Or use standard optimization: cliseo optimize'));
+        } else {
+          console.log(chalk.yellow('\n⚠️  AI optimization failed'));
+          console.log(chalk.gray(`Error: ${errorMessage}`));
+          console.log(chalk.cyan('Alternative:'));
+          console.log(chalk.white('  cliseo optimize  # Use standard optimization'));
+        }
+        
+        console.log(''); // Add spacing
         process.exit(1);
       }
       
@@ -402,8 +663,12 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         await optimizeReactComponents(dir);
         if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('React components optimized successfully!'); else spinner.stop();
       } catch (err) {
-        spinner.fail('Failed to optimize React components.');
-        console.error(err);
+        spinner.fail('Failed to optimize React components');
+        if (process.env.CLISEO_VERBOSE === 'true') {
+          console.error(err);
+        } else {
+          console.log(chalk.yellow(`⚠️  Could not optimize some React components`));
+        }
       }
     } else if (framework === 'next.js') {
       spinner.text = 'Optimizing Next.js components...';
@@ -411,8 +676,12 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         await optimizeNextjsComponents(dir);
         if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('Next.js components optimized successfully!'); else spinner.stop();
       } catch (err) {
-        spinner.fail('Failed to optimize Next.js components.');
-        console.error(err);
+        spinner.fail('Failed to optimize Next.js components');
+        if (process.env.CLISEO_VERBOSE === 'true') {
+          console.error(err);
+        } else {
+          console.log(chalk.yellow(`⚠️  Could not optimize some Next.js components`));
+        }
       }
     } else if (framework === 'angular') {
       spinner.text = 'Running Angular HTML SEO enhancements...';
@@ -426,6 +695,9 @@ export async function optimizeCommand(directory: string | undefined, options: { 
     }
 
     console.log(chalk.bold.green('\n✅ SEO optimization complete!'));
+
+    // Show next steps guidance
+    showNextSteps(robotsCreated, sitemapCreated, options.ai || false);
 
     // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
     const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
@@ -479,8 +751,24 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       // --- End PR creation functionality ---
     }
   } catch (error) {
-    spinner.fail(chalk.red('\n❌ An unexpected error occurred during optimization.'));
-    if (error instanceof Error) console.error(chalk.red(error.message));
+    spinner.fail(chalk.red('Optimization failed'));
+    console.log(chalk.yellow('\n⚠️  An unexpected error occurred'));
+    
+    if (error instanceof Error) {
+      if (process.env.CLISEO_VERBOSE === 'true') {
+        console.error(chalk.red(error.message));
+        console.error(error.stack);
+      } else {
+        console.log(chalk.gray(`Error: ${error.message}`));
+        console.log(chalk.gray('Run with CLISEO_VERBOSE=true for more details'));
+      }
+    }
+    
+    console.log(chalk.cyan('\nTroubleshooting:'));
+    console.log(chalk.white('  • Check that you\'re in a valid project directory'));
+    console.log(chalk.white('  • Ensure you have write permissions'));
+    console.log(chalk.white('  • Try running in verbose mode: CLISEO_VERBOSE=true cliseo optimize'));
+    console.log('');
     process.exit(1);
   }
 }
@@ -649,10 +937,13 @@ async function applyAiOptimizationsToComponents(projectDir: string, aiSuggestion
       aiData = aiSuggestions;
     }
 
-    console.log(chalk.blue('AI-Generated SEO Metadata:'));
-    console.log(chalk.gray(`Title: ${aiData.title}`));
-    console.log(chalk.gray(`Description: ${aiData.description}`));
-    console.log(chalk.gray(`Keywords: ${aiData.keywords}`));
+    // Only show metadata in verbose mode
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.log(chalk.blue('AI-Generated SEO Metadata:'));
+      console.log(chalk.gray(`Title: ${aiData.title}`));
+      console.log(chalk.gray(`Description: ${aiData.description}`));
+      console.log(chalk.gray(`Keywords: ${aiData.keywords}`));
+    }
 
     // Detect framework and get page files
     const framework = await detectFramework(projectDir);
@@ -677,14 +968,18 @@ async function applyAiOptimizationsToComponents(projectDir: string, aiSuggestion
           modifiedCount++;
         }
       } catch (error) {
-        console.warn(chalk.yellow(`Failed to optimize ${file}: ${error}`));
+        if (process.env.CLISEO_VERBOSE === 'true') {
+          console.warn(chalk.yellow(`Failed to optimize ${file}: ${error}`));
+        }
       }
     }
 
     console.log(chalk.green(`✅ Applied AI metadata to ${modifiedCount} component(s)`));
     
   } catch (error) {
-    console.error(chalk.red('Failed to parse AI response:'), error);
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.error(chalk.red('Failed to parse AI response:'), error);
+    }
     throw new Error('Invalid AI response format');
   }
 }
@@ -772,7 +1067,9 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
 
     return false;
   } catch (error) {
-    console.warn(`Error processing ${filePath}:`, error);
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.warn(`Error processing ${filePath}:`, error);
+    }
     return false;
   }
 }

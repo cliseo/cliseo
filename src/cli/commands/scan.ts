@@ -548,7 +548,7 @@ export async function scanCommand(options: ScanOptions) {
       if (!hasAi) {
         spinner.stop();
         console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account'));
-        console.log(chalk.gray('Contact support or upgrade your plan to access AI features.\n'));
+        console.log(chalk.gray('Upgrade your plan to access AI features.\n'));
         return;
       }
     }

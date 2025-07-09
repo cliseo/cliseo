@@ -76,7 +76,7 @@
     "cliseo"
   ],
   "author": "Your Name",
-  "license": "AGPL-3.0",
+  "license": "MIT",
   "files": [
     "dist/cli/**",
     "dist/**",

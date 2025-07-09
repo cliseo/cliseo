@@ -1,7 +1,25 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import { authenticateUser, logoutUser, verifyAuthentication } from '../utils/auth.js';
+import { exec } from 'child_process';
+import { authenticateUser, logoutUser } from '../utils/auth.js';
 import { isAuthenticated, hasAiAccess, loadConfig } from '../utils/config.js';
+
+// Helper function to format email display
+function formatEmailDisplay(email: string): string {
+  // For GitHub users without public email
+  if (email && email.includes('@github.user')) {
+    const username = email.split('@')[0];
+    return `Github: ${username}`;
+  }
+  
+  // For Google users, check if it's a placeholder
+  if (email && email.includes('placeholder')) {
+    return 'Google: (private email)';
+  }
+  
+  // For real emails, show as-is
+  return email || 'Not provided';
+}
 
 export async function authCommand() {
   console.log(chalk.bold('\n🔐 cliseo Authentication\n'));
@@ -13,25 +31,36 @@ export async function authCommand() {
   if (isCurrentlyAuth) {
     const config = await loadConfig();
     console.log(chalk.green('✅ You are currently authenticated'));
-    console.log(chalk.cyan(`📧 Email: ${config.userEmail}`));
-    console.log(chalk.cyan(`🤖 AI Access: ${hasAi ? 'Enabled' : 'Disabled'}`));
+          console.log(chalk.cyan(`🔒 ${formatEmailDisplay(config.userEmail || '')}`));
+      if (hasAi) {
+        console.log(chalk.magentaBright(`🤖 AI Access: Enabled`));
+      } else {
+        console.log(chalk.magentaBright(`🤖 AI Access: Disabled`));
+        console.log(chalk.gray(`   Visit https://cliseo.com to upgrade`));
+      }
+    console.log(''); // Add line break for better spacing
     
+    const choices = [];
+    if (!hasAi) {
+      choices.push({ name: 'Upgrade to unlock AI features', value: 'upgrade' });
+    }
+    choices.push(
+      { name: 'Log out', value: 'logout' },
+      { name: 'Cancel', value: 'cancel' }
+    );
+
     const { action } = await inquirer.prompt([
       {
         type: 'list',
         name: 'action',
         message: 'What would you like to do?',
-        choices: [
-          { name: 'Verify authentication status', value: 'verify' },
-          { name: 'Log out', value: 'logout' },
-          { name: 'Cancel', value: 'cancel' },
-        ],
+        choices,
       },
     ]);
 
     switch (action) {
-      case 'verify':
-        await verifyAuthenticationStatus();
+      case 'upgrade':
+        await openUpgradePage();
         break;
       case 'logout':
         await performLogout();
@@ -63,41 +92,24 @@ export async function authCommand() {
 }
 
 async function performAuthentication() {
-  console.log(chalk.cyan('\n🌐 Starting browser-based authentication...'));
-  console.log(chalk.gray('A browser window will open for you to log in with your cliseo account.'));
-  
   const result = await authenticateUser();
 
   if (result.success) {
     console.log(chalk.green('\n✅ Authentication successful!'));
-    console.log(chalk.cyan(`📧 Email: ${result.email}`));
-    console.log(chalk.cyan(`🤖 AI Access: ${result.aiAccess ? 'Enabled' : 'Disabled'}`));
-    
+    console.log(chalk.cyan(`🔒 ${formatEmailDisplay(result.email || '')}`));
     if (result.aiAccess) {
+      console.log(chalk.magentaBright(`🤖 AI Access: Enabled`));
       console.log(chalk.green('\n🎉 You can now use AI-powered features with the --ai flag:'));
       console.log(chalk.cyan('  cliseo scan --ai'));
       console.log(chalk.cyan('  cliseo optimize --ai'));
     } else {
-      console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account.'));
-      console.log(chalk.gray('Contact support or upgrade your plan to access AI features.'));
+      console.log(chalk.magentaBright(`🤖 AI Access: Disabled`));
+      console.log(chalk.gray(`   Visit https://cliseo.com to upgrade`));
     }
   } else {
     console.log(chalk.red('\n❌ Authentication failed:'));
     console.log(chalk.red(result.error || 'Unknown error occurred'));
     console.log(chalk.gray('\nPlease try again or visit https://cliseo.com/ for support.'));
-  }
-}
-
-async function verifyAuthenticationStatus() {
-  console.log(chalk.cyan('\n🔍 Verifying authentication status...'));
-  
-  const isValid = await verifyAuthentication();
-  
-  if (isValid) {
-    console.log(chalk.green('✅ Authentication is valid and active'));
-  } else {
-    console.log(chalk.red('❌ Authentication is invalid or expired'));
-    console.log(chalk.yellow('Please re-authenticate using `cliseo auth`'));
   }
 }
 
@@ -117,5 +129,41 @@ async function performLogout() {
     console.log(chalk.gray('You can re-authenticate anytime using `cliseo auth`'));
   } else {
     console.log(chalk.gray('Logout cancelled.'));
+  }
+}
+
+async function openUpgradePage() {
+  const upgradeUrl = 'https://cliseo.com';
+  
+  console.log(chalk.cyan('\n🚀 Opening upgrade page...'));
+  
+  try {
+    const platform = process.platform;
+    let command: string;
+
+    if (platform === 'darwin') {
+      command = `open "${upgradeUrl}"`;
+    } else if (platform === 'win32') {
+      command = `start "" "${upgradeUrl}"`;
+    } else {
+      command = `xdg-open "${upgradeUrl}"`;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      exec(command, (error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    console.log(chalk.green('✅ Upgrade page opened in your browser'));
+    console.log(chalk.gray('Choose a plan that includes AI features to unlock optimization'));
+  } catch (error) {
+    console.log(chalk.yellow('\n⚠️  Could not open browser automatically.'));
+    console.log(chalk.cyan('Please visit the following URL to upgrade:'));
+    console.log(chalk.blue(upgradeUrl));
   }
 } 

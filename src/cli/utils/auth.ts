@@ -210,11 +210,12 @@ export async function authenticateUser(): Promise<AuthenticationResult> {
     }).toString();
 
     // Open browser
-    spinner.text = 'Opening browser for authentication...';
+    spinner.text = 'Opening browser...';
     try {
       await openBrowser(authUrl);
-      console.log(chalk.cyan('\n🌐 Opening browser for authentication...'));
+      spinner.stop();
       console.log(chalk.gray(`If the browser doesn't open, visit: ${authUrl}\n`));
+      spinner.start('Waiting for authentication...');
     } catch (error) {
       spinner.stop();
       console.log(chalk.yellow('\n⚠️  Could not open browser automatically.'));
