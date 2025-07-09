@@ -1,14 +1,18 @@
 <div style="font-family: 'Roboto Mono', monospace;">
 
-<img src="https://cliseo.com/Standalone%20Logo%20Alt.png" width="700px" style="border: none;">
+<div style="margin-bottom: 16px;">
+  <img src="https://cliseo.com/Standalone%20Logo%20Alt.png" width="500px" style="border: none;">
+</div>
 
-[![Website](https://img.shields.io/website?url=https%3A%2F%2Fcliseo.com&up_message=cliseo.com&up_color=blue)](https://img.shields.io/website?url=https%3A%2F%2Fcliseo.com%2F
-)
+
+[![Website](https://img.shields.io/website?url=https%3A%2F%2Fcliseo.com&up_message=cliseo.com&up_color=blue)](https://cliseo.com)
 [![Documentation](https://img.shields.io/badge/docs-read-blue)](https://cliseo.com/docs/)
-![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-[![npm](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
-[![GitHub stars](https://img.shields.io/github/stars/cliseo/cliseo.svg)](https://github.com/cliseo/cliseo/stargazers)
-> SEO Optimization CLI for JavaScript/TypeScript Projects
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![npm version](https://img.shields.io/npm/v/cliseo.svg)](https://www.npmjs.com/package/cliseo)
+[![GitHub stars](https://img.shields.io/github/stars/ryanjhermes/cliseo.svg)](https://github.com/ryanjhermes/cliseo/stargazers)
+[![npm downloads](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
+
+### SEO Optimization CLI for JavaScript/TypeScript Projects
 
 <img src="https://cliseo.com/Diff.png" width="700px" style="border: none;">
 
