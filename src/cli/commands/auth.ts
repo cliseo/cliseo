@@ -97,14 +97,35 @@ async function performAuthentication() {
   if (result.success) {
     console.log(chalk.green('\n✅ Authentication successful!'));
     console.log(chalk.cyan(`🔒 ${formatEmailDisplay(result.email || '')}`));
+    
+    // Check email verification status
+    const emailVerified = result.emailVerified;
+    const requiresVerification = result.requiresVerification;
+    
+    if (requiresVerification) {
+      if (emailVerified) {
+        console.log(chalk.green('📧 Email: Verified'));
+      } else {
+        console.log(chalk.red('📧 Email: Not verified'));
+        console.log(chalk.yellow('   → Run "cliseo verify-email" to send verification email'));
+      }
+    } else {
+      console.log(chalk.green('📧 Email: Verification not required (trusted provider)'));
+    }
+    
     if (result.aiAccess) {
       console.log(chalk.magentaBright(`🤖 AI Access: Enabled`));
       console.log(chalk.green('\n🎉 You can now use AI-powered features with the --ai flag:'));
       console.log(chalk.cyan('  cliseo scan --ai'));
       console.log(chalk.cyan('  cliseo optimize --ai'));
     } else {
-      console.log(chalk.magentaBright(`🤖 AI Access: Disabled`));
-      console.log(chalk.gray(`   Visit https://cliseo.com to upgrade`));
+      if (requiresVerification && !emailVerified) {
+        console.log(chalk.magentaBright(`🤖 AI Access: Disabled - Email verification required`));
+        console.log(chalk.yellow('   → Verify your email to unlock AI features'));
+      } else {
+        console.log(chalk.magentaBright(`🤖 AI Access: Disabled`));
+        console.log(chalk.gray(`   Visit https://cliseo.com to upgrade`));
+      }
     }
   } else {
     console.log(chalk.red('\n❌ Authentication failed:'));
