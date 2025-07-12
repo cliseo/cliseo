@@ -353,6 +353,10 @@ function showNextSteps(robotsCreated: boolean, sitemapCreated: boolean, aiUsed: 
     }
     stepNumber++;
   }
+  // Tell user to update all other files
+  if (!aiUsed) {
+    console.log(chalk.gray(`   • Edit ${chalk.white('all other files')} - update placeholder URLs, titles, descriptions, and other placeholders with your actual content`));
+  }
 
   // Step 2: Build and deploy
   console.log(chalk.yellow(`\n${stepNumber}. Build and deploy your changes:`));

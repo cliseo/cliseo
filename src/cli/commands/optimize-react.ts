@@ -150,326 +150,109 @@ function getJSXElementName(node: any): string | null {
  * 
  * - Detects if the file is already using `react-helmet`
  * - Adds an import and JSX element if not present
+ * - Preserves original formatting by using targeted string manipulation
  * 
  * @param {string} file - Absolute path to the source file
  */
 async function transformFile(file: string): Promise<boolean> {
   const source = await fs.readFile(file, 'utf-8');
-  const ast = babel.parse(source, {
-    sourceType: 'module',
-    filename: file,
-    plugins: [
-      [jsxSyntax, { allowNamespaces: true }],
-      [typescriptSyntax, { isTSX: true, allExtensions: true }],
-      reactJsx,
-      typescriptTransform
-    ],
-    presets: [
-      [reactPreset, { runtime: 'automatic' }],
-      [typescriptPreset, { allExtensions: true, isTSX: true }]
-    ]
-  });
+  let modifiedSource = source;
+  let modified = false;
 
-  if (!ast) {
+  // Check if react-helmet is already imported
+  const hasHelmetImport = /import.*{.*Helmet.*}.*from.*['"]react-helmet['"]/.test(source);
+  
+  // Check if Helmet is already being used
+  const hasHelmetUsage = /<Helmet[\s>]/.test(source);
+
+  if (hasHelmetUsage) {
     if (process.env.CLISEO_VERBOSE === 'true') {
-      console.error(`[cliseo debug] Cannot parse ${file}`);
+      console.log(`[cliseo debug] File already has Helmet usage: ${file}`);
     }
     return false;
   }
 
-  let helmetImported = false;
-  let modified = false;
+  // Add import if missing
+  if (!hasHelmetImport) {
+    const importMatch = modifiedSource.match(/^(import.*from.*['"][^'"]*['"];?\s*\n)*/m);
+    if (importMatch) {
+      const insertPos = importMatch[0].length;
+      modifiedSource = 
+        modifiedSource.slice(0, insertPos) +
+        `import { Helmet } from 'react-helmet';\n` +
+        modifiedSource.slice(insertPos);
+      modified = true;
+    }
+  }
 
-  babel.traverse(ast, {
-    Program(path) {
-      for (const node of path.node.body) {
-        if (
-          t.isImportDeclaration(node) &&
-          node.source.value === 'react-helmet'
-        ) {
-          helmetImported = true;
-          break;
-        }
-      }
-
-      if (!helmetImported) {
-        const importDecl = t.importDeclaration(
-          [t.importSpecifier(t.identifier(helmetImportName), t.identifier(helmetImportName))],
-          t.stringLiteral('react-helmet')
-        );
-        path.node.body.unshift(importDecl);
-        helmetImported = true;
-      }
-    },
-
-    /**
-     * Handles standard function components (e.g. `function Home() { return (...) }`)
-     */
-    FunctionDeclaration(path) {
-      if (modified) {
-        return;
-      }
-
-      path.traverse({
-        ReturnStatement(returnPath) {
-          const arg = returnPath.node.argument;
-
-          if (t.isJSXElement(arg)) {
-            const tagName = getJSXElementName(arg.openingElement.name);
-
-            const hasHelmet =
-              tagName === 'Helmet' ||
-              arg.children.some(child =>
-                t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet'
-              );
-
-            if (!hasHelmet) {
-              arg.children.unshift(helmetJSXElement);
-              returnPath.stop();
-              modified = true;
-            }
-          }
-        }
-      });
-    },
+  // Find JSX return statements and add Helmet
+  const returnMatches = [...modifiedSource.matchAll(/return\s*\(\s*\n?\s*(<[^>]+>)/g)];
+  
+  for (const match of returnMatches) {
+    const returnIndex = match.index!;
+    const jsxStart = match.index! + match[0].length - match[1].length;
     
-    /**
-     * Handles arrow or named function expressions assigned to variables
-     * (e.g. `const Home = () => { return (...) }`)
-     */
-    VariableDeclarator(path) {
-      if (modified) return;
+    // Find the opening JSX tag
+    const openingTag = match[1];
+    const tagEnd = modifiedSource.indexOf('>', jsxStart) + 1;
+    
+    // Find the indentation of the JSX element
+    const lines = modifiedSource.slice(0, jsxStart).split('\n');
+    const lastLine = lines[lines.length - 1];
+    const indentation = lastLine.match(/^\s*/)?.[0] || '    ';
+    
+    // Create properly formatted Helmet element
+    const helmetElement = `<Helmet>
+${indentation}  <title>Your Site Title</title>
+${indentation}  <meta name="description" content="Default description for this page" />
+${indentation}  <link rel="canonical" href="https://yourdomain.com/current-page" />
+${indentation}  <script 
+${indentation}    type="application/ld+json" 
+${indentation}    dangerouslySetInnerHTML={{
+${indentation}      __html: JSON.stringify({
+${indentation}        "@context": "https://schema.org",
+${indentation}        "@type": "WebPage", 
+${indentation}        "name": "Your Page Title",
+${indentation}        "description": "Your page description",
+${indentation}        "url": "https://yourdomain.com/current-page"
+${indentation}      }, null, 2)
+${indentation}    }}
+${indentation}  />
+${indentation}</Helmet>
+${indentation}`;
 
-      if (
-        t.isIdentifier(path.node.id) &&
-        (t.isArrowFunctionExpression(path.node.init) || t.isFunctionExpression(path.node.init))
-      ) {
+    // Insert Helmet right after the opening tag
+    modifiedSource = 
+      modifiedSource.slice(0, tagEnd) +
+      '\n' + indentation + helmetElement +
+      modifiedSource.slice(tagEnd);
+    modified = true;
+    break; // Only modify the first return statement
+  }
 
-        const func = path.node.init;
-
-        if (func.body && t.isJSXElement(func.body)) {
-          const hasHelmet = func.body.children.some(child =>
-            t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet');
-
-          if (!hasHelmet) {
-            func.body.children.unshift(helmetJSXElement);
-            modified = true;
-          }
-        } else if (func.body && t.isBlockStatement(func.body)) {
-
-          path.get('init').traverse({
-            ReturnStatement(returnPath) {
-              const arg = returnPath.node.argument;
-
-              if (t.isJSXElement(arg)) {
-                const tagName = getJSXElementName(arg.openingElement.name);
-
-                const hasHelmet = tagName === 'Helmet' || arg.children.some(child =>
-                  t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet'
-                );
-
-                if (!hasHelmet) {
-                  arg.children.unshift(helmetJSXElement);
-                  modified = true;
-                  returnPath.stop();
-                }
-              }
-            }
-          });
-        }
-      }
-    },
-
-    /**
-     * Handles class components with a render() method
-     */
-    ClassDeclaration(path) {
-      if (modified) return;
-
-      const body = path.node.body.body;
-      const renderMethod = body.find(
-        method =>
-          t.isClassMethod(method) &&
-          t.isIdentifier(method.key) && method.key.name === 'render' &&
-          t.isBlockStatement(method.body)
-      );
-
-      if (renderMethod) {
-        path.get('body').get('body').forEach(methodPath => {
-          if (methodPath.isClassMethod() && t.isIdentifier(methodPath.node.key) && methodPath.node.key.name === 'render') {
-            methodPath.traverse({
-              ReturnStatement(returnPath) {
-                const arg = returnPath.node.argument;
-
-                if (t.isJSXElement(arg)) {
-                  const tagName = getJSXElementName(arg.openingElement.name);
-
-                  const hasHelmet = tagName === 'Helmet' || arg.children.some(child =>
-                    t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet');
-
-                  if (!hasHelmet) {
-                    arg.children.unshift(helmetJSXElement);
-                    modified = true;
-                    returnPath.stop();
-                  }
-                }
-              }
-            });
-          }
-        });
-      }
-    },
-
-    JSXElement(path) {
-      const opening = path.node.openingElement;
-      const tagName = getJSXElementName(opening.name);
-
-      if (tagName === 'Helmet') {
-        let hasSchema = false;
-        let hasTitle = false;
-        let hasDescription = false;
-
-        path.node.children.forEach(child => {
-          if (t.isJSXElement(child)) {
-            const childName = getJSXElementName(child.openingElement.name);
-            if (childName === 'script') {
-              const typeAttr = child.openingElement.attributes.find(attr =>
-                t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'type');
-              if (
-                typeAttr &&
-                t.isJSXAttribute(typeAttr) &&
-                typeAttr.value &&
-                t.isStringLiteral(typeAttr.value) &&
-                typeAttr.value.value === 'application/ld+json'
-              ) {
-                hasSchema = true;
-              }
-            } else if (childName === 'title') {
-              hasTitle = true;
-            } else if (childName === 'meta') {
-              const nameAttr = child.openingElement.attributes.find(attr =>
-                t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'name');
-              if (
-                nameAttr &&
-                t.isJSXAttribute(nameAttr) &&
-                nameAttr.value &&
-                t.isStringLiteral(nameAttr.value) &&
-                nameAttr.value.value === 'description'
-              ) {
-                hasDescription = true;
-              }
-            }
-          }
-        });
-
-        if (!hasTitle) {
-          path.node.children.unshift(
-            t.jsxElement(
-              t.jsxOpeningElement(t.jsxIdentifier('title'), [], false),
-              t.jsxClosingElement(t.jsxIdentifier('title')),
-              [t.jsxText('Your Site Title')],
-              false
-            )
-          );
-          modified = true;
-        }
-
-        if (!hasDescription) {
-          path.node.children.unshift(
-            t.jsxElement(
-              t.jsxOpeningElement(
-                t.jsxIdentifier('meta'),
-                [
-                  t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('description')),
-                  t.jsxAttribute(
-                    t.jsxIdentifier('content'),
-                    t.stringLiteral('Default description for this page')
-                  )
-                ],
-                true
-              ),
-              null,
-              [],
-              true
-            )
-          );
-          modified = true;
-        }
-
-        if (!hasSchema) {
-          path.node.children.push(
-            t.jsxElement(
-              t.jsxOpeningElement(
-                t.jsxIdentifier('script'),
-                [
-                  t.jsxAttribute(t.jsxIdentifier('type'), t.stringLiteral('application/ld+json')),
-                  t.jsxAttribute(
-                    t.jsxIdentifier('dangerouslySetInnerHTML'),
-                    t.jsxExpressionContainer(
-                      t.objectExpression([
-                        t.objectProperty(
-                          t.identifier('__html'),
-                          t.stringLiteral(JSON.stringify(schemaObject, null, 2))
-                        )
-                      ])
-                    )
-                  )
-                ],
-                true
-              ),
-              null,
-              [],
-              true
-            )
-          );
-          modified = true;
-        }
-      }
-
-      if (tagName === 'img') {
-        // Add alt attribute if missing
-        const hasAlt = opening.attributes.some(attr => 
-          t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'alt'
-        );
-
-        if (!hasAlt) {
-          opening.attributes.push(
-            t.jsxAttribute(t.jsxIdentifier('alt'), t.stringLiteral('Image description'))
-          );
-          modified = true; 
-        }
-      }   
-    },
-  });
+  // Add alt attributes to images missing them
+  const imgMatches = [...modifiedSource.matchAll(/<img\s+[^>]*src=[^>]*(?!alt\s*=)[^>]*>/g)];
+  
+  for (const match of imgMatches.reverse()) { // Reverse to maintain indices
+    const imgTag = match[0];
+    const imgIndex = match.index!;
+    
+    // Check if it already has alt attribute
+    if (!/\salt\s*=/.test(imgTag)) {
+      const modifiedImg = imgTag.replace(/(\s*\/?>)$/, ' alt="Image description"$1');
+      modifiedSource = 
+        modifiedSource.slice(0, imgIndex) +
+        modifiedImg +
+        modifiedSource.slice(imgIndex + imgTag.length);
+      modified = true;
+    }
+  }
 
   if (modified) {
     if (process.env.CLISEO_VERBOSE === 'true') {
       console.log(`[cliseo debug] Modifications made in file: ${file}, writing changes...`);
     }
-    const output = babel.transformFromAstSync(ast, source, {
-      configFile: true,
-      generatorOpts: { retainLines: true, compact: false },
-    });
-
-    if (output && output.code) {
-      // Prettier formatting disabled to minimize diff noise
-      // If you prefer to format the output, uncomment the block below and add your own Prettier options
-      /*
-      const formatted = await prettier.format(output.code, {
-        parser: 'babel-ts',
-        semi: true,
-        singleQuote: false,
-        jsxSingleQuote: false,
-        trailingComma: 'none',
-        printWidth: 80,
-        tabWidth: 2,
-        useTabs: false,
-      });
-      await fs.writeFile(file, formatted, 'utf-8');
-      */
-
-      await fs.writeFile(file, output.code, 'utf-8');
-    }
+    await fs.writeFile(file, modifiedSource, 'utf-8');
     return true;
   } else {
     if (process.env.CLISEO_VERBOSE === 'true') {
