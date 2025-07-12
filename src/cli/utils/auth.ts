@@ -6,6 +6,7 @@ import ora from 'ora';
 import axios from 'axios';
 import { setAuthToken, clearAuthToken, getAuthToken } from './config.js';
 import { AuthenticationResult } from '../types/index.js';
+import { createHash, randomBytes } from 'crypto';
 
 // Auth0 and backend configuration
 const AUTH0_DOMAIN = 'auth.cliseo.com';
@@ -19,6 +20,29 @@ interface AuthCallbackData {
   id_token?: string;
   error?: string;
   error_description?: string;
+}
+
+interface PKCECodes {
+  codeVerifier: string;
+  codeChallenge: string;
+}
+
+/**
+ * Generate PKCE codes for secure OAuth flow
+ */
+function generatePKCECodes(): PKCECodes {
+  // Generate code verifier (random string)
+  const codeVerifier = randomBytes(32).toString('base64url');
+  
+  // Generate code challenge (SHA256 hash of verifier)
+  const codeChallenge = createHash('sha256')
+    .update(codeVerifier)
+    .digest('base64url');
+  
+  return {
+    codeVerifier,
+    codeChallenge,
+  };
 }
 
 /**
@@ -140,15 +164,16 @@ function createAuthServer(): Promise<{ server: Server; port: number; authPromise
 }
 
 /**
- * Exchange authorization code for tokens using Auth0
+ * Exchange authorization code for tokens using Auth0 with PKCE
  */
-async function exchangeCodeForTokens(code: string): Promise<{ access_token: string; id_token: string }> {
+async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<{ access_token: string; id_token: string }> {
   try {
     const response = await axios.post(`https://${AUTH0_DOMAIN}/oauth/token`, {
       grant_type: 'authorization_code',
       client_id: CLIENT_ID,
       code,
       redirect_uri: REDIRECT_URI,
+      code_verifier: codeVerifier, // PKCE code verifier
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -158,6 +183,11 @@ async function exchangeCodeForTokens(code: string): Promise<{ access_token: stri
     return response.data;
   } catch (error) {
     console.error('Error exchanging code for tokens:', error);
+    if (axios.isAxiosError(error) && error.response) {
+      const errorData = error.response.data;
+      console.error('Auth0 error response:', errorData);
+      throw new Error(errorData.error_description || errorData.error || 'Failed to exchange authorization code for tokens');
+    }
     throw new Error('Failed to exchange authorization code for tokens');
   }
 }
@@ -190,23 +220,27 @@ async function getCliToken(auth0Token: string): Promise<{ token: string; email: 
 }
 
 /**
- * Main authentication function using browser OAuth flow
+ * Main authentication function using browser OAuth flow with PKCE
  */
 export async function authenticateUser(): Promise<AuthenticationResult> {
   const spinner = ora('Starting authentication...').start();
   
   try {
+    // Generate PKCE codes
+    const pkceCodes = generatePKCECodes();
+    
     // Create local server for OAuth callback
     spinner.text = 'Setting up authentication server...';
     const { server, authPromise } = await createAuthServer();
 
-    // Build Auth0 authorization URL
+    // Build Auth0 authorization URL with PKCE
     const authUrl = `https://${AUTH0_DOMAIN}/authorize?` + new URLSearchParams({
       response_type: 'code',
       client_id: CLIENT_ID,
       redirect_uri: REDIRECT_URI,
       scope: 'openid profile email',
-      // audience: `https://${AUTH0_DOMAIN}/userinfo`, // Removed - not needed for basic Auth0 setup
+      code_challenge: pkceCodes.codeChallenge,
+      code_challenge_method: 'S256', // SHA256
     }).toString();
 
     // Open browser
@@ -251,7 +285,7 @@ export async function authenticateUser(): Promise<AuthenticationResult> {
     }
 
     spinner.text = 'Exchanging authorization code for tokens...';
-    const tokens = await exchangeCodeForTokens(authData.code);
+    const tokens = await exchangeCodeForTokens(authData.code, pkceCodes.codeVerifier);
 
     // Get CLI token from backend
     spinner.text = 'Getting CLI authentication token...';
