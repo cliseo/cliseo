@@ -1,7 +1,7 @@
 <div style="font-family: 'Roboto Mono', monospace;">
 
 <div style="margin-bottom: 16px;">
-  <img src="https://cliseo.com/Standalone%20Logo%20Alt.png" width="500px" style="border: none;">
+  <img src="https://cliseo.com/README%20Logo.png" width="500px" style="border: none;">
 </div>
 
 
@@ -15,6 +15,10 @@
 ### SEO Optimization CLI for JavaScript/TypeScript Projects
 
 <img src="https://cliseo.com/Diff.png" width="700px" style="border: none;">
+
+Most developers know SEO matters, but it’s often overlooked or left until the end— especially in modern frontend frameworks. Cliseo makes technical SEO automatic and accessible by detecting your framework (React, Next.js, Angular soon) and injecting essential elements like meta tags, alt text, JSON-LD schema, sitemap.xml, and robots.txt.
+
+The goal isn’t to guarantee search rankings, but to ensure your site meets baseline SEO standards and is fully crawlable by search engines. Cliseo helps bring your Google Lighthouse SEO score to 100, giving your content, keywords, and link-building efforts a strong technical foundation to build on.
 
 ## 🚀 Features
 
