@@ -1,7 +1,7 @@
 <div style="font-family: 'Roboto Mono', monospace;">
 
 <div style="margin-bottom: 16px;">
-  <img src="https://cliseo.com/README%20Logo.png" width="500px" style="border: none;">
+  <img src="https://cliseo.com/README%20Logo.png" width="688px" style="border: none;">
 </div>
 
 
@@ -12,9 +12,10 @@
 [![GitHub stars](https://img.shields.io/github/stars/ryanjhermes/cliseo.svg)](https://github.com/ryanjhermes/cliseo/stargazers)
 [![npm downloads](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
 
-### SEO Optimization CLI for JavaScript/TypeScript Projects
+#### SEO Optimization CLI for JavaScript/TypeScript Projects [(Demo Video)](https://youtu.be/JDOVvaOdMWk?si=1NJ6bwOx20F4z5di)
 
 <img src="https://cliseo.com/Diff.png" width="700px" style="border: none;">
+ 
 
 Most developers know SEO matters, but it’s often overlooked or left until the end— especially in modern frontend frameworks. Cliseo makes technical SEO automatic and accessible by detecting your framework (React, Next.js, Angular soon) and injecting essential elements like meta tags, alt text, JSON-LD schema, sitemap.xml, and robots.txt.
 
@@ -66,7 +67,7 @@ Automatically applies SEO fixes to your codebase.
 
 ## 🤝 Contribute
 
-We welcome contributions of all kinds to **Cliseo** — whether it's fixing bugs, adding new features, improving performance, or even enhancing the documentation!
+We welcome contributions of all kinds to **cliseo** — whether it's fixing bugs, adding new features, improving performance, or even enhancing the documentation!
 
 ### How to Contribute
 
