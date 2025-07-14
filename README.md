@@ -9,12 +9,12 @@
 [![Documentation](https://img.shields.io/badge/docs-read-blue)](https://cliseo.com/docs/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/cliseo.svg)](https://www.npmjs.com/package/cliseo)
-[![GitHub stars](https://img.shields.io/github/stars/ryanjhermes/cliseo.svg)](https://github.com/ryanjhermes/cliseo/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/cliseo/cliseo.svg)](https://github.com/ryanjhermes/cliseo/stargazers)
 [![npm downloads](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
 
 #### SEO Optimization CLI for JavaScript/TypeScript Projects [(Demo Video)](https://youtu.be/JDOVvaOdMWk?si=1NJ6bwOx20F4z5di)
 
-<img src="https://cliseo.com/Diff.png" width="700px" style="border: none;">
+<img src="https://cliseo.com/Diff.png?v=2025" width="700px" style="border: none;">
  
 
 Most developers know SEO matters, but it’s often overlooked or left until the end— especially in modern frontend frameworks. Cliseo makes technical SEO automatic and accessible by detecting your framework (React, Next.js, Angular soon) and injecting essential elements like meta tags, alt text, JSON-LD schema, sitemap.xml, and robots.txt.
