@@ -4,7 +4,6 @@ import path from 'path';
 import { glob } from 'glob';
 import * as babel from '@babel/core';
 import * as t from '@babel/types';
-import prettier from 'prettier';
 import jsxSyntax from '@babel/plugin-syntax-jsx';
 import typescriptSyntax from '@babel/plugin-syntax-typescript';
 import reactJsx from '@babel/plugin-transform-react-jsx';

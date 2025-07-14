@@ -11,7 +11,6 @@ import { parseDocument } from 'htmlparser2';
 import { DomUtils } from 'htmlparser2';
 import { default as render } from 'dom-serializer';
 import { JSDOM } from 'jsdom';
-import prettier from 'prettier';
 import chalk from 'chalk';
 
 const traverse = _traverse.default;
@@ -375,7 +374,32 @@ export async function transformFile(file: string): Promise<void> {
 
   if (modified) {
     const output = generate(ast, {}, code);
-    await fs.writeFile(file, output.code, 'utf8');
+    
+    // Format the code with Prettier to ensure proper formatting
+    let formattedCode;
+    try {
+      // Detect file type from extension
+      const isTypeScript = file.endsWith('.tsx') || file.endsWith('.ts');
+      const parser = isTypeScript ? 'typescript' : 'babel';
+      
+      const prettier = await import('prettier');
+      formattedCode = await prettier.format(output.code, {
+        parser,
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'es5',
+        tabWidth: 2,
+        printWidth: 80,
+      });
+    } catch (prettierError) {
+      // If Prettier fails, fall back to unformatted code
+      if (process.env.CLISEO_VERBOSE === 'true') {
+        console.warn(`Prettier formatting failed for ${file}, using unformatted code:`, prettierError);
+      }
+      formattedCode = output.code;
+    }
+    
+    await fs.writeFile(file, formattedCode, 'utf8');
     console.log(chalk.green(` • Successfully injected SEO optimizations in file: ${file}`));
   } else {
     console.log(`No modifications needed for: ${file}`);

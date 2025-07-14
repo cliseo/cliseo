@@ -1064,7 +1064,31 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
       });
 
       if (output && output.code) {
-        await fs.promises.writeFile(filePath, output.code, 'utf-8');
+        // Format the code with Prettier to ensure proper import formatting
+        const prettier = await import('prettier');
+        let formattedCode;
+        try {
+          // Detect file type from extension
+          const isTypeScript = filePath.endsWith('.tsx') || filePath.endsWith('.ts');
+          const parser = isTypeScript ? 'typescript' : 'babel';
+          
+          formattedCode = await prettier.format(output.code, {
+            parser,
+            semi: true,
+            singleQuote: true,
+            trailingComma: 'es5',
+            tabWidth: 2,
+            printWidth: 80,
+          });
+        } catch (prettierError) {
+          // If Prettier fails, fall back to unformatted code
+          if (process.env.CLISEO_VERBOSE === 'true') {
+            console.warn(`Prettier formatting failed for ${filePath}, using unformatted code:`, prettierError);
+          }
+          formattedCode = output.code;
+        }
+        
+        await fs.promises.writeFile(filePath, formattedCode, 'utf-8');
         return true;
       }
     }
