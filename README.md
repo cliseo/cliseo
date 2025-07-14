@@ -9,7 +9,7 @@
 [![Documentation](https://img.shields.io/badge/docs-read-blue)](https://cliseo.com/docs/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/cliseo.svg)](https://www.npmjs.com/package/cliseo)
-[![GitHub stars](https://img.shields.io/github/stars/cliseo/cliseo.svg)](https://github.com/ryanjhermes/cliseo/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/cliseo/cliseo.svg)](https://github.com/cliseo//cliseo/stargazers)
 [![npm downloads](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
 
 #### SEO Optimization CLI for JavaScript/TypeScript Projects [(Demo Video)](https://youtu.be/JDOVvaOdMWk?si=1NJ6bwOx20F4z5di)
