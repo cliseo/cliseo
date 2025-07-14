@@ -1,7 +1,7 @@
 <div style="font-family: 'Roboto Mono', monospace;">
 
 <div style="margin-bottom: 16px;">
-  <img src="https://cliseo.com/README%20Logo.png" width="688px" style="border: none;">
+  <img src="https://cliseo.com/README%20Logo.png?v=2025" width="688px" style="border: none;">
 </div>
 
 

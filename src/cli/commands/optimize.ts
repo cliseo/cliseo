@@ -353,18 +353,14 @@ function showNextSteps(robotsCreated: boolean, sitemapCreated: boolean, aiUsed: 
     }
     stepNumber++;
   }
+  
   // Tell user to update all other files
   if (!aiUsed) {
-    console.log(chalk.gray(`   • Edit ${chalk.white('all other files')} - update placeholder URLs, titles, descriptions, and other placeholders with your actual content`));
+    console.log(chalk.yellow(`\n${stepNumber}. Edit ${chalk.white('all other files')} - update placeholder URLs, titles, descriptions, and other placeholders with your actual content`));
+    stepNumber++;
   }
 
-  // Step 2: Build and deploy
-  console.log(chalk.yellow(`\n${stepNumber}. Build and deploy your changes:`));
-  console.log(chalk.gray(`   • Run your build command: ${chalk.white('npm run build')} or ${chalk.white('yarn build')}`));
-  console.log(chalk.gray(`   • Deploy to your hosting platform`));
-  stepNumber++;
-
-  // Step 3: Submit to Google Search Console
+  // Submit to Google Search Console
   console.log(chalk.yellow(`\n${stepNumber}. Submit your sitemap to Google Search Console:`));
   console.log(chalk.gray(`   • Visit: ${chalk.underline.blue('https://search.google.com/search-console')}`));
   console.log(chalk.gray(`   • Add your property if not already added`));
@@ -372,27 +368,13 @@ function showNextSteps(robotsCreated: boolean, sitemapCreated: boolean, aiUsed: 
   console.log(chalk.gray(`   • Submit: ${chalk.white('https://yourdomain.com/sitemap.xml')}`));
   stepNumber++;
 
-  // Step 4: Test your SEO improvements
-  console.log(chalk.yellow(`\n${stepNumber}. Test your SEO improvements:`));
-  console.log(chalk.gray(`   • Google Rich Results Test: ${chalk.underline.blue('https://search.google.com/test/rich-results')}`));
-  console.log(chalk.gray(`   • Facebook Sharing Debugger: ${chalk.underline.blue('https://developers.facebook.com/tools/debug/')}`));
-  console.log(chalk.gray(`   • Twitter Card Validator: ${chalk.underline.blue('https://cards-dev.twitter.com/validator')}`));
-  
   if (aiUsed) {
-    stepNumber++;
     console.log(chalk.yellow(`\n${stepNumber}. AI-Enhanced SEO:`));
     console.log(chalk.gray(`   • Review AI-generated meta descriptions and titles in your components`));
     console.log(chalk.gray(`   • Consider running ${chalk.white('cliseo scan')} to verify all optimizations applied`));
   }
-
-  // Additional tips
-  console.log(chalk.bold.blue('\n💡 Pro Tips:'));
-  console.log(chalk.gray(`   • Monitor your SEO performance in Google Search Console`));
-  console.log(chalk.gray(`   • Run ${chalk.white('cliseo scan')} regularly to catch new SEO issues`));
-  console.log(chalk.gray(`   • Consider setting up Google Analytics to track improvements`));
-  
-  console.log(chalk.bold.green('\n🚀 Your site is now optimized for search engines!'));
-  console.log(chalk.gray('   Changes may take a few days to appear in search results.'));
+  console.log(chalk.bold.green('\nYour site is now optimized for search engines!'));
+  console.log(chalk.gray('Changes may take a few days to appear in search results.'));
 }
 
 /**
@@ -1065,13 +1047,13 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
 
       if (output && output.code) {
         // Format the code with Prettier to ensure proper import formatting
-        const prettier = await import('prettier');
         let formattedCode;
         try {
           // Detect file type from extension
           const isTypeScript = filePath.endsWith('.tsx') || filePath.endsWith('.ts');
           const parser = isTypeScript ? 'typescript' : 'babel';
           
+          const prettier = await import('prettier');
           formattedCode = await prettier.format(output.code, {
             parser,
             semi: true,
@@ -1081,7 +1063,7 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
             printWidth: 80,
           });
         } catch (prettierError) {
-          // If Prettier fails, fall back to unformatted code
+          // If Prettier import or formatting fails, fall back to unformatted code
           if (process.env.CLISEO_VERBOSE === 'true') {
             console.warn(`Prettier formatting failed for ${filePath}, using unformatted code:`, prettierError);
           }

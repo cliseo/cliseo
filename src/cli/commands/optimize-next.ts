@@ -392,7 +392,7 @@ export async function transformFile(file: string): Promise<void> {
         printWidth: 80,
       });
     } catch (prettierError) {
-      // If Prettier fails, fall back to unformatted code
+      // If Prettier import or formatting fails, fall back to unformatted code
       if (process.env.CLISEO_VERBOSE === 'true') {
         console.warn(`Prettier formatting failed for ${file}, using unformatted code:`, prettierError);
       }
