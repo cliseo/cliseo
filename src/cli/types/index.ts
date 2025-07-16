@@ -64,5 +64,7 @@ export interface AuthenticationResult {
   token?: string;
   email?: string;
   aiAccess?: boolean;
+  emailVerified?: boolean;
+  requiresVerification?: boolean;
   error?: string;
 } 

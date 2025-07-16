@@ -195,7 +195,7 @@ async function exchangeCodeForTokens(code: string, codeVerifier: string): Promis
 /**
  * Exchange Auth0 token for CLI token
  */
-async function getCliToken(auth0Token: string): Promise<{ token: string; email: string; aiAccess: boolean }> {
+async function getCliToken(auth0Token: string): Promise<{ token: string; email: string; aiAccess: boolean; emailVerified: boolean; requiresVerification: boolean }> {
   try {
     const response = await axios.post(`${API_BASE}/cli-auth`, {}, {
       headers: {
@@ -209,6 +209,8 @@ async function getCliToken(auth0Token: string): Promise<{ token: string; email: 
       token: data.token,
       email: data.email,
       aiAccess: data.ai_access,
+      emailVerified: data.email_verified,
+      requiresVerification: data.requires_verification,
     };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
@@ -301,6 +303,8 @@ export async function authenticateUser(): Promise<AuthenticationResult> {
       token: cliAuth.token,
       email: cliAuth.email,
       aiAccess: cliAuth.aiAccess,
+      emailVerified: cliAuth.emailVerified,
+      requiresVerification: cliAuth.requiresVerification,
     };
 
   } catch (error) {

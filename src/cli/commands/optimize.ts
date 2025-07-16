@@ -12,6 +12,7 @@ import { optimizeNextjsComponents } from './optimize-next.js';
 import inquirer from 'inquirer';
 import { execSync } from 'child_process';
 import axios from 'axios'; // Added for AI optimizations
+import { requiresEmailVerification } from './verify-email.js';
 
 interface ProjectAnalysis {
   projectName: string;
@@ -466,6 +467,15 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         console.log('');
         console.log(chalk.green('Visit https://cliseo.com to upgrade'));
         console.log('');
+        return;
+      }
+      
+      // Check email verification for AI features
+      const needsVerification = await requiresEmailVerification();
+      if (needsVerification) {
+        console.log(chalk.yellow('\n⚠️  Email verification required for AI features'));
+        console.log(chalk.cyan('Please verify your email first:'));
+        console.log(chalk.gray('  cliseo verify-email\n'));
         return;
       }
 

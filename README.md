@@ -1,5 +1,3 @@
-<div style="font-family: 'Roboto Mono', monospace;">
-
 <div style="margin-bottom: 16px;">
   <img src="https://cliseo.com/README%20Logo.png?v=2025" width="688px" style="border: none;">
 </div>
@@ -7,7 +5,7 @@
 
 [![Website](https://img.shields.io/website?url=https%3A%2F%2Fcliseo.com&up_message=cliseo.com&up_color=blue)](https://cliseo.com)
 [![Documentation](https://img.shields.io/badge/docs-read-blue)](https://cliseo.com/docs/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL%20V3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
 [![npm version](https://img.shields.io/npm/v/cliseo.svg)](https://www.npmjs.com/package/cliseo)
 [![GitHub stars](https://img.shields.io/github/stars/cliseo/cliseo.svg)](https://github.com/cliseo//cliseo/stargazers)
 [![npm downloads](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)

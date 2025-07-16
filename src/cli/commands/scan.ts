@@ -15,6 +15,7 @@ import fs from 'fs';
 // import { detectFramework, findProjectRoot } from '../utils/detect-framework.js';
 // import { scanReactComponent } from '../frameworks/react.js';
 import axios from 'axios';
+import { requiresEmailVerification } from './verify-email.js';
 
 /** 
  * Find project root (where package.json is)
@@ -549,6 +550,16 @@ export async function scanCommand(options: ScanOptions) {
         spinner.stop();
         console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account'));
         console.log(chalk.gray('Upgrade your plan to access AI features.\n'));
+        return;
+      }
+      
+      // Check email verification for AI features
+      const needsVerification = await requiresEmailVerification();
+      if (needsVerification) {
+        spinner.stop();
+        console.log(chalk.yellow('\n⚠️  Email verification required for AI features'));
+        console.log(chalk.cyan('Please verify your email first:'));
+        console.log(chalk.gray('  cliseo verify-email\n'));
         return;
       }
     }
