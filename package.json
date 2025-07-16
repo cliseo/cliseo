@@ -1,6 +1,6 @@
 {
   "name": "cliseo",
-  "version": "0.4.1",
+  "version": "0.5.2",
   "description": "Instant AI-Powered SEO Optimization CLI for Developers",
   "type": "module",
   "bin": {
@@ -76,7 +76,7 @@
     "cliseo"
   ],
   "author": "Your Name",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "files": [
     "dist/cli/**",
     "dist/**",
