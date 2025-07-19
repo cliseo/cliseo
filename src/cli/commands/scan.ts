@@ -6,7 +6,7 @@ import { readFile } from 'fs/promises';
 import { join, dirname, resolve } from 'path';
 import path from 'path';
 import { readFileSync, existsSync } from 'fs';
-import OpenAI from 'openai';
+
 import { loadConfig } from '../utils/config.js';
 import { ScanOptions, SeoIssue, ScanResult } from '../types/index.js';
 import fs from 'fs';
@@ -466,56 +466,7 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
   return issues;
 }
 
-async function performAiScan(filePath: string, openai: OpenAI): Promise<SeoIssue[]> {
-  const content = await readFile(filePath, 'utf-8');
-  const framework = await detectFramework(findProjectRoot());
-  
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `You are an SEO expert. Analyze the ${framework} code and provide specific SEO improvements. Focus on:
-1. Meta tags and title management
-2. Image optimization
-3. Semantic HTML structure
-4. Schema.org markup
-5. Accessibility
-6. Performance considerations
-7. Framework-specific best practices`
-        },
-        {
-          role: "user",
-          content: `Analyze this ${framework} code for SEO issues and provide specific fixes. Format each issue as a separate line starting with "ISSUE: ":\n\n${content}`
-        }
-      ]
-    });
 
-    const analysis = completion.choices[0].message.content;
-    
-    if (!analysis) {
-      return [];
-    }
-
-    // Parse AI response into structured issues
-    return analysis.split('\n')
-      .filter(line => line.trim().startsWith('ISSUE: '))
-      .map(line => {
-        const message = line.replace('ISSUE: ', '').trim();
-        return {
-          type: 'ai-suggestion',
-          message,
-          file: filePath,
-          fix: message
-        };
-      });
-
-  } catch (error) {
-    console.error('Error during AI analysis:', error);
-    return [];
-  }
-}
 
 /**
  * Main function to scan project for SEO issues.
@@ -612,19 +563,8 @@ export async function scanCommand(options: ScanOptions) {
       });
     }
 
-    // Initialize OpenAI if AI is enabled
-    let openai: OpenAI | undefined;
+    // AI features use backend integration only
     if (options.ai) {
-      spinner.text = 'Initializing AI analysis...';
-      const { getAuthToken } = await import('../utils/config.js');
-      const token = await getAuthToken();
-      
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
-      // For AI features, we'll use the backend's OpenAI integration
-      // rather than initializing OpenAI directly in the CLI
       spinner.text = 'Running AI-powered deep analysis...';
     }
 

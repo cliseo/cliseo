@@ -1,7 +1,7 @@
 import { writeFile, access, readFile } from 'fs/promises';
 import { readFileSync, existsSync } from 'fs';
 import * as cheerio from 'cheerio';
-import { join, dirname, resolve } from 'path';
+import { join, dirname, resolve, basename } from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
 import { glob } from 'glob';
@@ -13,6 +13,8 @@ import inquirer from 'inquirer';
 import { execSync } from 'child_process';
 import axios from 'axios'; // Added for AI optimizations
 import { requiresEmailVerification } from './verify-email.js';
+import jsxSyntax from '@babel/plugin-syntax-jsx';
+import typescriptSyntax from '@babel/plugin-syntax-typescript';
 
 interface ProjectAnalysis {
   projectName: string;
@@ -343,14 +345,24 @@ function showNextSteps(robotsCreated: boolean, sitemapCreated: boolean, aiUsed: 
   
   let stepNumber = 1;
   
-  // Step 1: Update URLs in generated files
+  // Step 1: Update URLs in generated files (different message for AI vs standard mode)
   if (robotsCreated || sitemapCreated) {
-    console.log(chalk.yellow(`\n${stepNumber}. Update placeholder URLs in generated files:`));
-    if (sitemapCreated) {
-      console.log(chalk.gray(`   • Edit ${chalk.white('public/sitemap.xml')} - replace "yourdomain.com" with your actual domain`));
-    }
-    if (robotsCreated) {
-      console.log(chalk.gray(`   • Edit ${chalk.white('public/robots.txt')} - update the sitemap URL to your domain`));
+    if (aiUsed) {
+      console.log(chalk.yellow(`\n${stepNumber}. Review AI-generated SEO files:`));
+      if (sitemapCreated) {
+        console.log(chalk.gray(`   • Check ${chalk.white('public/sitemap.xml')} - includes real pages and AI-suggested improvements`));
+      }
+      if (robotsCreated) {
+        console.log(chalk.gray(`   • Check ${chalk.white('public/robots.txt')} - optimized for AI bots and search engines`));
+      }
+    } else {
+      console.log(chalk.yellow(`\n${stepNumber}. Update placeholder URLs in generated files:`));
+      if (sitemapCreated) {
+        console.log(chalk.gray(`   • Edit ${chalk.white('public/sitemap.xml')} - replace "yourdomain.com" with your actual domain`));
+      }
+      if (robotsCreated) {
+        console.log(chalk.gray(`   • Edit ${chalk.white('public/robots.txt')} - update the sitemap URL to your domain`));
+      }
     }
     stepNumber++;
   }
@@ -479,7 +491,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         return;
       }
 
-      // AI MODE: Do AI optimizations ONLY
+      // AI MODE: Do AI optimizations AND create SEO files
       if (!spinner.isSpinning) {
         spinner.start('Running AI-powered optimization...');
       } else {
@@ -487,11 +499,24 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       }
       
       try {
-        await performAiOptimizations(dir);
+        // First detect framework for SEO files
+        const framework = await detectFramework(dir);
+        
+        // Get AI analysis and enhanced SEO files from backend
+        spinner.text = 'Analyzing project with AI...';
+        const aiData = await getAiAnalysis(dir);
+        
+        // Create AI-enhanced SEO files if backend provides them
+        spinner.text = 'Creating AI-enhanced SEO files...';
+        const { robotsCreated, sitemapCreated } = await createAiSeoFiles(framework, dir, aiData);
+        
+        // Apply AI optimizations to components
+        spinner.text = 'Applying AI optimizations to components...';
+        await applyAiOptimizationsToComponents(dir, aiData);
         spinner.succeed(chalk.green('✅ AI optimizations applied successfully!'));
         
-        // Show next steps for AI mode (no files created, but still need deployment steps)
-        showNextSteps(false, false, true);
+        // Show next steps for AI mode (include SEO files info)
+        showNextSteps(robotsCreated, sitemapCreated, true);
       } catch (err) {
         spinner.fail('AI optimization failed');
         
@@ -769,10 +794,77 @@ export async function optimizeCommand(directory: string | undefined, options: { 
   }
 }
 
+
+
 /**
- * Perform AI-powered optimizations using authenticated backend
+ * Get project name from package.json or directory name
  */
-async function performAiOptimizations(projectDir: string): Promise<void> {
+async function getProjectName(projectRoot: string): Promise<string> {
+  try {
+    const packageJsonPath = join(projectRoot, 'package.json');
+    if (existsSync(packageJsonPath)) {
+      const pkg = JSON.parse(await readFile(packageJsonPath, 'utf-8'));
+      return pkg.name || basename(projectRoot);
+    }
+  } catch (error) {
+    // Fallback to directory name
+  }
+  return basename(projectRoot);
+}
+
+
+
+/**
+ * Create AI-enhanced SEO files using backend response (fallback to standard if no seo_files)
+ */
+async function createAiSeoFiles(framework: string, projectRoot: string, aiData: any): Promise<{ robotsCreated: boolean; sitemapCreated: boolean }> {
+  // If backend provides enhanced SEO files, use them
+  if (aiData.seo_files) {
+    let robotsCreated = false;
+    let sitemapCreated = false;
+
+    // Determine target directory
+    let targetDir = projectRoot;
+    if (framework === 'react' || framework === 'next.js') {
+      targetDir = join(projectRoot, 'public');
+    }
+
+    // Ensure directory exists
+    try { await fs.promises.mkdir(targetDir, { recursive: true }); } catch {}
+
+    const robotsPath = join(targetDir, 'robots.txt');
+    const sitemapPath = join(targetDir, 'sitemap.xml');
+
+    // Write AI-enhanced files from backend
+    if (aiData.seo_files.robots_txt) {
+      try { 
+        await access(robotsPath); 
+      } catch { 
+        await writeFile(robotsPath, aiData.seo_files.robots_txt); 
+        robotsCreated = true; 
+      }
+    }
+
+    if (aiData.seo_files.sitemap_xml) {
+      try { 
+        await access(sitemapPath); 
+      } catch { 
+        await writeFile(sitemapPath, aiData.seo_files.sitemap_xml); 
+        sitemapCreated = true; 
+      }
+    }
+
+    return { robotsCreated, sitemapCreated };
+  }
+
+  // Fallback to standard SEO files if backend doesn't provide enhanced ones
+  return await ensureSeoFiles(framework, projectRoot);
+}
+
+/**
+ * Get AI analysis data for the project
+ */
+async function getAiAnalysis(projectDir: string): Promise<any> {
   try {
     const { getAuthToken } = await import('../utils/config.js');
     const token = await getAuthToken();
@@ -788,8 +880,7 @@ async function performAiOptimizations(projectDir: string): Promise<void> {
       throw new Error('Could not gather enough website context for AI analysis');
     }
 
-    // Step 2: Send to OpenAI for analysis
-    console.log(chalk.cyan('🔍 Analyzing website context with AI...'));
+    // Step 2: Send to backend for AI analysis
     const response = await axios.post('https://a8iza6csua.execute-api.us-east-2.amazonaws.com/ask-openai', {
       readme: websiteContext.readme,
       pages: websiteContext.pages,
@@ -801,13 +892,9 @@ async function performAiOptimizations(projectDir: string): Promise<void> {
       },
     });
 
-    // Step 3: Apply AI-generated optimizations to components
-    const aiSuggestions = response.data;
-    console.log(chalk.cyan('🤖 Applying AI-powered optimizations...'));
-    
-    await applyAiOptimizationsToComponents(projectDir, aiSuggestions);
-    
-    console.log(chalk.green('✅ AI optimizations applied successfully!'));
+
+
+    return response.data;
     
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -822,6 +909,14 @@ async function performAiOptimizations(projectDir: string): Promise<void> {
     
     throw new Error(`AI optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+/**
+ * Perform AI-powered optimizations using authenticated backend (legacy function kept for compatibility)
+ */
+async function performAiOptimizations(projectDir: string): Promise<void> {
+  const aiData = await getAiAnalysis(projectDir);
+  await applyAiOptimizationsToComponents(projectDir, aiData);
 }
 
 /**
@@ -981,108 +1076,76 @@ async function applyAiOptimizationsToComponents(projectDir: string, aiSuggestion
 }
 
 /**
- * Inject AI-generated metadata into a React component file
+ * Inject AI-generated metadata into a React component file using string manipulation
+ * to preserve original formatting (similar to optimize-react.ts approach)
  */
 async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean> {
   const fs = await import('fs');
-  const babel = await import('@babel/core');
-  const t = await import('@babel/types');
   
   try {
     const source = await fs.promises.readFile(filePath, 'utf-8');
-    
-    // Parse with Babel (similar to optimize-react.ts)
-    const ast = babel.parse(source, {
-      sourceType: 'module',
-      filename: filePath,
-      plugins: [
-        ['@babel/plugin-syntax-jsx', { allowNamespaces: true }],
-        ['@babel/plugin-syntax-typescript', { isTSX: true, allExtensions: true }]
-      ]
-    });
-
-    if (!ast) return false;
-
+    let modifiedSource = source;
     let modified = false;
-    let helmetImported = false;
 
-    // Create AI-powered Helmet JSX element
-    const aiHelmetElement = createAiHelmetElement(aiData, t);
+    // Check if react-helmet is already imported
+    const hasHelmetImport = /import.*{.*Helmet.*}.*from.*['"]react-helmet['"]/.test(source);
+    
+    // Check if Helmet is already being used
+    const hasHelmetUsage = /<Helmet[\s>]/.test(source);
 
-    babel.traverse(ast, {
-      Program(path: any) {
-        // Check if react-helmet is already imported
-        for (const node of path.node.body) {
-          if (
-            t.isImportDeclaration(node) &&
-            node.source.value === 'react-helmet'
-          ) {
-            helmetImported = true;
-            break;
-          }
-        }
-
-        // Add import if missing
-        if (!helmetImported) {
-          const importDecl = t.importDeclaration(
-            [t.importSpecifier(t.identifier('Helmet'), t.identifier('Helmet'))],
-            t.stringLiteral('react-helmet')
-          );
-          path.node.body.unshift(importDecl);
-          helmetImported = true;
-        }
-      },
-
-      // Find and modify JSX returns
-      ReturnStatement(path: any) {
-        const arg = path.node.argument;
-        if (t.isJSXElement(arg)) {
-          const hasHelmet = arg.children.some((child: any) =>
-            t.isJSXElement(child) && getJSXElementName(child.openingElement.name) === 'Helmet'
-          );
-
-          if (!hasHelmet) {
-            arg.children.unshift(aiHelmetElement);
-            modified = true;
-          }
-        }
+    if (hasHelmetUsage) {
+      if (process.env.CLISEO_VERBOSE === 'true') {
+        console.log(`[cliseo debug] File already has Helmet usage: ${filePath}`);
       }
-    });
+      return false;
+    }
+
+    // Add import if missing - preserve original import formatting
+    if (!hasHelmetImport) {
+      const importMatch = modifiedSource.match(/^(import.*from.*['"][^'"]*['"];?\s*\n)*/m);
+      if (importMatch) {
+        const insertPos = importMatch[0].length;
+        modifiedSource = 
+          modifiedSource.slice(0, insertPos) +
+          `import { Helmet } from 'react-helmet';\n` +
+          modifiedSource.slice(insertPos);
+        modified = true;
+      }
+    }
+
+    // Find JSX return statements and add Helmet - preserve original formatting
+    const returnMatches = [...modifiedSource.matchAll(/return\s*\(\s*\n?\s*(<[^>]+>)/g)];
+    
+    for (const match of returnMatches) {
+      const jsxStart = match.index! + match[0].length - match[1].length;
+      
+      // Find the opening JSX tag
+      const openingTag = match[1];
+      const tagEnd = modifiedSource.indexOf('>', jsxStart) + 1;
+      
+      // Find the indentation of the JSX element to match existing style
+      const lines = modifiedSource.slice(0, jsxStart).split('\n');
+      const lastLine = lines[lines.length - 1];
+      const indentation = lastLine.match(/^\s*/)?.[0] || '    ';
+      
+      // Create AI-powered Helmet element with proper formatting
+      const helmetElement = createAiHelmetString(aiData, indentation);
+
+      // Insert Helmet right after the opening tag, preserving original formatting
+      modifiedSource = 
+        modifiedSource.slice(0, tagEnd) +
+        '\n' + indentation + helmetElement +
+        modifiedSource.slice(tagEnd);
+      modified = true;
+      break; // Only modify the first return statement
+    }
 
     if (modified) {
-      const output = babel.transformFromAstSync(ast, source, {
-        configFile: false,
-        generatorOpts: { retainLines: true, compact: false },
-      });
-
-      if (output && output.code) {
-        // Format the code with Prettier to ensure proper import formatting
-        let formattedCode;
-        try {
-          // Detect file type from extension
-          const isTypeScript = filePath.endsWith('.tsx') || filePath.endsWith('.ts');
-          const parser = isTypeScript ? 'typescript' : 'babel';
-          
-          const prettier = await import('prettier');
-          formattedCode = await prettier.format(output.code, {
-            parser,
-            semi: true,
-            singleQuote: true,
-            trailingComma: 'es5',
-            tabWidth: 2,
-            printWidth: 80,
-          });
-        } catch (prettierError) {
-          // If Prettier import or formatting fails, fall back to unformatted code
-          if (process.env.CLISEO_VERBOSE === 'true') {
-            console.warn(`Prettier formatting failed for ${filePath}, using unformatted code:`, prettierError);
-          }
-          formattedCode = output.code;
-        }
-        
-        await fs.promises.writeFile(filePath, formattedCode, 'utf-8');
-        return true;
+      if (process.env.CLISEO_VERBOSE === 'true') {
+        console.log(`[cliseo debug] Applied AI metadata to: ${filePath}`);
       }
+      await fs.promises.writeFile(filePath, modifiedSource, 'utf-8');
+      return true;
     }
 
     return false;
@@ -1095,155 +1158,53 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
 }
 
 /**
- * Create a Helmet JSX element with AI-generated metadata
+ * Create AI-powered Helmet JSX string with proper formatting (no AST transformation)
  */
-function createAiHelmetElement(aiData: any, t: any) {
-  const children = [];
-
+function createAiHelmetString(aiData: any, indentation: string): string {
+  const indent = indentation;
+  const innerIndent = indentation + '  ';
+  
+  let helmet = `<Helmet>`;
+  
   // Title
   if (aiData.title) {
-    children.push(
-      t.jsxElement(
-        t.jsxOpeningElement(t.jsxIdentifier('title'), [], false),
-        t.jsxClosingElement(t.jsxIdentifier('title')),
-        [t.jsxText(aiData.title)],
-        false
-      )
-    );
+    helmet += `\n${innerIndent}<title>${aiData.title}</title>`;
   }
-
+  
   // Meta description
   if (aiData.description) {
-    children.push(
-      t.jsxElement(
-        t.jsxOpeningElement(
-          t.jsxIdentifier('meta'),
-          [
-            t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('description')),
-            t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral(aiData.description))
-          ],
-          true
-        ),
-        null,
-        [],
-        true
-      )
-    );
+    helmet += `\n${innerIndent}<meta name="description" content="${aiData.description}" />`;
   }
-
+  
   // Keywords
   if (aiData.keywords) {
-    children.push(
-      t.jsxElement(
-        t.jsxOpeningElement(
-          t.jsxIdentifier('meta'),
-          [
-            t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('keywords')),
-            t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral(aiData.keywords))
-          ],
-          true
-        ),
-        null,
-        [],
-        true
-      )
-    );
+    helmet += `\n${innerIndent}<meta name="keywords" content="${aiData.keywords}" />`;
   }
-
+  
   // Open Graph tags
   if (aiData.og_title) {
-    children.push(
-      t.jsxElement(
-        t.jsxOpeningElement(
-          t.jsxIdentifier('meta'),
-          [
-            t.jsxAttribute(t.jsxIdentifier('property'), t.stringLiteral('og:title')),
-            t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral(aiData.og_title))
-          ],
-          true
-        ),
-        null,
-        [],
-        true
-      )
-    );
+    helmet += `\n${innerIndent}<meta property="og:title" content="${aiData.og_title}" />`;
   }
-
+  
   if (aiData.og_description) {
-    children.push(
-      t.jsxElement(
-        t.jsxOpeningElement(
-          t.jsxIdentifier('meta'),
-          [
-            t.jsxAttribute(t.jsxIdentifier('property'), t.stringLiteral('og:description')),
-            t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral(aiData.og_description))
-          ],
-          true
-        ),
-        null,
-        [],
-        true
-      )
-    );
+    helmet += `\n${innerIndent}<meta property="og:description" content="${aiData.og_description}" />`;
   }
-
+  
   // Twitter Card tags
   if (aiData.twitter_title) {
-    children.push(
-      t.jsxElement(
-        t.jsxOpeningElement(
-          t.jsxIdentifier('meta'),
-          [
-            t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('twitter:title')),
-            t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral(aiData.twitter_title))
-          ],
-          true
-        ),
-        null,
-        [],
-        true
-      )
-    );
+    helmet += `\n${innerIndent}<meta name="twitter:title" content="${aiData.twitter_title}" />`;
   }
-
+  
   if (aiData.twitter_description) {
-    children.push(
-      t.jsxElement(
-        t.jsxOpeningElement(
-          t.jsxIdentifier('meta'),
-          [
-            t.jsxAttribute(t.jsxIdentifier('name'), t.stringLiteral('twitter:description')),
-            t.jsxAttribute(t.jsxIdentifier('content'), t.stringLiteral(aiData.twitter_description))
-          ],
-          true
-        ),
-        null,
-        [],
-        true
-      )
-    );
+    helmet += `\n${innerIndent}<meta name="twitter:description" content="${aiData.twitter_description}" />`;
   }
-
-  // Return complete Helmet element
-  return t.jsxElement(
-    t.jsxOpeningElement(t.jsxIdentifier('Helmet'), [], false),
-    t.jsxClosingElement(t.jsxIdentifier('Helmet')),
-    children,
-    false
-  );
+  
+  helmet += `\n${indent}</Helmet>`;
+  
+  return helmet;
 }
 
-/**
- * Helper function to get JSX element name
- */
-function getJSXElementName(node: any): string | null {
-  if (!node) return null;
-  if (node.type === 'JSXIdentifier') return node.name;
-  if (node.type === 'JSXMemberExpression') {
-    return `${getJSXElementName(node.object)}.${getJSXElementName(node.property)}`;
-  }
-  return null;
-}
+
 
 /**
  * Analyzes the project structure to provide context for AI optimizations.
