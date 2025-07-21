@@ -81,12 +81,38 @@ async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | '
 async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
   const issues: SeoIssue[] = [];
   const root = findProjectRoot();
-  const robotsPath = join(root, 'robots.txt');
-  const sitemapPath = join(root, 'sitemap.xml');
+  
+  // Check in both root and public directories for SEO files
+  const possiblePaths = [
+    { robots: join(root, 'robots.txt'), sitemap: join(root, 'sitemap.xml') },
+    { robots: join(root, 'public', 'robots.txt'), sitemap: join(root, 'public', 'sitemap.xml') }
+  ];
 
-  try {
-    await readFile(robotsPath, 'utf-8');
-  } catch {
+  let robotsFound = false;
+  let sitemapFound = false;
+
+  // Check all possible locations
+  for (const paths of possiblePaths) {
+    try {
+      await readFile(paths.robots, 'utf-8');
+      robotsFound = true;
+      break;
+    } catch {
+      // Continue checking other locations
+    }
+  }
+
+  for (const paths of possiblePaths) {
+    try {
+      await readFile(paths.sitemap, 'utf-8');
+      sitemapFound = true;
+      break;
+    } catch {
+      // Continue checking other locations
+    }
+  }
+
+  if (!robotsFound) {
     issues.push({
       type: 'error',
       message: 'Missing robots.txt file',
@@ -95,9 +121,7 @@ async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
     });
   }
 
-  try {
-    await readFile(sitemapPath, 'utf-8');
-  } catch {
+  if (!sitemapFound) {
     issues.push({
       type: 'error',
       message: 'Missing sitemap.xml file',
