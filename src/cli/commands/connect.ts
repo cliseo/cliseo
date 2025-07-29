@@ -21,6 +21,6 @@ export async function connectCommand(service: string, options: any) {
       // You might use config.services[service] or similar
     }
   } catch (error) {
-    console.error(chalk.red('Failed to load config.'));
+    console.error(chalk.red('Failed to load config:'), error instanceof Error ? error.message : 'Unknown error');
   }
 } 

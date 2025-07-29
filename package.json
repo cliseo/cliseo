@@ -75,7 +75,7 @@
     "typescript",
     "cliseo"
   ],
-  "author": "Your Name",
+  "author": "Cliseo Team",
   "license": "AGPL-3.0",
   "files": [
     "dist/cli/**",
