@@ -8,6 +8,7 @@ import { glob } from 'glob';
 import fs from 'fs';
 import path from 'path';
 import { optimizeReactComponents } from './optimize-react.js';
+import { optimizeVueComponents } from './optimize-vue.js';
 import { optimizeNextjsComponents } from './optimize-next.js';
 import inquirer from 'inquirer';
 import { execSync } from 'child_process';
@@ -164,6 +165,17 @@ function getPagesDirectory(projectRoot: string, framework: string): string[] {
     case 'angular':
       if (existsSync(join(projectRoot, 'src'))) {
         directories.push(join(projectRoot, 'src'));
+      }
+      break;
+    case 'vue':
+      if (existsSync(join(projectRoot, 'src', 'pages'))) {
+        directories.push(join(projectRoot, 'src', 'pages'));
+      }
+      if (existsSync(join(projectRoot, 'src', 'views'))) {
+        directories.push(join(projectRoot, 'src', 'views'));
+      }
+      if (existsSync(join(projectRoot, 'src', 'routes'))) {
+        directories.push(join(projectRoot, 'src', 'routes'));
       }
       break;
   }
@@ -331,8 +343,17 @@ async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | '
       if ('next' in deps) return 'next.js';
       if ('react' in deps || 'react-dom' in deps) return 'react';
       if ('@angular/core' in deps) return 'angular';
-      if ('vue' in deps) return 'vue';
-    } catch (e) {}
+      // only allow Vue 3, optimizations are not supported for previous versions
+      if ('vue' in deps) {
+        const vueVersion = deps['vue'] as string;
+        // Check if version starts with "3" (allowing ^, ~, or direct)
+        if (/^[\^~]?3(\.|$)/.test(vueVersion)) {
+          return 'vue';
+        }
+      }
+    } catch (e) {
+      console.error(e)
+    }
   }
   return 'unknown';
 }
@@ -709,7 +730,18 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       spinner.succeed('Angular SEO enhancements complete.');
     }
     else if (framework == 'vue') {
-      console.log(chalk.yellow('Optimizations for the Vue framwork are still under development.'));
+      spinner.text = 'Optimizing Vue components...';
+      try {
+        await optimizeVueComponents(dir);
+        if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('Vue components optimized successfully!'); else spinner.stop();
+      } catch (err) {
+        spinner.fail('Failed to optimize Vue components');
+        if (process.env.CLISEO_VERBOSE === 'true') {
+          console.error(err);
+        } else {
+          console.log(chalk.yellow(`⚠️  Could not optimize some Vue components`));
+        }
+      }
     }
     else if (framework === 'unknown') {
       console.log(chalk.yellow('⚠️  Unknown framework detected. Only basic SEO files were created.'));
