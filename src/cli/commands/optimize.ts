@@ -362,53 +362,10 @@ async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | '
  * Display next steps guidance after optimization
  */
 function showNextSteps(robotsCreated: boolean, sitemapCreated: boolean, aiUsed: boolean) {
-  console.log(chalk.bold.cyan('\n📋 Next Steps to Complete Your SEO Setup:'));
-  
-  let stepNumber = 1;
-  
-  // Step 1: Update URLs in generated files (different message for AI vs standard mode)
-  if (robotsCreated || sitemapCreated) {
-    if (aiUsed) {
-      console.log(chalk.yellow(`\n${stepNumber}. Review AI-generated SEO files:`));
-      if (sitemapCreated) {
-        console.log(chalk.gray(`   • Check ${chalk.white('public/sitemap.xml')} - includes real pages and AI-suggested improvements`));
-      }
-      if (robotsCreated) {
-        console.log(chalk.gray(`   • Check ${chalk.white('public/robots.txt')} - optimized for AI bots and search engines`));
-      }
-    } else {
-      console.log(chalk.yellow(`\n${stepNumber}. Update placeholder URLs in generated files:`));
-      if (sitemapCreated) {
-        console.log(chalk.gray(`   • Edit ${chalk.white('public/sitemap.xml')} - replace "yourdomain.com" with your actual domain`));
-      }
-      if (robotsCreated) {
-        console.log(chalk.gray(`   • Edit ${chalk.white('public/robots.txt')} - update the sitemap URL to your domain`));
-      }
-    }
-    stepNumber++;
-  }
-  
-  // Tell user to update all other files
-  if (!aiUsed) {
-    console.log(chalk.yellow(`\n${stepNumber}. Edit ${chalk.white('all other files')} - update placeholder URLs, titles, descriptions, and other placeholders with your actual content`));
-    stepNumber++;
-  }
+  console.log(chalk.bold.cyan('\nNext Steps to Complete Your SEO Setup:'));
+  console.log(chalk.underline.blue('https://cliseo.com/blog/next-steps-seo-setup'));
 
-  // Submit to Google Search Console
-  console.log(chalk.yellow(`\n${stepNumber}. Submit your sitemap to Google Search Console:`));
-  console.log(chalk.gray(`   • Visit: ${chalk.underline.blue('https://search.google.com/search-console')}`));
-  console.log(chalk.gray(`   • Add your property if not already added`));
-  console.log(chalk.gray(`   • Go to ${chalk.white('Sitemaps')} section`));
-  console.log(chalk.gray(`   • Submit: ${chalk.white('https://yourdomain.com/sitemap.xml')}`));
-  stepNumber++;
-
-  if (aiUsed) {
-    console.log(chalk.yellow(`\n${stepNumber}. AI-Enhanced SEO:`));
-    console.log(chalk.gray(`   • Review AI-generated meta descriptions and titles in your components`));
-    console.log(chalk.gray(`   • Consider running ${chalk.white('cliseo scan')} to verify all optimizations applied`));
-  }
-  console.log(chalk.bold.green('\nYour site is now optimized for search engines!'));
-  console.log(chalk.gray('Changes may take a few days to appear in search results.'));
+  console.log(chalk.gray('\npsst... check this out 👇 \nhttps://github.com/cliseo/cliseo'));
 }
 
 /**
@@ -438,7 +395,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         console.log(chalk.gray('👤 Not logged in'));
       }
       
-              if (!isAuth) {
+      if (!isAuth) {
         console.log(chalk.yellow('\n⚠️  Authentication required for AI features'));
         console.log(chalk.gray('You need to sign in to use AI-powered optimizations.'));
         
@@ -461,14 +418,14 @@ export async function optimizeCommand(directory: string | undefined, options: { 
               const { authenticateUser } = await import('../utils/auth.js');
               const authResult = await authenticateUser();
               
-                             if (authResult.success) {
-                 console.log(chalk.green('\n✅ Authentication successful!'));
-                 console.log(chalk.cyan(`👤 ${formatEmailDisplay(authResult.email || '')}`));
-                 console.log(chalk.gray(`🤖 AI Access: ${authResult.aiAccess ? 'Enabled' : 'Disabled'}`));
-                 
-                 if (authResult.aiAccess) {
-                   // Continue with AI optimization - spinner will be started in main flow
-                 } else {
+              if (authResult.success) {
+                console.log(chalk.green('\n✅ Authentication successful!'));
+                console.log(chalk.cyan(`👤 ${formatEmailDisplay(authResult.email || '')}`));
+                console.log(chalk.gray(`🤖 AI Access: ${authResult.aiAccess ? 'Enabled' : 'Disabled'}`));
+                
+                if (authResult.aiAccess) {
+                  // Continue with AI optimization - spinner will be started in main flow
+                } else {
                   console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account.'));
                   console.log(chalk.gray('Upgrade your plan to access AI features.'));
                   return;
@@ -538,6 +495,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         
         // Show next steps for AI mode (include SEO files info)
         showNextSteps(robotsCreated, sitemapCreated, true);
+        return; // Exit after showing next steps
       } catch (err) {
         spinner.fail('AI optimization failed');
         
@@ -545,7 +503,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         
         if (errorMessage.includes('Authentication failed')) {
-          console.log(chalk.yellow('\n🔐 Authentication expired'));
+          console.log(chalk.yellow('\n🔒 Authentication expired'));
           console.log(chalk.gray('Your session has expired and you need to sign in again.'));
           
           // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
@@ -567,12 +525,12 @@ export async function optimizeCommand(directory: string | undefined, options: { 
                 const { authenticateUser } = await import('../utils/auth.js');
                 const authResult = await authenticateUser();
                 
-                                 if (authResult.success) {
-                   console.log(chalk.green('\n✅ Authentication successful!'));
-                   console.log(chalk.cyan(`👤 ${formatEmailDisplay(authResult.email || '')}`));
-                   console.log(chalk.gray(`🤖 AI Access: ${authResult.aiAccess ? 'Enabled' : 'Disabled'}`));
-                   
-                   if (authResult.aiAccess) {
+                if (authResult.success) {
+                  console.log(chalk.green('\n✅ Authentication successful!'));
+                  console.log(chalk.cyan(`👤 ${formatEmailDisplay(authResult.email || '')}`));
+                  console.log(chalk.gray(`🤖 AI Access: ${authResult.aiAccess ? 'Enabled' : 'Disabled'}`));
+                  
+                  if (authResult.aiAccess) {
                     console.log(chalk.cyan('\n🔄 Retrying AI optimization...'));
                     await performAiOptimizations(dir);
                     console.log(chalk.green('✅ AI optimizations applied successfully!'));
@@ -645,8 +603,6 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         } else if (errorMessage.includes('AI service temporarily unavailable')) {
           console.log(chalk.yellow('\n⚠️  AI service temporarily unavailable'));
           console.log(chalk.gray('Please try again in a few minutes.'));
-          console.log(chalk.cyan('Alternative:'));
-          console.log(chalk.white('  cliseo optimize  # Use standard optimization'));
         } else if (errorMessage.includes('Could not gather enough website context')) {
           console.log(chalk.yellow('\n⚠️  Insufficient content for AI analysis'));
           console.log(chalk.gray('AI needs a README.md file or page components to analyze.'));
@@ -656,8 +612,6 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         } else {
           console.log(chalk.yellow('\n⚠️  AI optimization failed'));
           console.log(chalk.gray(`Error: ${errorMessage}`));
-          console.log(chalk.cyan('Alternative:'));
-          console.log(chalk.white('  cliseo optimize  # Use standard optimization'));
         }
         
         console.log(''); // Add spacing
@@ -709,7 +663,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         if (process.env.CLISEO_VERBOSE === 'true') {
           console.error(err);
         } else {
-          console.log(chalk.yellow(`⚠️  Could not optimize some React components`));
+          console.log(chalk.yellow('⚠️  Could not optimize some React components'));
         }
       }
     } else if (framework === 'next.js') {
@@ -722,7 +676,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         if (process.env.CLISEO_VERBOSE === 'true') {
           console.error(err);
         } else {
-          console.log(chalk.yellow(`⚠️  Could not optimize some Next.js components`));
+          console.log(chalk.yellow('⚠️  Could not optimize some Next.js components'));
         }
       }
     } else if (framework === 'angular') {
@@ -739,7 +693,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         if (process.env.CLISEO_VERBOSE === 'true') {
           console.error(err);
         } else {
-          console.log(chalk.yellow(`⚠️  Could not optimize some Vue components`));
+          console.log(chalk.yellow('⚠️  Could not optimize some Vue components'));
         }
       }
     }
@@ -747,7 +701,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       console.log(chalk.yellow('⚠️  Unknown framework detected. Only basic SEO files were created.'));
     }
 
-    console.log(chalk.bold.green('\n✅ SEO optimization complete!'));
+    console.log(chalk.bold.green('\nSEO optimization complete!'));
 
     // Show next steps guidance
     showNextSteps(robotsCreated, sitemapCreated, options.ai || false);
@@ -908,13 +862,13 @@ async function getAiAnalysis(projectDir: string): Promise<any> {
     // Step 1: Gather website context (README + pages)
     const websiteContext = await gatherWebsiteContext(projectDir);
     
-    if (!websiteContext.readme && websiteContext.pages.length === 0) {
+    // Remove the requirement for README
+    if (websiteContext.pages.length === 0) {
       throw new Error('Could not gather enough website context for AI analysis');
     }
 
     // Step 2: Send to backend for AI analysis
-    const response = await axios.post('https://a8iza6csua.execute-api.us-east-2.amazonaws.com/ask-openai', {
-      readme: websiteContext.readme,
+    const response = await axios.post(process.env.API_URL || '', {
       pages: websiteContext.pages,
       context: 'seo-optimization'
     }, {
@@ -923,8 +877,6 @@ async function getAiAnalysis(projectDir: string): Promise<any> {
         'Content-Type': 'application/json',
       },
     });
-
-
 
     return response.data;
     

@@ -16,6 +16,8 @@ import fs from 'fs';
 // import { scanReactComponent } from '../frameworks/react.js';
 import axios from 'axios';
 import { requiresEmailVerification } from './verify-email.js';
+import readline from 'readline';
+import { exec } from 'child_process';
 
 /** 
  * Find project root (where package.json is)
@@ -342,6 +344,25 @@ async function scanReactComponent(filePath: string): Promise<SeoIssue[]> {
   const schemaIssues = await checkSchemaMarkup(filePath);
   issues.push(...schemaIssues);
 
+  // Check for canonical tags
+  if (!content.includes('rel="canonical"')) {
+    issues.push({
+      type: 'warning',
+      message: 'Missing canonical tag',
+      file: filePath,
+      fix: 'Add a canonical tag to prevent duplicate content issues',
+    });
+  }
+  // Check for Open Graph tags
+  if (!content.includes('property="og:')) {
+    issues.push({
+      type: 'warning',
+      message: 'Missing Open Graph tags',
+      file: filePath,
+      fix: 'Add Open Graph tags for better social media integration',
+    });
+  }
+
   return issues;
 }
 
@@ -592,7 +613,7 @@ export async function scanCommand(options: ScanOptions) {
       spinner.text = 'Running AI-powered deep analysis...';
     }
 
-    for (const file of filteredFiles) {
+    const fileScanPromises = filteredFiles.map(async (file) => {
       const basicIssues = await performBasicScan(file);
       let frameworkIssues: SeoIssue[] = [];
       
@@ -616,7 +637,8 @@ export async function scanCommand(options: ScanOptions) {
           issues: [...basicIssues, ...frameworkIssues, ...aiIssues],
         });
       }
-    }
+    });
+    await Promise.all(fileScanPromises);
 
     spinner.succeed('Scan completed successfully!');
 
@@ -636,6 +658,31 @@ export async function scanCommand(options: ScanOptions) {
     }
     process.exit(1);
   }
+
+  // After displaying results
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  rl.question(chalk.greenBright('\nFix these changes? (y/n) '), (answer) => {
+    if (answer.toLowerCase() === 'y') {
+      const optimizeCommand = options.ai ? 'cliseo optimize --ai' : 'cliseo optimize';
+      console.log(chalk.cyan(`\nRunning ${optimizeCommand}...`));
+      exec(optimizeCommand, (error, stdout, stderr) => {
+        if (error) {
+          console.error(chalk.red(`Error executing ${optimizeCommand}:`, error));
+          console.error(chalk.red('Please ensure the command is correct and try again.'));
+          return;
+        }
+        console.log(stdout);
+        if (stderr) {
+          console.error(chalk.red(stderr));
+        }
+      });
+    }
+    rl.close();
+  });
 }
 
 /**
@@ -666,21 +713,24 @@ async function performAiScanWithAuth(file: string): Promise<SeoIssue[]> {
 
     // Parse AI response into issues
     const aiResponse = response.data.response;
-    
-    // Simple parsing - in a real implementation, you'd want more sophisticated parsing
     const issues: SeoIssue[] = [];
     if (aiResponse && aiResponse.includes('SEO')) {
-      issues.push({
-        type: 'ai-suggestion',
-        message: 'AI-powered SEO recommendations available',
-        file,
-        fix: aiResponse,
+      // Parse AI response for specific recommendations
+      const recommendations = aiResponse.split('\n').filter(line => line.includes('Recommendation:'));
+      recommendations.forEach(rec => {
+        issues.push({
+          type: 'ai-suggestion',
+          message: rec,
+          file,
+          fix: 'Consider implementing the AI recommendation',
+        });
       });
     }
-
     return issues;
   } catch (error) {
-    console.warn(chalk.yellow('⚠️  AI analysis failed for file:', file));
+    if (axios.isAxiosError(error) && error.response?.status === 503) {
+      console.error(chalk.yellow('AI service is temporarily unavailable. Please try again later.'));
+    }
     return [];
   }
 }
