@@ -102,17 +102,27 @@ function isLikelyPageFile(filePath: string): boolean {
   const normalized = filePath.replace(/\\/g, '/');
   const base = path.basename(filePath);
   
-  // Must be in pages directory
-  if (!/\/(pages|routes|views)\//.test(normalized)) {
-    return false;
+  // If it's in a pages/routes/views directory, it's likely a page
+  if (/\/(pages|routes|views)\//.test(normalized)) {
+    // Exclude main entry files like App.tsx, App.jsx, index.tsx, index.jsx in pages dir
+    if (/^(App|index)\.(jsx?|tsx?)$/.test(base)) {
+      return false;
+    }
+    return true;
   }
   
-  // Exclude main entry files like App.tsx, App.jsx, index.tsx, index.jsx
-  if (/^(App|index)\.(jsx?|tsx?)$/.test(base)) {
-    return false;
+  // For files outside of pages directories (like App.jsx in src root),
+  // they are likely page files if they're top-level components
+  if (/^App\.(jsx?|tsx?)$/.test(base)) {
+    return true; // App.jsx is the main page component
   }
   
-  return true;
+  // Files that look like page components
+  if (/(Page|Screen|Route|View)\.(jsx?|tsx?)$/.test(base)) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -264,15 +274,49 @@ ${indentation}`;
 }
 
 async function findReactFiles(dir: string): Promise<string[]> {
-  // Only look in the pages directory
+  // First try to find a pages directory
   const pagesDir = path.join(dir, 'pages');
-  if (!existsSync(pagesDir)) {
-    console.log(`No pages directory found at ${pagesDir}`);
-    return [];
+  if (existsSync(pagesDir)) {
+    const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: pagesDir, absolute: true });
+    if (files.length > 0) {
+      console.log(`Found ${files.length} files in pages directory`);
+      return files;
+    }
   }
   
-  const files = await glob('**/*.{js,jsx,ts,tsx}', { cwd: pagesDir, absolute: true });
-  return files;
+  // If no pages directory or no files found, look for page-like components in the entire src directory
+  if (existsSync(dir)) {
+    const allFiles = await glob('**/*.{js,jsx,ts,tsx}', { 
+      cwd: dir, 
+      absolute: true,
+      ignore: ['**/node_modules/**', '**/dist/**', '**/build/**']
+    });
+    
+    // Filter to likely page components (App.jsx, or files in specific directories)
+    const pageFiles = allFiles.filter(file => {
+      const relativePath = path.relative(dir, file);
+      const fileName = path.basename(file);
+      
+      // Include main App file
+      if (fileName === 'App.jsx' || fileName === 'App.tsx') return true;
+      
+      // Include files in views, screens, or routes directories
+      if (/\/(views|screens|routes|pages)\//.test(relativePath)) return true;
+      
+      // Include files that look like page components
+      if (/(Page|Screen|Route|View)\.(jsx?|tsx?)$/.test(fileName)) return true;
+      
+      return false;
+    });
+    
+    if (pageFiles.length > 0) {
+      console.log(`Found ${pageFiles.length} page-like components in src directory`);
+      return pageFiles;
+    }
+  }
+  
+  console.log(`No React page components found in ${dir}`);
+  return [];
 }
 
 /**
