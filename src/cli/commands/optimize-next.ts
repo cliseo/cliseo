@@ -115,6 +115,72 @@ async function addMetadataToLayout(layoutPath: string, metadataCode: string): Pr
 }
 
 /**
+ * Enhances existing metadata with missing SEO fields
+ */
+async function enhanceExistingMetadata(file: string, code: string): Promise<void> {
+  try {
+    // Parse existing metadata to see what's missing
+    const metadataMatch = code.match(/export const metadata[^=]*=\s*(\{[^}]*\})/s);
+    if (!metadataMatch) {
+      console.log(chalk.yellow(`   Could not parse metadata in ${file}`));
+      return;
+    }
+
+    const existingMetadata = metadataMatch[1];
+    const missingFields = [];
+
+    // Check for missing essential SEO fields
+    if (!existingMetadata.includes('openGraph')) missingFields.push('openGraph');
+    if (!existingMetadata.includes('twitter')) missingFields.push('twitter');
+    if (!existingMetadata.includes('robots')) missingFields.push('robots');
+    if (!existingMetadata.includes('viewport')) missingFields.push('viewport');
+
+    if (missingFields.length === 0) {
+      console.log(chalk.green(`   ✅ Metadata is complete in ${file}`));
+      return;
+    }
+
+    console.log(chalk.yellow(`   📝 Enhancing metadata with: ${missingFields.join(', ')}`));
+
+    // Build enhancement string
+    let enhancements = '';
+    if (missingFields.includes('viewport')) {
+      enhancements += `\n  viewport: 'width=device-width, initial-scale=1',`;
+    }
+    if (missingFields.includes('robots')) {
+      enhancements += `\n  robots: 'index, follow',`;
+    }
+    if (missingFields.includes('openGraph')) {
+      enhancements += `\n  openGraph: {
+    title: 'Your Page Title',
+    description: 'SEO optimized description',
+    type: 'website',
+    url: 'https://yourdomain.com',
+  },`;
+    }
+    if (missingFields.includes('twitter')) {
+      enhancements += `\n  twitter: {
+    card: 'summary_large_image',
+    title: 'Your Page Title', 
+    description: 'SEO optimized description',
+  },`;
+    }
+
+    // Insert enhancements before the closing brace
+    const enhancedCode = code.replace(
+      /(\}\s*;?\s*)$/m,
+      `${enhancements}\n$1`
+    );
+
+    await fs.writeFile(file, enhancedCode, 'utf8');
+    console.log(chalk.green(`   ✅ Enhanced metadata in ${file}`));
+
+  } catch (error) {
+    console.log(chalk.red(`   ❌ Failed to enhance metadata in ${file}: ${error}`));
+  }
+}
+
+/**
  * Recursively walks up the directory tree to find the project root.
  * Assumes the root contains a `package.json`.
  * 
@@ -431,9 +497,10 @@ export async function transformFile(file: string): Promise<void> {
     return;
   }
 
-  // Check if metadata already exists using string search first (safer approach)
+  // Check if metadata already exists and enhance it if incomplete
   if (hasMetadataExport) {
-    console.log(`Metadata export already exists in: ${file}`);
+    console.log(`Metadata export found in: ${file}`);
+    await enhanceExistingMetadata(file, code);
     return;
   }
 
@@ -442,11 +509,20 @@ export async function transformFile(file: string): Promise<void> {
   let modified = false;
 
   const metadataExport = `export const metadata = {
-  description: 'SEO optimized description',
+  title: 'Your Page Title',
+  description: 'SEO optimized description that accurately describes your page content',
   robots: 'index, follow',
+  viewport: 'width=device-width, initial-scale=1',
   openGraph: {
-    title: 'OpenGraph Title',
-    description: 'OpenGraph Description',
+    title: 'Your Page Title',
+    description: 'SEO optimized description that accurately describes your page content',
+    type: 'website',
+    url: 'https://yourdomain.com',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Your Page Title',
+    description: 'SEO optimized description that accurately describes your page content',
   },
 };
 

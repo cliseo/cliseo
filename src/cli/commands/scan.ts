@@ -664,7 +664,11 @@ export async function scanCommand(options: ScanOptions) {
     });
     await Promise.all(fileScanPromises);
 
-    spinner.succeed('Scan completed successfully!');
+    if (options.json) {
+      spinner.stop();
+    } else {
+      spinner.succeed('Scan completed successfully!');
+    }
 
     // Output results
     if (options.json) {
@@ -674,11 +678,16 @@ export async function scanCommand(options: ScanOptions) {
     }
 
   } catch (error) {
-    spinner.fail('Scan failed');
-    if (error instanceof Error) {
-      console.error(chalk.red(error.message));
+    if (options.json) {
+      spinner.stop();
+      console.error(JSON.stringify({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }));
     } else {
-      console.error(chalk.red('An unexpected error occurred'));
+      spinner.fail('Scan failed');
+      if (error instanceof Error) {
+        console.error(chalk.red(error.message));
+      } else {
+        console.error(chalk.red('An unexpected error occurred'));
+      }
     }
     process.exit(1);
   }

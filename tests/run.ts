@@ -88,11 +88,23 @@ async function runCommand(cmd: string, cwd: string, timeoutMs = 300000): Promise
 }
 
 async function runCliseoScan(cwd: string): Promise<any> {
-  const { stdout } = await runCommand('npx cliseo scan --json', cwd, 60000); // 1 minute timeout
+  const { stdout, stderr } = await runCommand('npx cliseo scan --json', cwd, 60000); // 1 minute timeout
+  
+  // Log stderr for debugging but don't let it interfere with JSON parsing
+  if (stderr.trim()) {
+    console.log(`[DEBUG] cliseo scan stderr: ${stderr.trim()}`);
+  }
+  
   try {
-    return JSON.parse(stdout);
+    // Clean stdout in case there are any stray characters
+    const cleanOutput = stdout.trim();
+    if (!cleanOutput) {
+      throw new Error('No JSON output received from cliseo scan');
+    }
+    return JSON.parse(cleanOutput);
   } catch (error) {
-    throw new Error(`Failed to parse cliseo scan output: ${error}`);
+    console.error(`[DEBUG] Failed to parse stdout as JSON: "${stdout}"`);
+    throw new Error(`Failed to parse cliseo scan output: ${error}\nOutput was: "${stdout}"`);
   }
 }
 

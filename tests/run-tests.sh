@@ -9,7 +9,8 @@
 set -e
 
 echo "Building cliseo tool..."
-# Go to project root, build the CLI, then come back or run in subshell
+# Clean previous build and rebuild
+rm -rf dist/
 npm run build:cli
 
 # Verify the build was successful
@@ -17,6 +18,8 @@ if [ ! -f "dist/cli/cli.js" ]; then
   echo "ERROR: CLI build failed - dist/cli/cli.js not found"
   exit 1
 fi
+
+echo "CLI build successful!"
 
 echo "Running cliseo automated SEO test runner..."
 
