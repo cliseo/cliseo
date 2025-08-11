@@ -10,7 +10,9 @@
 [![GitHub stars](https://img.shields.io/github/stars/cliseo/cliseo.svg)](https://github.com/cliseo//cliseo/stargazers)
 [![npm downloads](https://img.shields.io/npm/dt/cliseo.svg)](https://www.npmjs.com/package/cliseo)
 
-#### SEO Optimization CLI for JavaScript/TypeScript Projects [(Demo Video)](https://youtu.be/JDOVvaOdMWk?si=1NJ6bwOx20F4z5di)
+### SEO Optimization CLI for JavaScript/TypeScript Projects 
+
+[(Show our GitHub some love 🔗)](https://github.com/cliseo/cliseo)
 
 <img src="https://cliseo.com/Diff.png?v=2025" width="700px" style="border: none;">
  
@@ -19,21 +21,41 @@ Most developers know SEO matters, but it’s often overlooked or left until the 
 
 The goal isn’t to guarantee search rankings, but to ensure your site meets baseline SEO standards and is fully crawlable by search engines. Cliseo helps bring your Google Lighthouse SEO score to 100, giving your content, keywords, and link-building efforts a strong technical foundation to build on.
 
-## 🚀 Features
+## ✨ Features
 
-### Current Features
-- 🔍 Deep scanning of React and Next.js projects
-- 🛠️ Automatic SEO fixes for common issues
-- 📁 SEO file generation (robots.txt, sitemap.xml)
-- ⚡ Cross-platform support
+### 🔍 Framework Detection & Scanning
+- **Smart Framework Detection**: Automatically detects React, Next.js, Vue 3, and HTML projects
+- **Comprehensive SEO Audit**: Scans for missing meta tags, alt attributes, canonical links, schema markup, and semantic HTML issues
+- **Component-Level Analysis**: Deep scanning of page components and routes
+- **Detailed Issue Reporting**: Clear, actionable feedback with specific fix recommendations
 
-### Coming Soon
-- 🤖 AI-powered SEO analysis and optimization
-- 📊 SEO performance tracking and metrics
-- 🔄 GitHub integration with automated PR creation
-- 📈 Google Search Console integration
+### 🛠️ Intelligent Optimizations
+- **SEO File Generation**: Creates optimized `robots.txt` and `sitemap.xml` files
+- **Meta Tag Injection**: Automatically adds title, description, viewport, and Open Graph tags
+- **Schema.org Markup**: Injects JSON-LD structured data for better search results
+- **Image Alt Text**: Adds descriptive alt attributes to images
+- **Semantic HTML**: Suggests improvements for better accessibility and SEO
+
+### 🤖 AI-Powered Features (Premium)
+- **AI Content Analysis**: Advanced project understanding and context-aware optimizations
+- **Smart Metadata Generation**: AI-generated titles, descriptions, and keywords based on your content
+- **Custom SEO Recommendations**: Personalized suggestions tailored to your specific project
+- **Enhanced Schema Markup**: AI-driven structured data optimization
+
+### 🎯 Framework-Specific Support
+- **React**: React Helmet integration with JSX-aware optimization
+- **Next.js**: App Router and Pages Router support with metadata API integration
+- **Vue 3**: Vue-meta integration with Composition API support
+- **HTML**: Direct manipulation for static sites and legacy projects
+
+### 🔐 Authentication & Services
+- **Secure Authentication**: OAuth integration with Google and GitHub
+- **Email Verification**: Enhanced security for AI features
+- **Service Connections**: Future Google Search Console integration
 
 ## 📦 Installation
+
+Install globally for easy access from any project:
 
 ```bash
 npm install -g cliseo
@@ -41,27 +63,71 @@ npm install -g cliseo
 
 ## 🎯 Quick Start
 
-1. Scan your project for SEO issues:
+1. **Scan your project** for SEO issues:
 ```bash
 cliseo scan
 ```
 
-2. Apply optimizations:
+2. **Apply optimizations** automatically:
 ```bash
 cliseo optimize
 ```
 
-## 🛠️ Commands
+3. **Use AI features** (requires authentication):
+```bash
+cliseo scan --ai
+cliseo optimize --ai
+```
 
-### `cliseo scan`
-Performs an SEO audit of your project.
+## 🛠️ Command Reference
 
-Options:
-- `--verbose`: Show detailed output
-- `--json`: Output results in JSON format
+### `cliseo scan [options]`
+Performs a comprehensive SEO audit of your project.
 
-### `cliseo optimize`
-Automatically applies SEO fixes to your codebase.
+**Options:**
+- `--ai`: Enable AI-powered deep analysis (requires authentication)
+- `--verbose`: Show detailed output and debugging information
+- `--json`: Output results in JSON format for automation
+
+**Example output:**
+```
+Detected Framework: REACT
+✅ Found 12 files to scan
+⚠️  Missing meta description in src/pages/About.tsx
+🤖 AI Suggestion: Add product schema markup for better e-commerce visibility
+```
+
+### `cliseo optimize [directory] [options]`
+Automatically applies SEO improvements to your codebase.
+
+**Options:**
+- `--ai`: Use AI for intelligent, context-aware optimizations (requires authentication)
+- `--dry-run`: Preview changes without applying them
+- `--yes`: Skip confirmation prompts (useful for CI/CD)
+
+**What it does:**
+- Creates/updates `robots.txt` and `sitemap.xml`
+- Injects framework-appropriate meta tags
+- Adds missing alt attributes to images
+- Installs and configures SEO libraries (react-helmet, vue-meta)
+
+### `cliseo auth`
+Manage authentication for AI-powered features.
+
+**Features:**
+- Sign in with Google or GitHub
+- View account status and AI access
+- Manage email verification
+- Upgrade to premium plans
+
+### `cliseo verify-email`
+Send or check email verification status for AI features.
+
+### `cliseo connect [options]`
+Connect external services (Coming Soon).
+
+**Options:**
+- `--google-search-console`: Connect Google Search Console
 
 ## 🤝 Contribute
 
