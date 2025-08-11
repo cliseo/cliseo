@@ -314,67 +314,73 @@ export async function transformFile(file: string): Promise<void> {
     return;
   }
 
-  const ast = parse(code, {
-    sourceType: 'module',
-    plugins: ['jsx', 'typescript'],
-  });
-
-  let metadataVariable: t.VariableDeclarator | null = null;
-  let modified = false;
-
-  traverse(ast, {
-    ExportNamedDeclaration(path) {
-      if (t.isVariableDeclaration(path.node.declaration)) {
-        for (const declarator of path.node.declaration.declarations) {
-          if (t.isIdentifier(declarator.id) && declarator.id.name === 'metadata') {
-            metadataVariable = declarator;
-            break;
-          }
-        }
-      }
-    },
-  });
-
-  const seoProperties = [
-    t.objectProperty(t.identifier('description'), t.stringLiteral('SEO optimized description')),
-    t.objectProperty(t.identifier('robots'), t.stringLiteral('index, follow')),
-    t.objectProperty(
-      t.identifier('openGraph'),
-      t.objectExpression([
-        t.objectProperty(t.identifier('title'), t.stringLiteral('OpenGraph Title')),
-        t.objectProperty(t.identifier('description'), t.stringLiteral('OpenGraph Description')),
-      ])
-    ),
-  ];
-
-  if (metadataVariable && t.isObjectExpression(metadataVariable.init)) {
-    //
-    seoProperties.forEach(prop => {
-      if (t.isObjectProperty(prop)) {
-        const key = (prop.key as t.Identifier).name;
-        const exists = metadataVariable!.init as t.ObjectExpression;
-        if (!exists.properties.some(p => t.isObjectProperty(p) && (p.key as t.Identifier).name === key)) {
-          (metadataVariable.init as t.ObjectExpression).properties.push(prop);
-          modified = true;
-        }
-      }
-    });
-  } else {
-    //
-    const metadataExport = t.exportNamedDeclaration(
-      t.variableDeclaration('const', [
-        t.variableDeclarator(t.identifier('metadata'), t.objectExpression(seoProperties)),
-      ])
-    );
-    //
-    const program = (ast.program as t.Program);
-    program.body.unshift(metadataExport);
-    modified = true;
+  // Check if metadata already exists using string search first (safer approach)
+  if (code.includes('export const metadata')) {
+    console.log(`Metadata export already exists in: ${file}`);
+    return;
   }
 
-  if (modified) {
-    const output = generate(ast, {}, code);
+  // Use string manipulation to preserve all imports and original formatting
+  let modifiedCode = code;
+  let modified = false;
+
+  const metadataExport = `export const metadata = {
+  description: 'SEO optimized description',
+  robots: 'index, follow',
+  openGraph: {
+    title: 'OpenGraph Title',
+    description: 'OpenGraph Description',
+  },
+};
+
+`;
+
+  // Find the position after imports but before the first export/component
+  const lines = code.split('\n');
+  let insertPosition = 0;
+  let foundImportsEnd = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
     
+    // Skip empty lines and comments
+    if (!line || line.startsWith('//') || line.startsWith('/*') || line.startsWith('*')) {
+      continue;
+    }
+    
+    // If this is an import line, mark that we're still in imports section
+    if (line.startsWith('import ')) {
+      foundImportsEnd = false;
+      insertPosition = i + 1;
+      continue;
+    }
+    
+    // If we've moved past imports and found a non-import line
+    if (!line.startsWith('import ') && insertPosition > 0) {
+      foundImportsEnd = true;
+      break;
+    }
+    
+    // If no imports found, insert at the beginning
+    if (!line.startsWith('import ') && insertPosition === 0) {
+      insertPosition = i;
+      break;
+    }
+  }
+
+  // Insert metadata export after imports
+  const beforeLines = lines.slice(0, insertPosition);
+  const afterLines = lines.slice(insertPosition);
+  
+  // Add empty line before metadata if there isn't one
+  if (beforeLines.length > 0 && beforeLines[beforeLines.length - 1].trim() !== '') {
+    beforeLines.push('');
+  }
+  
+  modifiedCode = beforeLines.join('\n') + '\n' + metadataExport + afterLines.join('\n');
+  modified = true;
+
+  if (modified) {
     // Format the code with Prettier to ensure proper formatting
     let formattedCode;
     try {
@@ -383,7 +389,7 @@ export async function transformFile(file: string): Promise<void> {
       const parser = isTypeScript ? 'typescript' : 'babel';
       
       const prettier = await import('prettier');
-      formattedCode = await prettier.format(output.code, {
+      formattedCode = await prettier.format(modifiedCode, {
         parser,
         semi: true,
         singleQuote: true,
@@ -396,7 +402,7 @@ export async function transformFile(file: string): Promise<void> {
       if (process.env.CLISEO_VERBOSE === 'true') {
         console.warn(`Prettier formatting failed for ${file}, using unformatted code:`, prettierError);
       }
-      formattedCode = output.code;
+      formattedCode = modifiedCode;
     }
     
     await fs.writeFile(file, formattedCode, 'utf8');
