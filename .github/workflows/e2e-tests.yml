@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [20.x]
 
     steps:
       - name: Checkout repository
@@ -31,6 +31,7 @@ jobs:
           path: |
             ~/.npm
             node_modules
+            tests/__fixtures__/*/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: ${{ runner.os }}-node-
 
@@ -38,6 +39,7 @@ jobs:
         run: npm install
 
       - name: Run tests
+        timeout-minutes: 30
         run: |
           chmod +x tests/run-tests.sh
           ./tests/run-tests.sh ${{ github.event.inputs.framework || '' }}

@@ -12,17 +12,33 @@ echo "Building cliseo tool..."
 # Go to project root, build the CLI, then come back or run in subshell
 npm run build:cli
 
+# Verify the build was successful
+if [ ! -f "dist/cli/cli.js" ]; then
+  echo "ERROR: CLI build failed - dist/cli/cli.js not found"
+  exit 1
+fi
+
 echo "Running cliseo automated SEO test runner..."
 
 # Get the absolute path to the tests directory
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Install dependencies for all fixtures
-echo "Installing dependencies for React fixture..."
-cd "$TESTS_DIR/__fixtures__/react-app" && npm install && cd "$TESTS_DIR"
+# Pre-install dependencies for all fixtures (if not already installed)
+echo "Checking React fixture dependencies..."
+if [ ! -d "$TESTS_DIR/__fixtures__/react-app/node_modules" ]; then
+  echo "Installing dependencies for React fixture..."
+  cd "$TESTS_DIR/__fixtures__/react-app" && npm ci --prefer-offline && cd "$TESTS_DIR"
+else
+  echo "React fixture dependencies already installed, skipping..."
+fi
 
-echo "Installing dependencies for Next.js fixture..."
-cd "$TESTS_DIR/__fixtures__/next-app" && npm install && cd "$TESTS_DIR"
+echo "Checking Next.js fixture dependencies..."
+if [ ! -d "$TESTS_DIR/__fixtures__/next-app/node_modules" ]; then
+  echo "Installing dependencies for Next.js fixture..."
+  cd "$TESTS_DIR/__fixtures__/next-app" && npm ci --prefer-offline && cd "$TESTS_DIR"
+else
+  echo "Next.js fixture dependencies already installed, skipping..."
+fi
 
 # Ensure tsx is available (it's in root devDependencies, but npx will handle it)
 # We can add a specific check/install for tsx if needed, but npx should find it.

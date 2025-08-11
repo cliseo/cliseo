@@ -115,18 +115,6 @@ async function addMetadataToLayout(layoutPath: string, metadataCode: string): Pr
 }
 
 /**
- * Finds the project root directory
- */
-function findProjectRoot(startDir: string): string {
-  let dir = path.resolve(startDir);
-  while (dir !== path.dirname(dir)) {
-    if (existsSync(path.join(dir, 'package.json'))) return dir;
-    dir = path.dirname(dir);
-  }
-  return startDir;
-}
-
-/**
  * Recursively walks up the directory tree to find the project root.
  * Assumes the root contains a `package.json`.
  * 

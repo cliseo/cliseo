@@ -66,9 +66,10 @@ async function copyDirRecursive(src: string, dest: string) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
     
-    if (entry.name === 'node_modules') { // Skip node_modules
-      continue;
-    }
+    // No longer skip node_modules - we want to copy them for performance
+    // if (entry.name === 'node_modules') { 
+    //   continue;
+    // }
     
     if (entry.isDirectory()) {
       await copyDirRecursive(srcPath, destPath);
@@ -78,16 +79,16 @@ async function copyDirRecursive(src: string, dest: string) {
   }
 }
 
-async function runCommand(cmd: string, cwd: string): Promise<{ stdout: string; stderr: string }> {
+async function runCommand(cmd: string, cwd: string, timeoutMs = 300000): Promise<{ stdout: string; stderr: string }> {
   try {
-    return await execAsync(cmd, { cwd, maxBuffer: 1024 * 1024 * 10 });
+    return await execAsync(cmd, { cwd, maxBuffer: 1024 * 1024 * 10, timeout: timeoutMs });
   } catch (error: any) {
     throw new Error(`Command failed: ${error.message}\n${error.stderr}`);
   }
 }
 
 async function runCliseoScan(cwd: string): Promise<any> {
-  const { stdout } = await runCommand('npx cliseo scan --json', cwd);
+  const { stdout } = await runCommand('npx cliseo scan --json', cwd, 60000); // 1 minute timeout
   try {
     return JSON.parse(stdout);
   } catch (error) {
@@ -107,7 +108,7 @@ async function runCliseoOptimize(framework: Framework, tempDir: string): Promise
     default:
       throw new Error(`Unsupported framework for optimization: ${framework}`);
   }
-  await runCommand(optimizeCommand, tempDir);
+  await runCommand(optimizeCommand, tempDir, 60000); // 1 minute timeout
 }
 
 async function runBuild(framework: Framework, tempDir: string): Promise<{ success: boolean; error?: string }> {
@@ -123,7 +124,7 @@ async function runBuild(framework: Framework, tempDir: string): Promise<{ succes
       default:
         throw new Error(`Unsupported framework for build: ${framework}`);
     }
-    await runCommand(buildCmd, tempDir);
+    await runCommand(buildCmd, tempDir, 180000); // 3 minute timeout for builds
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -179,22 +180,22 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
     serverProcess.stdout?.on('data', (data) => console.log(`[${framework} Server STDOUT] ${data.toString().trim()}`));
     serverProcess.stderr?.on('data', (data) => console.error(`[${framework} Server STDERR] ${data.toString().trim()}`));
     
-    const maxRetries = 6;
-    const retryDelay = 20000;
-    const initialDelay = 10000;
+    const maxRetries = 4;
+    const retryDelay = 10000; // Reduced from 20s to 10s
+    const initialDelay = 5000; // Reduced from 10s to 5s
     let isServerReady = false;
     let lastError: string | undefined;
 
-    // Use 127.0.0.1 for fetch for Angular and Next, and add a curl check
-    const fetchUrl = (framework === 'angular' || framework === 'next') ? `http://127.0.0.1:${port}` : url;
+    // Use 127.0.0.1 for fetch for Next.js, and add a curl check
+    const fetchUrl = framework === 'next' ? `http://127.0.0.1:${port}` : url;
 
     console.log(`[${framework}] Waiting ${initialDelay/1000}s initial delay for server to spin up...`);
     await new Promise(resolve => setTimeout(resolve, initialDelay));
 
-    if (framework === 'angular' || framework === 'next') {
+    if (framework === 'next') {
       try {
         console.log(`[${framework} Debug] Attempting curl to ${fetchUrl}...`);
-        const curlResult = await execAsync(`curl --fail -s -o /dev/null -w '%{http_code}' ${fetchUrl}`, { timeout: 10000 }); // Increased curl timeout
+        const curlResult = await execAsync(`curl --fail -s -o /dev/null -w '%{http_code}' ${fetchUrl}`, { timeout: 8000 }); // Consistent timeout
         if (curlResult.stdout.trim() === '200') {
           console.log(`[${framework} Debug] curl to ${fetchUrl} was successful (HTTP 200).`);
         } else {
@@ -213,7 +214,7 @@ async function checkFunctionality(framework: Framework, cwd: string): Promise<{ 
         return { success: false, error: `Server process failed before readiness check: ${serverEarlyExitError}` };
       }
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduced timeout
 
       try {
         console.log(`[${framework}] Attempt ${i + 1}/${maxRetries} to connect to server at ${fetchUrl}...`);
@@ -319,9 +320,10 @@ async function main() {
       console.log(`[${framework}] Copying fixture source files to: ${tempDir}`);
       await copyDirRecursive(fixtureDir, tempDir);
 
-      console.log(`[${framework}] Installing dependencies in ${tempDir}...`);
+      console.log(`[${framework}] Installing cliseo package in ${tempDir}...`);
       const cliseoProjectRoot = path.resolve(__dirname, '..');
-      await runCommand(`npm install && npm install file:${cliseoProjectRoot}`, tempDir);
+      // Only install cliseo since node_modules were copied
+      await runCommand(`npm install file:${cliseoProjectRoot}`, tempDir, 120000); // 2 minute timeout
 
       console.log(`[${framework}] Running pre-scan...`);
       const preScan = await runCliseoScan(tempDir);
