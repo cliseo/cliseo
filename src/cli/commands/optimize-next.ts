@@ -17,6 +17,116 @@ const traverse = _traverse.default;
 const generate = _generate.default;
 
 /**
+ * Fixes the critical "use client" + metadata export issue
+ * by removing metadata from client component and suggesting proper placement
+ */
+async function fixClientComponentMetadata(file: string, code: string): Promise<void> {
+  try {
+    // Extract the metadata export to suggest where to move it
+    const metadataMatch = code.match(/export const metadata = \{[^}]*\}[^;]*;?/s);
+    
+    if (!metadataMatch) {
+      console.log(chalk.yellow(`   Could not extract metadata from ${file}`));
+      return;
+    }
+    
+    const metadataCode = metadataMatch[0];
+    
+    // Remove the metadata export from the client component
+    const fixedCode = code.replace(metadataMatch[0], '').replace(/\n\s*\n\s*\n/g, '\n\n'); // Clean up extra blank lines
+    
+    // Write the fixed client component (without metadata)
+    await fs.writeFile(file, fixedCode, 'utf8');
+    console.log(chalk.green(`   ✅ Removed metadata export from client component: ${file}`));
+    
+    // Try to find and update layout.tsx
+    const projectRoot = findProjectRoot(path.dirname(file));
+    const layoutPaths = [
+      path.join(path.dirname(file), 'layout.tsx'),
+      path.join(path.dirname(file), 'layout.ts'),
+      path.join(projectRoot, 'app', 'layout.tsx'),
+      path.join(projectRoot, 'app', 'layout.ts'),
+    ];
+    
+    let layoutFound = false;
+    for (const layoutPath of layoutPaths) {
+      if (existsSync(layoutPath)) {
+        await addMetadataToLayout(layoutPath, metadataCode);
+        layoutFound = true;
+        break;
+      }
+    }
+    
+    if (!layoutFound) {
+      console.log(chalk.yellow(`   📝 Create app/layout.tsx and add this metadata:`));
+      console.log(chalk.gray(`   ${metadataCode}`));
+    }
+    
+  } catch (error) {
+    console.log(chalk.red(`   ❌ Failed to fix client component metadata in ${file}: ${error}`));
+  }
+}
+
+/**
+ * Adds metadata to layout.tsx if it doesn't already have it
+ */
+async function addMetadataToLayout(layoutPath: string, metadataCode: string): Promise<void> {
+  try {
+    const layoutContent = await fs.readFile(layoutPath, 'utf8');
+    
+    // Check if layout already has metadata
+    if (layoutContent.includes('export const metadata')) {
+      console.log(chalk.yellow(`   Layout already has metadata: ${layoutPath}`));
+      return;
+    }
+    
+    // Find insertion point (after imports, before default export)
+    const importPattern = /^import\s+.*?;?\s*$/gm;
+    let lastImportIndex = -1;
+    let match;
+    
+    while ((match = importPattern.exec(layoutContent)) !== null) {
+      lastImportIndex = match.index + match[0].length;
+    }
+    
+    let insertionPoint = 0;
+    if (lastImportIndex !== -1) {
+      insertionPoint = lastImportIndex;
+    }
+    
+    // Insert metadata
+    const beforeContent = layoutContent.substring(0, insertionPoint);
+    const afterContent = layoutContent.substring(insertionPoint);
+    
+    let separator = '';
+    if (!beforeContent.endsWith('\n')) {
+      separator += '\n';
+    }
+    separator += '\n';
+    
+    const modifiedLayout = beforeContent + separator + metadataCode + '\n' + afterContent;
+    
+    await fs.writeFile(layoutPath, modifiedLayout, 'utf8');
+    console.log(chalk.green(`   ✅ Added metadata to layout: ${layoutPath}`));
+    
+  } catch (error) {
+    console.log(chalk.red(`   ❌ Failed to update layout ${layoutPath}: ${error}`));
+  }
+}
+
+/**
+ * Finds the project root directory
+ */
+function findProjectRoot(startDir: string): string {
+  let dir = path.resolve(startDir);
+  while (dir !== path.dirname(dir)) {
+    if (existsSync(path.join(dir, 'package.json'))) return dir;
+    dir = path.dirname(dir);
+  }
+  return startDir;
+}
+
+/**
  * Recursively walks up the directory tree to find the project root.
  * Assumes the root contains a `package.json`.
  * 
@@ -314,8 +424,27 @@ export async function transformFile(file: string): Promise<void> {
     return;
   }
 
+  // Check for critical "use client" + metadata issue
+  const hasUseClient = code.includes('"use client"') || code.includes("'use client'");
+  const hasMetadataExport = code.includes('export const metadata');
+  
+  if (hasUseClient && hasMetadataExport) {
+    console.log(chalk.red(`⚠️  CRITICAL SEO ISSUE: ${file} has "use client" with metadata export`));
+    console.log(chalk.yellow(`   Metadata will be ignored by Next.js in client components`));
+    
+    // Attempt to fix by removing metadata from client component and suggesting layout.tsx
+    await fixClientComponentMetadata(file, code);
+    return;
+  }
+
+  // Skip adding metadata to client components (they can't use it)
+  if (hasUseClient) {
+    console.log(chalk.yellow(`Skipping client component (metadata not supported): ${file}`));
+    return;
+  }
+
   // Check if metadata already exists using string search first (safer approach)
-  if (code.includes('export const metadata')) {
+  if (hasMetadataExport) {
     console.log(`Metadata export already exists in: ${file}`);
     return;
   }

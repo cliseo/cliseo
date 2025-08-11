@@ -425,15 +425,39 @@ async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
 
   if(!isPageComponent(filePath)) return issues;
 
-  if (!content.includes('<Head>')) {
+  // Check for critical "use client" + metadata issue
+  const hasUseClient = content.includes('"use client"') || content.includes("'use client'");
+  const hasMetadataExport = content.includes('export const metadata');
+  
+  if (hasUseClient && hasMetadataExport) {
+    issues.push({
+      type: 'error',
+      message: 'Client component with metadata export - metadata will be ignored by Next.js',
+      file: filePath,
+      fix: 'Move metadata to app/layout.tsx or create a server component wrapper. Metadata only works in server components.',
+    });
+  }
+
+  // Check for missing App Router metadata in server components
+  if (!hasUseClient && !hasMetadataExport && filePath.includes('/app/') && (filePath.endsWith('page.tsx') || filePath.endsWith('page.ts'))) {
+    issues.push({
+      type: 'warning',
+      message: 'Missing metadata export for App Router page component',
+      file: filePath,
+      fix: 'Add export const metadata = { title: "...", description: "..." } for better SEO',
+    });
+  }
+
+  if (!content.includes('<Head>') && !hasMetadataExport) {
     console.error('No <Head> component found in:', filePath);
     issues.push({
       type: 'warning',
-      message: 'No <Head> component found for managing meta tags',
+      message: 'No <Head> component or metadata export found for managing meta tags',
       file: filePath,
-      fix: 'Consider using next/head, to manage title and meta tags in page components',
+      fix: 'Consider using next/head or App Router metadata export to manage title and meta tags',
     });
   }
+  
   if (content.includes('<img') && !content.includes('next/image')) {
     console.error('Image without next/image component found in:', filePath);
     issues.push({
