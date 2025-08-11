@@ -27,7 +27,7 @@ TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "Checking React fixture dependencies..."
 if [ ! -d "$TESTS_DIR/__fixtures__/react-app/node_modules" ]; then
   echo "Installing dependencies for React fixture..."
-  cd "$TESTS_DIR/__fixtures__/react-app" && npm ci --prefer-offline && cd "$TESTS_DIR"
+  cd "$TESTS_DIR/__fixtures__/react-app" && npm install --prefer-offline && cd "$TESTS_DIR"
 else
   echo "React fixture dependencies already installed, skipping..."
 fi
@@ -35,7 +35,7 @@ fi
 echo "Checking Next.js fixture dependencies..."
 if [ ! -d "$TESTS_DIR/__fixtures__/next-app/node_modules" ]; then
   echo "Installing dependencies for Next.js fixture..."
-  cd "$TESTS_DIR/__fixtures__/next-app" && npm ci --prefer-offline && cd "$TESTS_DIR"
+  cd "$TESTS_DIR/__fixtures__/next-app" && npm install --prefer-offline && cd "$TESTS_DIR"
 else
   echo "Next.js fixture dependencies already installed, skipping..."
 fi
