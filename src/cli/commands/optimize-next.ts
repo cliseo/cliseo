@@ -320,7 +320,7 @@ export async function transformFile(file: string): Promise<void> {
     return;
   }
 
-  // Use string manipulation to preserve all imports and original formatting
+  // Use precise string insertion to preserve ALL original formatting
   let modifiedCode = code;
   let modified = false;
 
@@ -335,77 +335,40 @@ export async function transformFile(file: string): Promise<void> {
 
 `;
 
-  // Find the position after imports but before the first export/component
-  const lines = code.split('\n');
-  let insertPosition = 0;
-  let foundImportsEnd = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    // Skip empty lines and comments
-    if (!line || line.startsWith('//') || line.startsWith('/*') || line.startsWith('*')) {
-      continue;
-    }
-    
-    // If this is an import line, mark that we're still in imports section
-    if (line.startsWith('import ')) {
-      foundImportsEnd = false;
-      insertPosition = i + 1;
-      continue;
-    }
-    
-    // If we've moved past imports and found a non-import line
-    if (!line.startsWith('import ') && insertPosition > 0) {
-      foundImportsEnd = true;
-      break;
-    }
-    
-    // If no imports found, insert at the beginning
-    if (!line.startsWith('import ') && insertPosition === 0) {
-      insertPosition = i;
-      break;
-    }
-  }
-
-  // Insert metadata export after imports
-  const beforeLines = lines.slice(0, insertPosition);
-  const afterLines = lines.slice(insertPosition);
+  // Find insertion point using regex to avoid split/join which can affect formatting
+  const importPattern = /^import\s+.*?;?\s*$/gm;
+  let lastImportIndex = -1;
+  let match;
   
-  // Add empty line before metadata if there isn't one
-  if (beforeLines.length > 0 && beforeLines[beforeLines.length - 1].trim() !== '') {
-    beforeLines.push('');
+  // Find the end of the last import statement
+  while ((match = importPattern.exec(code)) !== null) {
+    lastImportIndex = match.index + match[0].length;
   }
   
-  modifiedCode = beforeLines.join('\n') + '\n' + metadataExport + afterLines.join('\n');
+  if (lastImportIndex === -1) {
+    // No imports found, insert at beginning of file
+    modifiedCode = metadataExport + code;
+  } else {
+    // Insert after the last import, preserving exact formatting
+    const beforeImports = code.substring(0, lastImportIndex);
+    const afterImports = code.substring(lastImportIndex);
+    
+    // Add newlines only if needed
+    let separator = '';
+    if (!beforeImports.endsWith('\n')) {
+      separator += '\n';
+    }
+    separator += '\n'; // One blank line before metadata
+    
+    modifiedCode = beforeImports + separator + metadataExport + afterImports;
+  }
+  
   modified = true;
 
   if (modified) {
-    // Format the code with Prettier to ensure proper formatting
-    let formattedCode;
-    try {
-      // Detect file type from extension
-      const isTypeScript = file.endsWith('.tsx') || file.endsWith('.ts');
-      const parser = isTypeScript ? 'typescript' : 'babel';
-      
-      const prettier = await import('prettier');
-      formattedCode = await prettier.format(modifiedCode, {
-        parser,
-        semi: true,
-        singleQuote: true,
-        trailingComma: 'es5',
-        tabWidth: 2,
-        printWidth: 80,
-      });
-    } catch (prettierError) {
-      // If Prettier import or formatting fails, fall back to unformatted code
-      if (process.env.CLISEO_VERBOSE === 'true') {
-        console.warn(`Prettier formatting failed for ${file}, using unformatted code:`, prettierError);
-      }
-      formattedCode = modifiedCode;
-    }
-    
-    await fs.writeFile(file, formattedCode, 'utf8');
+    // Don't apply Prettier to entire file to preserve original formatting
+    // Only the metadata export we added is already properly formatted
+    await fs.writeFile(file, modifiedCode, 'utf8');
     console.log(chalk.green(` • Successfully injected SEO optimizations in file: ${file}`));
   } else {
     console.log(`No modifications needed for: ${file}`);
