@@ -140,7 +140,8 @@ async function enhanceExistingMetadata(file: string, code: string): Promise<void
       return;
     }
 
-    console.log(chalk.yellow(`   📝 Enhancing metadata with: ${missingFields.join(', ')}`));
+    console.log(chalk.yellow(`   📝 Adding missing SEO fields: ${missingFields.join(', ')}`));
+    console.log(chalk.gray(`   💡 Use --ai flag for personalized content instead of placeholders`));
 
     // Build enhancement string
     let enhancements = '';
@@ -152,8 +153,8 @@ async function enhanceExistingMetadata(file: string, code: string): Promise<void
     }
     if (missingFields.includes('openGraph')) {
       enhancements += `\n  openGraph: {
-    title: 'Your Page Title',
-    description: 'SEO optimized description',
+    title: 'Replace with your site title',
+    description: 'Replace with your site description',
     type: 'website',
     url: 'https://yourdomain.com',
   },`;
@@ -161,8 +162,8 @@ async function enhanceExistingMetadata(file: string, code: string): Promise<void
     if (missingFields.includes('twitter')) {
       enhancements += `\n  twitter: {
     card: 'summary_large_image',
-    title: 'Your Page Title', 
-    description: 'SEO optimized description',
+    title: 'Replace with your site title',
+    description: 'Replace with your site description',
   },`;
     }
 
@@ -173,7 +174,8 @@ async function enhanceExistingMetadata(file: string, code: string): Promise<void
     );
 
     await fs.writeFile(file, enhancedCode, 'utf8');
-    console.log(chalk.green(`   ✅ Enhanced metadata in ${file}`));
+    console.log(chalk.green(`   ✅ Added SEO metadata structure in ${file}`));
+    console.log(chalk.cyan(`   📝 Remember to replace placeholder text with your actual content`));
 
   } catch (error) {
     console.log(chalk.red(`   ❌ Failed to enhance metadata in ${file}: ${error}`));
@@ -509,20 +511,20 @@ export async function transformFile(file: string): Promise<void> {
   let modified = false;
 
   const metadataExport = `export const metadata = {
-  title: 'Your Page Title',
-  description: 'SEO optimized description that accurately describes your page content',
+  title: 'Replace with your page title',
+  description: 'Replace with your page description - describe what this page is about',
   robots: 'index, follow',
   viewport: 'width=device-width, initial-scale=1',
   openGraph: {
-    title: 'Your Page Title',
-    description: 'SEO optimized description that accurately describes your page content',
+    title: 'Replace with your site title',
+    description: 'Replace with your site description',
     type: 'website',
     url: 'https://yourdomain.com',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Your Page Title',
-    description: 'SEO optimized description that accurately describes your page content',
+    title: 'Replace with your site title',
+    description: 'Replace with your site description',
   },
 };
 
@@ -562,7 +564,8 @@ export async function transformFile(file: string): Promise<void> {
     // Don't apply Prettier to entire file to preserve original formatting
     // Only the metadata export we added is already properly formatted
     await fs.writeFile(file, modifiedCode, 'utf8');
-    console.log(chalk.green(` • Successfully injected SEO optimizations in file: ${file}`));
+    console.log(chalk.green(` • Added SEO metadata structure to: ${file}`));
+    console.log(chalk.cyan(`   📝 Replace placeholder text with your actual content (or use cliseo optimize --ai for automatic content)`));
   } else {
     console.log(`No modifications needed for: ${file}`);
   }

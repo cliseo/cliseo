@@ -543,10 +543,9 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
  * @param options - Scan options including AI flag and JSON output
  */
 export async function scanCommand(options: ScanOptions) {
-  const spinner = ora({ 
-    text: 'Scanning project for SEO issues...', 
-    stream: options.json ? process.stderr : process.stdout 
-  }).start();
+  const spinner = options.json 
+    ? { stop: () => {}, succeed: () => {}, fail: () => {}, text: '' } // No-op spinner for JSON mode
+    : ora({ text: 'Scanning project for SEO issues...' }).start();
   const config = await loadConfig();
   let results: ScanResult[] = [];
   let framework = 'unknown';
@@ -560,16 +559,20 @@ export async function scanCommand(options: ScanOptions) {
       
       if (!isAuth) {
         spinner.stop();
-        console.log(chalk.yellow('\n⚠️  Authentication required for AI features'));
-        console.log(chalk.cyan('Please authenticate first:'));
-        console.log(chalk.gray('  cliseo auth\n'));
+        if (!options.json) {
+          console.log(chalk.yellow('\n⚠️  Authentication required for AI features'));
+          console.log(chalk.cyan('Please authenticate first:'));
+          console.log(chalk.gray('  cliseo auth\n'));
+        }
         return;
       }
       
       if (!hasAi) {
         spinner.stop();
-        console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account'));
-        console.log(chalk.gray('Upgrade your plan to access AI features.\n'));
+        if (!options.json) {
+          console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account'));
+          console.log(chalk.gray('Upgrade your plan to access AI features.\n'));
+        }
         return;
       }
       
@@ -577,9 +580,11 @@ export async function scanCommand(options: ScanOptions) {
       const needsVerification = await requiresEmailVerification();
       if (needsVerification) {
         spinner.stop();
-        console.log(chalk.yellow('\n⚠️  Email verification required for AI features'));
-        console.log(chalk.cyan('Please verify your email first:'));
-        console.log(chalk.gray('  cliseo verify-email\n'));
+        if (!options.json) {
+          console.log(chalk.yellow('\n⚠️  Email verification required for AI features'));
+          console.log(chalk.cyan('Please verify your email first:'));
+          console.log(chalk.gray('  cliseo verify-email\n'));
+        }
         return;
       }
     }
@@ -607,18 +612,23 @@ export async function scanCommand(options: ScanOptions) {
     });
 
     if (files.length === 0) {
-      spinner.fail('No files found to scan. Make sure you are in a project directory.');
+      if (options.json) {
+        spinner.stop();
+        console.error(JSON.stringify({ error: 'No files found to scan. Make sure you are in a project directory.' }));
+      } else {
+        spinner.fail('No files found to scan. Make sure you are in a project directory.');
+      }
       return;
     }
 
-    if (options.verbose || process.env.CLISEO_VERBOSE === 'true') {
+    if (!options.json && (options.verbose || process.env.CLISEO_VERBOSE === 'true')) {
       console.log(chalk.cyan(`📁 Found ${files.length} files to scan`));
     }
 
     // Limit files for performance
     const MAX_FILES = 500;
     const filteredFiles = files.slice(0, MAX_FILES);
-    if (files.length > MAX_FILES) {
+    if (!options.json && files.length > MAX_FILES) {
       console.log(chalk.yellow(`⚠️  Limited scan to first ${MAX_FILES} files for performance`));
     }
 
@@ -634,7 +644,9 @@ export async function scanCommand(options: ScanOptions) {
 
     // AI features use backend integration only
     if (options.ai) {
-      spinner.text = 'Running AI-powered deep analysis...';
+      if ('text' in spinner) {
+        spinner.text = 'Running AI-powered deep analysis...';
+      }
     }
 
     const fileScanPromises = filteredFiles.map(async (file) => {
@@ -692,7 +704,11 @@ export async function scanCommand(options: ScanOptions) {
     process.exit(1);
   }
 
-  // After displaying results
+  // After displaying results - skip interactive mode for JSON output
+  if (options.json) {
+    return;
+  }
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout

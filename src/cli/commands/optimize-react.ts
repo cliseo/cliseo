@@ -10,6 +10,8 @@ import reactJsx from '@babel/plugin-transform-react-jsx';
 import typescriptTransform from '@babel/plugin-transform-typescript';
 import reactPreset from '@babel/preset-react';
 import typescriptPreset from '@babel/preset-typescript';
+import { execSync } from 'child_process';
+import chalk from 'chalk';
 
 const helmetImportName = 'Helmet';
 
@@ -274,10 +276,67 @@ async function findReactFiles(dir: string): Promise<string[]> {
 }
 
 /**
+ * Installs react-helmet dependency if not already present
+ */
+async function installReactHelmet(projectRoot: string): Promise<boolean> {
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  
+  if (!existsSync(packageJsonPath)) {
+    console.log(chalk.yellow('⚠️  No package.json found, skipping react-helmet installation'));
+    return false;
+  }
+
+  try {
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    
+    // Check if react-helmet is already installed
+    if (deps['react-helmet']) {
+      console.log(chalk.green('✅ react-helmet already installed'));
+      return true;
+    }
+
+    console.log(chalk.cyan('📦 Installing react-helmet dependency...'));
+    
+    // Determine package manager
+    const hasYarnLock = existsSync(path.join(projectRoot, 'yarn.lock'));
+    const hasPnpmLock = existsSync(path.join(projectRoot, 'pnpm-lock.yaml'));
+    
+    let installCommand;
+    if (hasPnpmLock) {
+      installCommand = 'pnpm add react-helmet';
+    } else if (hasYarnLock) {
+      installCommand = 'yarn add react-helmet';
+    } else {
+      installCommand = 'npm install react-helmet';
+    }
+
+    execSync(installCommand, { 
+      cwd: projectRoot, 
+      stdio: 'pipe' // Don't show output unless there's an error
+    });
+    
+    console.log(chalk.green('✅ Successfully installed react-helmet'));
+    return true;
+    
+  } catch (error) {
+    console.log(chalk.red(`❌ Failed to install react-helmet: ${error instanceof Error ? error.message : 'Unknown error'}`));
+    return false;
+  }
+}
+
+/**
  * Injects Helmet metadata into all relevant React page files in the project.
  * This skips files that don't appear to be top-level page components.
  */
 export async function optimizeReactComponents(projectRoot: string): Promise<void> {
+  // First, ensure react-helmet is installed
+  const helmetInstalled = await installReactHelmet(projectRoot);
+  if (!helmetInstalled) {
+    console.log(chalk.yellow('⚠️  Skipping React optimization due to react-helmet installation failure'));
+    return;
+  }
+
   const srcDir = path.join(projectRoot, 'src');
   const files = await findReactFiles(srcDir);
 
