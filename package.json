@@ -1,6 +1,6 @@
 {
   "name": "cliseo",
-  "version": "0.5.11",
+  "version": "0.5.12",
   "description": "Instant AI-Powered SEO Optimization CLI for Developers",
   "type": "module",
   "bin": {
