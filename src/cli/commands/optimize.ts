@@ -31,12 +31,12 @@ function formatEmailDisplay(email: string): string {
     const username = email.split('@')[0];
     return `Github: ${username}`;
   }
-  
+
   // For Google users, check if it's a placeholder
   if (email && email.includes('placeholder')) {
     return 'Google: (private email)';
   }
-  
+
   // For real emails, show as-is
   return email || 'Not provided';
 }
@@ -70,7 +70,7 @@ async function ensureSeoFiles(framework: string, projectRoot: string) {
   }
 
   // make sure directory exists
-  try { await fs.promises.mkdir(targetDir, { recursive: true }); } catch {}
+  try { await fs.promises.mkdir(targetDir, { recursive: true }); } catch { }
 
   const robotsPath = join(targetDir, 'robots.txt');
   const sitemapPath = join(targetDir, 'sitemap.xml');
@@ -205,19 +205,19 @@ function getFrameworkFileExtensions(framework: string): string[] {
 async function getFilesToOptimize(projectRoot: string, framework: string): Promise<string[]> {
   const pagesDirectories = getPagesDirectory(projectRoot, framework);
   const files: string[] = [];
-  
+
   if (pagesDirectories.length === 0) {
     console.log(chalk.yellow(`⚠️  No pages directory found for ${framework}. Skipping file optimizations.`));
     return files;
   }
-  
+
   if (process.env.CLISEO_VERBOSE === 'true') {
     console.log(chalk.cyan(`📁 Found pages directories: ${pagesDirectories.map(dir => path.relative(projectRoot, dir)).join(', ')}`));
   }
-  
+
   // Get framework-specific file extensions
   const extensions = getFrameworkFileExtensions(framework);
-  
+
   for (const pagesDir of pagesDirectories) {
     for (const ext of extensions) {
       const foundFiles = await glob(ext, {
@@ -228,7 +228,7 @@ async function getFilesToOptimize(projectRoot: string, framework: string): Promi
       files.push(...foundFiles);
     }
   }
-  
+
   if (process.env.CLISEO_VERBOSE === 'true') {
     console.log(chalk.cyan(`📄 Found ${files.length} files to optimize`));
   }
@@ -240,38 +240,38 @@ async function getFilesToOptimize(projectRoot: string, framework: string): Promi
  */
 async function addMetaTagsToHtmlFiles(projectRoot: string, framework: string) {
   const files = await getFilesToOptimize(projectRoot, framework);
-  
+
   // Only process HTML files - framework-specific optimizers handle component files
   const htmlFiles = files.filter(file => file.endsWith('.html'));
-  
+
   if (htmlFiles.length === 0) {
     if (process.env.CLISEO_VERBOSE === 'true') {
       console.log(chalk.gray(`No HTML files found in pages directory. Component files will be handled by ${framework} optimizer.`));
     }
     return;
   }
-  
+
   console.log(chalk.cyan(`🔧 Adding meta tags to ${htmlFiles.length} HTML files...`));
-  
+
   for (const file of htmlFiles) {
     const content = await fs.promises.readFile(file, 'utf-8');
     const $ = cheerio.load(content);
-    
+
     // Add title if missing
     if (!$('title').length) {
       $('head').append('<title>Your Site Title</title>');
     }
-    
+
     // Add viewport meta if missing
     if (!$('meta[name="viewport"]').length) {
       $('head').append('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
     }
-    
+
     // Add description meta if missing
     if (!$('meta[name="description"]').length) {
       $('head').append('<meta name="description" content="Your site description">');
     }
-    
+
     await fs.promises.writeFile(file, $.html());
   }
 }
@@ -281,23 +281,23 @@ async function addMetaTagsToHtmlFiles(projectRoot: string, framework: string) {
  */
 async function addImagesAltAttributes(projectRoot: string, framework: string) {
   const files = await getFilesToOptimize(projectRoot, framework);
-  
+
   // Only process HTML files for image alt attributes
   const htmlFiles = files.filter(file => file.endsWith('.html'));
-  
+
   if (htmlFiles.length === 0) {
     if (process.env.CLISEO_VERBOSE === 'true') {
       console.log(chalk.gray(`No HTML files found in pages directory. Image alt attributes will be handled by framework-specific optimizers.`));
     }
     return;
   }
-  
+
   console.log(chalk.cyan(`🖼️  Adding alt attributes to images in ${htmlFiles.length} HTML files...`));
-  
+
   for (const file of htmlFiles) {
     const content = await fs.promises.readFile(file, 'utf-8');
     const $ = cheerio.load(content);
-    
+
     $('img').each((_, element) => {
       if (!$(element).attr('alt')) {
         const src = $(element).attr('src') || '';
@@ -308,7 +308,7 @@ async function addImagesAltAttributes(projectRoot: string, framework: string) {
         $(element).attr('alt', alt);
       }
     });
-    
+
     await fs.promises.writeFile(file, $.html());
   }
 }
@@ -382,7 +382,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       const { isAuthenticated, hasAiAccess, loadConfig } = await import('../utils/config.js');
       const isAuth = await isAuthenticated();
       const hasAi = await hasAiAccess();
-      
+
       // Show account status
       spinner.stop();
       if (isAuth) {
@@ -396,14 +396,14 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       } else {
         console.log(chalk.gray('👤 Not logged in'));
       }
-      
+
       if (!isAuth) {
         console.log(chalk.yellow('\n⚠️  Authentication required for AI features'));
         console.log(chalk.gray('You need to sign in to use AI-powered optimizations.'));
-        
+
         // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
         const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
-        
+
         if (!skipPrompts) {
           const { shouldAuth } = await inquirer.prompt([
             {
@@ -419,12 +419,12 @@ export async function optimizeCommand(directory: string | undefined, options: { 
             try {
               const { authenticateUser } = await import('../utils/auth.js');
               const authResult = await authenticateUser();
-              
+
               if (authResult.success) {
                 console.log(chalk.green('\n✅ Authentication successful!'));
                 console.log(chalk.cyan(`👤 ${formatEmailDisplay(authResult.email || '')}`));
                 console.log(chalk.gray(`🤖 AI Access: ${authResult.aiAccess ? 'Enabled' : 'Disabled'}`));
-                
+
                 if (authResult.aiAccess) {
                   // Continue with AI optimization - spinner will be started in main flow
                 } else {
@@ -452,7 +452,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
           return;
         }
       }
-      
+
       if (!hasAi) {
         console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account'));
         console.log(chalk.gray('Your account doesn\'t have access to AI features.'));
@@ -461,7 +461,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         console.log('');
         return;
       }
-      
+
       // Check email verification for AI features
       const needsVerification = await requiresEmailVerification();
       if (needsVerification) {
@@ -477,50 +477,50 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       } else {
         spinner.text = 'Running AI-powered optimization...';
       }
-      
+
       try {
         // First detect framework for SEO files
         const framework = await detectFramework(dir);
-        
+
         // Get AI analysis and enhanced SEO files from backend
         spinner.text = 'Analyzing project with AI...';
         const aiData = await getAiAnalysis(dir);
-        
+
         // Create AI-enhanced SEO files if backend provides them
         spinner.text = 'Creating AI-enhanced SEO files...';
         const { robotsCreated, sitemapCreated } = await createAiSeoFiles(framework, dir, aiData);
-        
+
         // Apply AI optimizations to components
         spinner.text = 'Applying AI optimizations to components...';
         await applyAiOptimizationsToComponents(dir, aiData);
-        
+
         // Apply link text fixes
         spinner.text = 'Fixing non-descriptive link text...';
         await applyLinkTextFixes(dir);
-        
+
         spinner.succeed(chalk.green('✅ AI optimizations applied successfully!'));
-        
+
         // Show summary of all AI optimizations
         if (linkFixResults && linkFixResults.totalFixes > 0) {
           console.log(chalk.cyan(`🔗 Fixed ${linkFixResults.totalFixes} non-descriptive link${linkFixResults.totalFixes === 1 ? '' : 's'} in ${linkFixResults.filesModified} file${linkFixResults.filesModified === 1 ? '' : 's'}`));
         }
-        
+
         // Show next steps for AI mode (include SEO files info)
         showNextSteps(robotsCreated, sitemapCreated, true);
         return; // Exit after showing next steps
       } catch (err) {
         spinner.fail('AI optimization failed');
-        
+
         // Clean, user-friendly error handling
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        
+
         if (errorMessage.includes('Authentication failed')) {
           console.log(chalk.yellow('\n🔒 Authentication expired'));
           console.log(chalk.gray('Your session has expired and you need to sign in again.'));
-          
+
           // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
           const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
-          
+
           if (!skipPrompts) {
             const { shouldAuth } = await inquirer.prompt([
               {
@@ -536,12 +536,12 @@ export async function optimizeCommand(directory: string | undefined, options: { 
               try {
                 const { authenticateUser } = await import('../utils/auth.js');
                 const authResult = await authenticateUser();
-                
+
                 if (authResult.success) {
                   console.log(chalk.green('\n✅ Authentication successful!'));
                   console.log(chalk.cyan(`👤 ${formatEmailDisplay(authResult.email || '')}`));
                   console.log(chalk.gray(`🤖 AI Access: ${authResult.aiAccess ? 'Enabled' : 'Disabled'}`));
-                  
+
                   if (authResult.aiAccess) {
                     console.log(chalk.cyan('\n🔄 Retrying AI optimization...'));
                     await performAiOptimizations(dir);
@@ -571,10 +571,10 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         } else if (errorMessage.includes('AI features not enabled')) {
           console.log(chalk.yellow('\n⚠️  AI features not available'));
           console.log(chalk.gray('There\'s a permission mismatch with your account.'));
-          
+
           // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
           const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
-          
+
           if (!skipPrompts) {
             const { action } = await inquirer.prompt([
               {
@@ -625,20 +625,20 @@ export async function optimizeCommand(directory: string | undefined, options: { 
           console.log(chalk.yellow('\n⚠️  AI optimization failed'));
           console.log(chalk.gray(`Error: ${errorMessage}`));
         }
-        
+
         console.log(''); // Add spacing
         process.exit(1);
       }
-      
+
       return; // Exit here - AI mode doesn't do standard optimizations
     }
 
     // STANDARD MODE: Do traditional rule-based optimizations
     spinner.text = 'Running standard SEO optimizations...';
-    
+
     spinner.text = 'Checking SEO files...';
     const framework = await detectFramework(dir);
-    
+
     const { robotsCreated, sitemapCreated } = await ensureSeoFiles(framework, dir);
 
     if (process.env.CLISEO_VERBOSE === 'true') {
@@ -652,13 +652,13 @@ export async function optimizeCommand(directory: string | undefined, options: { 
     }
 
     spinner.text = 'Adding proper tags to HTML files...';
-    
+
     // Only process HTML files in the main function - framework-specific optimizers handle component files
     if (framework !== 'unknown') {
       await addMetaTagsToHtmlFiles(dir, framework);
       await addImagesAltAttributes(dir, framework);
     }
-    
+
     if (process.env.CLISEO_VERBOSE === 'true') { spinner.succeed('Tags added to HTML files!'); } else { spinner.stop(); }
 
     const frameWorkColor = framework === 'react' ? chalk.blue : chalk.gray;
@@ -772,7 +772,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
   } catch (error) {
     spinner.fail(chalk.red('Optimization failed'));
     console.log(chalk.yellow('\n⚠️  An unexpected error occurred'));
-    
+
     if (error instanceof Error) {
       if (process.env.CLISEO_VERBOSE === 'true') {
         console.error(chalk.red(error.message));
@@ -782,7 +782,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         console.log(chalk.gray('Run with CLISEO_VERBOSE=true for more details'));
       }
     }
-    
+
     console.log(chalk.cyan('\nTroubleshooting:'));
     console.log(chalk.white('  • Check that you\'re in a valid project directory'));
     console.log(chalk.white('  • Ensure you have write permissions'));
@@ -828,27 +828,27 @@ async function createAiSeoFiles(framework: string, projectRoot: string, aiData: 
     }
 
     // Ensure directory exists
-    try { await fs.promises.mkdir(targetDir, { recursive: true }); } catch {}
+    try { await fs.promises.mkdir(targetDir, { recursive: true }); } catch { }
 
     const robotsPath = join(targetDir, 'robots.txt');
     const sitemapPath = join(targetDir, 'sitemap.xml');
 
     // Write AI-enhanced files from backend
     if (aiData.seo_files.robots_txt) {
-      try { 
-        await access(robotsPath); 
-      } catch { 
-        await writeFile(robotsPath, aiData.seo_files.robots_txt); 
-        robotsCreated = true; 
+      try {
+        await access(robotsPath);
+      } catch {
+        await writeFile(robotsPath, aiData.seo_files.robots_txt);
+        robotsCreated = true;
       }
     }
 
     if (aiData.seo_files.sitemap_xml) {
-      try { 
-        await access(sitemapPath); 
-      } catch { 
-        await writeFile(sitemapPath, aiData.seo_files.sitemap_xml); 
-        sitemapCreated = true; 
+      try {
+        await access(sitemapPath);
+      } catch {
+        await writeFile(sitemapPath, aiData.seo_files.sitemap_xml);
+        sitemapCreated = true;
       }
     }
 
@@ -866,14 +866,14 @@ async function getAiAnalysis(projectDir: string): Promise<any> {
   try {
     const { getAuthToken } = await import('../utils/config.js');
     const token = await getAuthToken();
-    
+
     if (!token) {
       throw new Error('Authentication token not found');
     }
 
     // Step 1: Gather website context (README + pages)
     const websiteContext = await gatherWebsiteContext(projectDir);
-    
+
     // Remove the requirement for README
     if (websiteContext.pages.length === 0) {
       throw new Error('Could not gather enough website context for AI analysis');
@@ -891,7 +891,7 @@ async function getAiAnalysis(projectDir: string): Promise<any> {
     });
 
     return response.data;
-    
+
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 401) {
@@ -902,7 +902,7 @@ async function getAiAnalysis(projectDir: string): Promise<any> {
         throw new Error('AI service temporarily unavailable. Please try again later.');
       }
     }
-    
+
     throw new Error(`AI optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -918,7 +918,7 @@ async function performAiOptimizations(projectDir: string): Promise<void> {
 /**
  * Gather website context for AI analysis
  */
-async function gatherWebsiteContext(projectDir: string): Promise<{readme: string, pages: string[]}> {
+async function gatherWebsiteContext(projectDir: string): Promise<{ readme: string, pages: string[] }> {
   const context = {
     readme: '',
     pages: [] as string[]
@@ -946,10 +946,10 @@ async function gatherWebsiteContext(projectDir: string): Promise<{readme: string
   // Gather page components (with size limits)
   const framework = await detectFramework(projectDir);
   const pageDirectories = getPagesDirectory(projectDir, framework);
-  
+
   const maxTotalPagesSize = 3000; // Remaining space after README
   let currentPagesSize = 0;
-  
+
   for (const pagesDir of pageDirectories) {
     try {
       const pageFiles = await glob('**/*.{js,jsx,ts,tsx,vue}', {
@@ -960,24 +960,24 @@ async function gatherWebsiteContext(projectDir: string): Promise<{readme: string
 
       // Read up to 3 page files for context (reduced from 5 to manage size)
       const limitedFiles = pageFiles.slice(0, 3);
-      
+
       for (const file of limitedFiles) {
         if (currentPagesSize >= maxTotalPagesSize) {
           break; // Stop if we've hit our size limit
         }
-        
+
         try {
           let content = await readFile(file, 'utf-8');
           const relativePath = path.relative(projectDir, file);
-          
+
           // Truncate individual file content if needed
           const maxFileSize = 1000; // Max size per file
           if (content.length > maxFileSize) {
             content = content.substring(0, maxFileSize) + '...[truncated]';
           }
-          
+
           const fileEntry = `File: ${relativePath}\n${content}\n\n`;
-          
+
           // Check if adding this file would exceed our total limit
           if (currentPagesSize + fileEntry.length <= maxTotalPagesSize) {
             context.pages.push(fileEntry);
@@ -1035,9 +1035,9 @@ async function applyAiOptimizationsToComponents(projectDir: string, aiSuggestion
     // Detect framework and get page files
     const framework = await detectFramework(projectDir);
     const pageFiles = await getFilesToOptimize(projectDir, framework);
-    
+
     // Filter for React/Next.js component files
-    const componentFiles = pageFiles.filter(file => 
+    const componentFiles = pageFiles.filter(file =>
       file.endsWith('.jsx') || file.endsWith('.tsx') || file.endsWith('.js') || file.endsWith('.ts')
     );
 
@@ -1047,7 +1047,7 @@ async function applyAiOptimizationsToComponents(projectDir: string, aiSuggestion
     }
 
     let modifiedCount = 0;
-    
+
     for (const file of componentFiles) {
       try {
         const modified = await injectAiMetadata(file, aiData);
@@ -1062,7 +1062,7 @@ async function applyAiOptimizationsToComponents(projectDir: string, aiSuggestion
     }
 
     console.log(chalk.green(`✅ Applied AI metadata to ${modifiedCount} component(s)`));
-    
+
   } catch (error) {
     if (process.env.CLISEO_VERBOSE === 'true') {
       console.error(chalk.red('Failed to parse AI response:'), error);
@@ -1077,7 +1077,7 @@ async function applyAiOptimizationsToComponents(projectDir: string, aiSuggestion
  */
 async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean> {
   const fs = await import('fs');
-  
+
   try {
     const source = await fs.promises.readFile(filePath, 'utf-8');
     let modifiedSource = source;
@@ -1085,7 +1085,7 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
 
     // Check if react-helmet is already imported
     const hasHelmetImport = /import.*{.*Helmet.*}.*from.*['"]react-helmet['"]/.test(source);
-    
+
     // Check if Helmet is already being used
     const hasHelmetUsage = /<Helmet[\s>]/.test(source);
 
@@ -1101,7 +1101,7 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
       const importMatch = modifiedSource.match(/^(import.*from.*['"][^'"]*['"];?\s*\n)*/m);
       if (importMatch) {
         const insertPos = importMatch[0].length;
-        modifiedSource = 
+        modifiedSource =
           modifiedSource.slice(0, insertPos) +
           `import { Helmet } from 'react-helmet';\n` +
           modifiedSource.slice(insertPos);
@@ -1111,24 +1111,24 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
 
     // Find JSX return statements and add Helmet - preserve original formatting
     const returnMatches = [...modifiedSource.matchAll(/return\s*\(\s*\n?\s*(<[^>]+>)/g)];
-    
+
     for (const match of returnMatches) {
       const jsxStart = match.index! + match[0].length - match[1].length;
-      
+
       // Find the opening JSX tag
       const openingTag = match[1];
       const tagEnd = modifiedSource.indexOf('>', jsxStart) + 1;
-      
+
       // Find the indentation of the JSX element to match existing style
       const lines = modifiedSource.slice(0, jsxStart).split('\n');
       const lastLine = lines[lines.length - 1];
       const indentation = lastLine.match(/^\s*/)?.[0] || '    ';
-      
+
       // Create AI-powered Helmet element with proper formatting
       const helmetElement = createAiHelmetString(aiData, indentation);
 
       // Insert Helmet right after the opening tag, preserving original formatting
-      modifiedSource = 
+      modifiedSource =
         modifiedSource.slice(0, tagEnd) +
         '\n' + indentation + helmetElement +
         modifiedSource.slice(tagEnd);
@@ -1159,44 +1159,44 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
 function createAiHelmetString(aiData: any, indentation: string): string {
   const indent = indentation;
   const innerIndent = indentation + '  ';
-  
+
   let helmet = `<Helmet>`;
-  
+
   // Title
   if (aiData.title) {
     helmet += `\n${innerIndent}<title>${aiData.title}</title>`;
   }
-  
+
   // Meta description
   if (aiData.description) {
     helmet += `\n${innerIndent}<meta name="description" content="${aiData.description}" />`;
   }
-  
+
   // Keywords
   if (aiData.keywords) {
     helmet += `\n${innerIndent}<meta name="keywords" content="${aiData.keywords}" />`;
   }
-  
+
   // Open Graph tags
   if (aiData.og_title) {
     helmet += `\n${innerIndent}<meta property="og:title" content="${aiData.og_title}" />`;
   }
-  
+
   if (aiData.og_description) {
     helmet += `\n${innerIndent}<meta property="og:description" content="${aiData.og_description}" />`;
   }
-  
+
   // Twitter Card tags
   if (aiData.twitter_title) {
     helmet += `\n${innerIndent}<meta name="twitter:title" content="${aiData.twitter_title}" />`;
   }
-  
+
   if (aiData.twitter_description) {
     helmet += `\n${innerIndent}<meta name="twitter:description" content="${aiData.twitter_description}" />`;
   }
-  
+
   helmet += `\n${indent}</Helmet>`;
-  
+
   return helmet;
 }
 
@@ -1221,15 +1221,15 @@ async function analyzeProject(projectDir: string): Promise<ProjectAnalysis> {
     description: 'No package.json found. Cannot provide detailed analysis.',
   };
 }
-/
-**
+
+/**
  * Apply AI-generated link text fixes to project files
  */
 async function applyLinkTextFixes(projectDir: string): Promise<void> {
   try {
     const { getAuthToken } = await import('../utils/config.js');
     const token = await getAuthToken();
-    
+
     if (!token) {
       if (process.env.CLISEO_VERBOSE === 'true') {
         console.log(chalk.yellow('No auth token available for link text fixes'));
@@ -1240,10 +1240,10 @@ async function applyLinkTextFixes(projectDir: string): Promise<void> {
     // Get all relevant files to scan for link issues
     const framework = await detectFramework(projectDir);
     const files = await getFilesToOptimize(projectDir, framework);
-    
+
     // Filter for files that can contain links
-    const linkFiles = files.filter(file => 
-      file.endsWith('.jsx') || file.endsWith('.tsx') || 
+    const linkFiles = files.filter(file =>
+      file.endsWith('.jsx') || file.endsWith('.tsx') ||
       file.endsWith('.js') || file.endsWith('.ts') ||
       file.endsWith('.vue') || file.endsWith('.html')
     );
@@ -1262,7 +1262,7 @@ async function applyLinkTextFixes(projectDir: string): Promise<void> {
     const batchSize = 3;
     for (let i = 0; i < linkFiles.length; i += batchSize) {
       const batch = linkFiles.slice(i, i + batchSize);
-      
+
       const batchPromises = batch.map(async (file) => {
         try {
           const fixesApplied = await fixLinksInFile(file, token);
@@ -1279,7 +1279,7 @@ async function applyLinkTextFixes(projectDir: string): Promise<void> {
       });
 
       const batchResults = await Promise.all(batchPromises);
-      
+
       for (const result of batchResults) {
         if (result) {
           totalFixesApplied += result.fixes;
@@ -1312,11 +1312,11 @@ async function applyLinkTextFixes(projectDir: string): Promise<void> {
  */
 async function fixLinksInFile(filePath: string, authToken: string): Promise<number> {
   const fs = await import('fs');
-  
+
   try {
     // Read file content
     const originalContent = await fs.promises.readFile(filePath, 'utf-8');
-    
+
     // Skip files that are too large to avoid token limits
     if (originalContent.length > 10000) {
       if (process.env.CLISEO_VERBOSE === 'true') {
@@ -1351,7 +1351,7 @@ async function fixLinksInFile(filePath: string, authToken: string): Promise<numb
           const beforeCount = (modifiedContent.match(new RegExp(escapeRegExp(issue.original), 'g')) || []).length;
           modifiedContent = modifiedContent.replace(new RegExp(escapeRegExp(issue.original), 'g'), issue.suggested_fix);
           const afterCount = (modifiedContent.match(new RegExp(escapeRegExp(issue.original), 'g')) || []).length;
-          
+
           if (beforeCount > afterCount) {
             fixesApplied += (beforeCount - afterCount);
             if (process.env.CLISEO_VERBOSE === 'true') {
@@ -1370,11 +1370,11 @@ async function fixLinksInFile(filePath: string, authToken: string): Promise<numb
         if (betterText && betterText !== linkIssue.text) {
           const originalElement = linkIssue.full_element;
           const improvedElement = originalElement.replace(linkIssue.text, betterText);
-          
+
           const beforeCount = (modifiedContent.match(new RegExp(escapeRegExp(originalElement), 'g')) || []).length;
           modifiedContent = modifiedContent.replace(new RegExp(escapeRegExp(originalElement), 'g'), improvedElement);
           const afterCount = (modifiedContent.match(new RegExp(escapeRegExp(originalElement), 'g')) || []).length;
-          
+
           if (beforeCount > afterCount) {
             fixesApplied += (beforeCount - afterCount);
             if (process.env.CLISEO_VERBOSE === 'true') {
@@ -1416,12 +1416,12 @@ async function fixLinksInFile(filePath: string, authToken: string): Promise<numb
  */
 function generateBetterLinkText(currentText: string, href: string): string {
   const text = currentText.toLowerCase().trim();
-  
+
   // Don't change if it's already reasonably descriptive
   if (text.length > 10 && !['here', 'click here', 'read more', 'learn more', 'more', 'this', 'link'].includes(text)) {
     return currentText;
   }
-  
+
   // Generate better text based on href
   if (href.includes('/about')) return 'about us';
   if (href.includes('/contact')) return 'contact us';
@@ -1438,7 +1438,7 @@ function generateBetterLinkText(currentText: string, href: string): string {
   if (href.includes('/rate-limits')) return 'rate limits documentation';
   if (href.includes('/terms')) return 'terms of service';
   if (href.includes('/privacy')) return 'privacy policy';
-  
+
   // Extract meaningful parts from path
   const pathParts = href.split('/').filter(part => part && !part.includes('.'));
   if (pathParts.length > 0) {
@@ -1449,7 +1449,7 @@ function generateBetterLinkText(currentText: string, href: string): string {
       return readable;
     }
   }
-  
+
   // Fallback: return original if we can't improve it
   return currentText;
 }
