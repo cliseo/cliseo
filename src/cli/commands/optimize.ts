@@ -17,7 +17,6 @@ import { requiresEmailVerification } from './verify-email.js';
 import jsxSyntax from '@babel/plugin-syntax-jsx';
 import typescriptSyntax from '@babel/plugin-syntax-typescript';
 import { text } from 'stream/consumers';
-import { text } from 'stream/consumers';
 
 interface ProjectAnalysis {
   projectName: string;
@@ -496,7 +495,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
 
         // Apply link text fixes
         spinner.text = 'Fixing non-descriptive link text...';
-        await applyLinkTextFixes(dir);
+        const linkFixResults = await applyLinkTextFixes(dir);
 
         spinner.succeed(chalk.green('✅ AI optimizations applied successfully!'));
 
@@ -1225,7 +1224,7 @@ async function analyzeProject(projectDir: string): Promise<ProjectAnalysis> {
 /**
  * Apply AI-generated link text fixes to project files
  */
-async function applyLinkTextFixes(projectDir: string): Promise<void> {
+async function applyLinkTextFixes(projectDir: string): Promise<{ totalFixes: number; filesModified: number }> {
   try {
     const { getAuthToken } = await import('../utils/config.js');
     const token = await getAuthToken();
@@ -1303,7 +1302,7 @@ async function applyLinkTextFixes(projectDir: string): Promise<void> {
       console.error(chalk.red('Error applying link text fixes:'), error);
     }
     // Don't throw - this is a non-critical enhancement
-    return null;
+    return { totalFixes: 0, filesModified: 0 };
   }
 }
 
