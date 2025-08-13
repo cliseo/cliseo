@@ -20,8 +20,8 @@ const packageJson = JSON.parse(
 
 const program = new Command();
 
-// Run authentication migration on startup (silent)
-migrateAuthentication().catch(() => {
+// Run authentication migration on startup (fully silent to not pollute JSON output)
+migrateAuthentication(true).catch(() => {
   // Ignore migration errors to not disrupt CLI usage
 });
 
