@@ -12,7 +12,7 @@
 
 ### SEO Optimization CLI for JavaScript/TypeScript Projects 
 
-[(Show our GitHub some love 🔗)](https://github.com/cliseo/cliseo)
+[Show our GitHub some love 🔗](https://github.com/cliseo/cliseo)
 
 <img src="https://cliseo.com/Diff.png?v=2025" width="700px" style="border: none;">
  

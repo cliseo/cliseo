@@ -115,14 +115,14 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
   
   <!-- Common pages -->
   <url>
-    <loc>https://yourdomain.com/about</loc>
+    <loc>https://yourdomain.com/about/</loc>
     <lastmod>${new Date().toISOString()}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
-    <loc>https://yourdomain.com/contact</loc>
+    <loc>https://yourdomain.com/contact/</loc>
     <lastmod>${new Date().toISOString()}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -130,7 +130,7 @@ Sitemap: https://yourdomain.com/sitemap.xml`;
   
   <!-- Blog section -->
   <url>
-    <loc>https://yourdomain.com/blog</loc>
+    <loc>https://yourdomain.com/blog/</loc>
     <lastmod>${new Date().toISOString()}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>

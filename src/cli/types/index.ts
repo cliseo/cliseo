@@ -18,7 +18,7 @@ export interface ConnectOptions {
 }
 
 // SEO Types
-export type IssueType = 'error' | 'warning' | 'ai-suggestion';
+export type IssueType = 'error' | 'warning' | 'ai-suggestion' | 'ai-link-fix';
 
 export interface SeoIssue {
   type: IssueType;
@@ -26,6 +26,7 @@ export interface SeoIssue {
   file: string;
   element?: string;
   fix: string;
+  explanation?: string; // Additional context for AI-generated fixes
 }
 
 export interface ScanResult {
