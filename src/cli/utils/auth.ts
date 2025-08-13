@@ -4,7 +4,7 @@ import { URL } from 'url';
 import chalk from 'chalk';
 import ora from 'ora';
 import axios from 'axios';
-import { setAuthToken, clearAuthToken, getAuthToken } from './config.js';
+import { setAuthTokens, clearAuthTokens, getAuthTokens } from './config.js';
 import { AuthenticationResult } from '../types/index.js';
 import { createHash, randomBytes } from 'crypto';
 
@@ -193,11 +193,11 @@ async function exchangeCodeForTokens(code: string, codeVerifier: string): Promis
 }
 
 /**
- * Exchange Auth0 token for CLI token
+ * Verify Auth0 token and get user info directly
  */
-async function getCliToken(auth0Token: string): Promise<{ token: string; email: string; aiAccess: boolean; emailVerified: boolean; requiresVerification: boolean }> {
+async function verifyAuth0Token(auth0Token: string): Promise<{ email: string; aiAccess: boolean; emailVerified: boolean; requiresVerification: boolean }> {
   try {
-    const response = await axios.post(`${API_BASE}/cli-auth`, {}, {
+    const response = await axios.post(`${API_BASE}/auth0-sync`, {}, {
       headers: {
         'Authorization': `Bearer ${auth0Token}`,
         'Content-Type': 'application/json',
@@ -206,11 +206,10 @@ async function getCliToken(auth0Token: string): Promise<{ token: string; email: 
 
     const data = response.data;
     return {
-      token: data.token,
-      email: data.email,
-      aiAccess: data.ai_access,
-      emailVerified: data.email_verified,
-      requiresVerification: data.requires_verification,
+      email: data.user.email,
+      aiAccess: data.user.ai_access || false,
+      emailVerified: data.user.email_verified || false,
+      requiresVerification: data.user.requires_verification || false,
     };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
@@ -289,22 +288,28 @@ export async function authenticateUser(): Promise<AuthenticationResult> {
     spinner.text = 'Exchanging authorization code for tokens...';
     const tokens = await exchangeCodeForTokens(authData.code, pkceCodes.codeVerifier);
 
-    // Get CLI token from backend
-    spinner.text = 'Getting CLI authentication token...';
-    const cliAuth = await getCliToken(tokens.id_token);
+    // Verify Auth0 token and get user info
+    spinner.text = 'Verifying authentication...';
+    const userInfo = await verifyAuth0Token(tokens.id_token);
 
-    // Store authentication data
-    await setAuthToken(cliAuth.token, cliAuth.email, cliAuth.aiAccess);
+    // Store Auth0 tokens directly
+    await setAuthTokens({
+      idToken: tokens.id_token,
+      accessToken: tokens.access_token,
+      email: userInfo.email,
+      aiAccess: userInfo.aiAccess,
+      expiresAt: Date.now() + (3600 * 1000) // 1 hour from now
+    });
 
     spinner.succeed('Authentication successful!');
     
     return {
       success: true,
-      token: cliAuth.token,
-      email: cliAuth.email,
-      aiAccess: cliAuth.aiAccess,
-      emailVerified: cliAuth.emailVerified,
-      requiresVerification: cliAuth.requiresVerification,
+      token: tokens.id_token,
+      email: userInfo.email,
+      aiAccess: userInfo.aiAccess,
+      emailVerified: userInfo.emailVerified,
+      requiresVerification: userInfo.requiresVerification,
     };
 
   } catch (error) {
@@ -329,19 +334,27 @@ export async function authenticateUser(): Promise<AuthenticationResult> {
  */
 export async function verifyAuthentication(): Promise<boolean> {
   try {
-    const token = await getAuthToken();
-    if (!token) {
+    const authData = await getAuthTokens();
+    if (!authData || !authData.idToken) {
       return false;
     }
 
-    const response = await axios.post(`${API_BASE}/verify-cli-token`, {}, {
+    // Check if token is expired
+    if (authData.expiresAt && Date.now() > authData.expiresAt) {
+      // Try to refresh token if we have a refresh token
+      // For now, just return false - user will need to re-authenticate
+      return false;
+    }
+
+    // Verify token with Auth0 by making a test API call
+    const response = await axios.post(`${API_BASE}/auth0-sync`, {}, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${authData.idToken}`,
         'Content-Type': 'application/json',
       },
     });
 
-    return response.data.valid === true;
+    return response.status === 200;
   } catch (error) {
     return false;
   }
@@ -351,5 +364,5 @@ export async function verifyAuthentication(): Promise<boolean> {
  * Logout user by clearing stored tokens
  */
 export async function logoutUser(): Promise<void> {
-  await clearAuthToken();
+  await clearAuthTokens();
 } 

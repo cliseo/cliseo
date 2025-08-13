@@ -16,6 +16,8 @@ import axios from 'axios'; // Added for AI optimizations
 import { requiresEmailVerification } from './verify-email.js';
 import jsxSyntax from '@babel/plugin-syntax-jsx';
 import typescriptSyntax from '@babel/plugin-syntax-typescript';
+import { text } from 'stream/consumers';
+import { text } from 'stream/consumers';
 
 interface ProjectAnalysis {
   projectName: string;
@@ -491,7 +493,17 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         // Apply AI optimizations to components
         spinner.text = 'Applying AI optimizations to components...';
         await applyAiOptimizationsToComponents(dir, aiData);
+        
+        // Apply link text fixes
+        spinner.text = 'Fixing non-descriptive link text...';
+        await applyLinkTextFixes(dir);
+        
         spinner.succeed(chalk.green('✅ AI optimizations applied successfully!'));
+        
+        // Show summary of all AI optimizations
+        if (linkFixResults && linkFixResults.totalFixes > 0) {
+          console.log(chalk.cyan(`🔗 Fixed ${linkFixResults.totalFixes} non-descriptive link${linkFixResults.totalFixes === 1 ? '' : 's'} in ${linkFixResults.filesModified} file${linkFixResults.filesModified === 1 ? '' : 's'}`));
+        }
         
         // Show next steps for AI mode (include SEO files info)
         showNextSteps(robotsCreated, sitemapCreated, true);
@@ -1208,4 +1220,243 @@ async function analyzeProject(projectDir: string): Promise<ProjectAnalysis> {
     projectName: 'Your Project',
     description: 'No package.json found. Cannot provide detailed analysis.',
   };
+}
+/
+**
+ * Apply AI-generated link text fixes to project files
+ */
+async function applyLinkTextFixes(projectDir: string): Promise<void> {
+  try {
+    const { getAuthToken } = await import('../utils/config.js');
+    const token = await getAuthToken();
+    
+    if (!token) {
+      if (process.env.CLISEO_VERBOSE === 'true') {
+        console.log(chalk.yellow('No auth token available for link text fixes'));
+      }
+      return null;
+    }
+
+    // Get all relevant files to scan for link issues
+    const framework = await detectFramework(projectDir);
+    const files = await getFilesToOptimize(projectDir, framework);
+    
+    // Filter for files that can contain links
+    const linkFiles = files.filter(file => 
+      file.endsWith('.jsx') || file.endsWith('.tsx') || 
+      file.endsWith('.js') || file.endsWith('.ts') ||
+      file.endsWith('.vue') || file.endsWith('.html')
+    );
+
+    if (linkFiles.length === 0) {
+      if (process.env.CLISEO_VERBOSE === 'true') {
+        console.log(chalk.gray('No files found that could contain links'));
+      }
+      return null;
+    }
+
+    let totalFixesApplied = 0;
+    let filesModified = 0;
+
+    // Process files in smaller batches to avoid overwhelming the API
+    const batchSize = 3;
+    for (let i = 0; i < linkFiles.length; i += batchSize) {
+      const batch = linkFiles.slice(i, i + batchSize);
+      
+      const batchPromises = batch.map(async (file) => {
+        try {
+          const fixesApplied = await fixLinksInFile(file, token);
+          if (fixesApplied > 0) {
+            return { file, fixes: fixesApplied };
+          }
+          return null;
+        } catch (error) {
+          if (process.env.CLISEO_VERBOSE === 'true') {
+            console.warn(chalk.yellow(`Failed to fix links in ${file}: ${error}`));
+          }
+          return null;
+        }
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      
+      for (const result of batchResults) {
+        if (result) {
+          totalFixesApplied += result.fixes;
+          filesModified++;
+        }
+      }
+
+      // Small delay between batches to be respectful to the API
+      if (i + batchSize < linkFiles.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    return {
+      totalFixes: totalFixesApplied,
+      filesModified: filesModified
+    };
+
+  } catch (error) {
+    if (process.env.CLISEO_VERBOSE === 'true') {
+      console.error(chalk.red('Error applying link text fixes:'), error);
+    }
+    // Don't throw - this is a non-critical enhancement
+    return null;
+  }
+}
+
+/**
+ * Fix non-descriptive links in a single file using AI analysis
+ */
+async function fixLinksInFile(filePath: string, authToken: string): Promise<number> {
+  const fs = await import('fs');
+  
+  try {
+    // Read file content
+    const originalContent = await fs.promises.readFile(filePath, 'utf-8');
+    
+    // Skip files that are too large to avoid token limits
+    if (originalContent.length > 10000) {
+      if (process.env.CLISEO_VERBOSE === 'true') {
+        console.log(chalk.gray(`Skipping large file: ${filePath}`));
+      }
+      return 0;
+    }
+
+    // Make request to backend for link analysis
+    const response = await axios.post('https://a8iza6csua.execute-api.us-east-2.amazonaws.com/ask-openai', {
+      prompt: `Analyze and fix non-descriptive link text in this file:\n\nFile: ${filePath}`,
+      context: 'seo-analysis',
+      file_content: originalContent,
+      file_path: filePath
+    }, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 30000
+    });
+
+    const responseData = response.data;
+    let fixesApplied = 0;
+    let modifiedContent = originalContent;
+
+    // Apply structured AI fixes if available
+    if (responseData.structured_analysis && responseData.structured_analysis.issues) {
+      for (const issue of responseData.structured_analysis.issues) {
+        if (issue.type === 'link_text' && issue.original && issue.suggested_fix) {
+          // Apply the fix using string replacement
+          const beforeCount = (modifiedContent.match(new RegExp(escapeRegExp(issue.original), 'g')) || []).length;
+          modifiedContent = modifiedContent.replace(new RegExp(escapeRegExp(issue.original), 'g'), issue.suggested_fix);
+          const afterCount = (modifiedContent.match(new RegExp(escapeRegExp(issue.original), 'g')) || []).length;
+          
+          if (beforeCount > afterCount) {
+            fixesApplied += (beforeCount - afterCount);
+            if (process.env.CLISEO_VERBOSE === 'true') {
+              console.log(chalk.cyan(`  Fixed: "${issue.original}" → "${issue.suggested_fix}"`));
+            }
+          }
+        }
+      }
+    }
+
+    // Apply regex-detected fixes if available
+    if (responseData.link_issues && responseData.link_issues.length > 0) {
+      for (const linkIssue of responseData.link_issues) {
+        // For regex-detected issues, we need to generate better replacement text
+        const betterText = generateBetterLinkText(linkIssue.text, linkIssue.href);
+        if (betterText && betterText !== linkIssue.text) {
+          const originalElement = linkIssue.full_element;
+          const improvedElement = originalElement.replace(linkIssue.text, betterText);
+          
+          const beforeCount = (modifiedContent.match(new RegExp(escapeRegExp(originalElement), 'g')) || []).length;
+          modifiedContent = modifiedContent.replace(new RegExp(escapeRegExp(originalElement), 'g'), improvedElement);
+          const afterCount = (modifiedContent.match(new RegExp(escapeRegExp(originalElement), 'g')) || []).length;
+          
+          if (beforeCount > afterCount) {
+            fixesApplied += (beforeCount - afterCount);
+            if (process.env.CLISEO_VERBOSE === 'true') {
+              console.log(chalk.cyan(`  Fixed: "${linkIssue.text}" → "${betterText}"`));
+            }
+          }
+        }
+      }
+    }
+
+    // Write back the modified content if changes were made
+    if (fixesApplied > 0) {
+      await fs.promises.writeFile(filePath, modifiedContent, 'utf-8');
+      if (process.env.CLISEO_VERBOSE === 'true') {
+        console.log(chalk.green(`✅ Applied ${fixesApplied} link fix${fixesApplied === 1 ? '' : 'es'} to ${filePath}`));
+      }
+    }
+
+    return fixesApplied;
+
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 503) {
+        if (process.env.CLISEO_VERBOSE === 'true') {
+          console.log(chalk.yellow('AI service temporarily unavailable for link fixes'));
+        }
+      } else if (process.env.CLISEO_VERBOSE === 'true') {
+        console.log(chalk.yellow(`AI request failed for ${filePath}: ${error.response?.data?.error || error.message}`));
+      }
+    } else if (process.env.CLISEO_VERBOSE === 'true') {
+      console.log(chalk.yellow(`Error fixing links in ${filePath}: ${error}`));
+    }
+    return 0;
+  }
+}
+
+/**
+ * Generate better link text based on href and current text
+ */
+function generateBetterLinkText(currentText: string, href: string): string {
+  const text = currentText.toLowerCase().trim();
+  
+  // Don't change if it's already reasonably descriptive
+  if (text.length > 10 && !['here', 'click here', 'read more', 'learn more', 'more', 'this', 'link'].includes(text)) {
+    return currentText;
+  }
+  
+  // Generate better text based on href
+  if (href.includes('/about')) return 'about us';
+  if (href.includes('/contact')) return 'contact us';
+  if (href.includes('/pricing')) return 'view pricing';
+  if (href.includes('/docs') || href.includes('/documentation')) return 'documentation';
+  if (href.includes('/blog')) return 'blog';
+  if (href.includes('/support')) return 'support';
+  if (href.includes('/help')) return 'help center';
+  if (href.includes('/signup') || href.includes('/register')) return 'sign up';
+  if (href.includes('/login') || href.includes('/signin')) return 'sign in';
+  if (href.includes('/download')) return 'download';
+  if (href.includes('/features')) return 'features';
+  if (href.includes('/api')) return 'API documentation';
+  if (href.includes('/rate-limits')) return 'rate limits documentation';
+  if (href.includes('/terms')) return 'terms of service';
+  if (href.includes('/privacy')) return 'privacy policy';
+  
+  // Extract meaningful parts from path
+  const pathParts = href.split('/').filter(part => part && !part.includes('.'));
+  if (pathParts.length > 0) {
+    const lastPart = pathParts[pathParts.length - 1];
+    // Convert kebab-case or snake_case to readable text
+    const readable = lastPart.replace(/[-_]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+    if (readable.length > 2) {
+      return readable;
+    }
+  }
+  
+  // Fallback: return original if we can't improve it
+  return currentText;
+}
+
+/**
+ * Escape special regex characters in a string
+ */
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

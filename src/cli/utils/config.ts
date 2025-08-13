@@ -66,34 +66,60 @@ export async function setApiKey(key: 'openaiApiKey' | 'githubToken' | 'googleApi
   await updateConfig({ [key]: value }, true); // Always save API keys in global config
 }
 
-// Authentication utilities
-export async function getAuthToken(): Promise<string | undefined> {
+// Authentication utilities for Auth0 tokens
+interface AuthTokens {
+  idToken: string;
+  accessToken: string;
+  email: string;
+  aiAccess: boolean;
+  expiresAt: number;
+}
+
+export async function getAuthTokens(): Promise<AuthTokens | undefined> {
   const config = await loadConfig();
-  return config.authToken;
+  if (!config.auth0Tokens) return undefined;
+  
+  try {
+    return JSON.parse(config.auth0Tokens);
+  } catch {
+    return undefined;
+  }
 }
 
-export async function setAuthToken(token: string, email: string, aiAccess: boolean): Promise<void> {
+export async function setAuthTokens(tokens: AuthTokens): Promise<void> {
   await updateConfig({ 
-    authToken: token,
-    userEmail: email,
-    aiAccess 
-  }, true); // Always save auth token in global config
+    auth0Tokens: JSON.stringify(tokens),
+    userEmail: tokens.email,
+    aiAccess: tokens.aiAccess
+  }, true); // Always save auth tokens in global config
 }
 
-export async function clearAuthToken(): Promise<void> {
+export async function clearAuthTokens(): Promise<void> {
   await updateConfig({ 
-    authToken: undefined,
+    auth0Tokens: undefined,
     userEmail: undefined,
     aiAccess: undefined 
   }, true);
 }
 
+export async function getAuthToken(): Promise<string | undefined> {
+  const tokens = await getAuthTokens();
+  return tokens?.idToken;
+}
+
 export async function isAuthenticated(): Promise<boolean> {
-  const config = await loadConfig();
-  return !!(config.authToken && config.userEmail);
+  const tokens = await getAuthTokens();
+  if (!tokens) return false;
+  
+  // Check if token is expired
+  if (tokens.expiresAt && Date.now() > tokens.expiresAt) {
+    return false;
+  }
+  
+  return !!(tokens.idToken && tokens.email);
 }
 
 export async function hasAiAccess(): Promise<boolean> {
-  const config = await loadConfig();
-  return !!(config.authToken && config.aiAccess);
+  const tokens = await getAuthTokens();
+  return !!(tokens && tokens.aiAccess && tokens.idToken);
 } 

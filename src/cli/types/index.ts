@@ -39,7 +39,7 @@ export interface Config {
   openaiApiKey?: string;
   githubToken?: string;
   googleApiKey?: string;
-  authToken?: string;
+  auth0Tokens?: string; // JSON string containing Auth0 tokens
   userEmail?: string;
   aiAccess?: boolean;
   aiModel?: string;

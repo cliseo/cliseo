@@ -7,6 +7,7 @@ import { optimizeCommand } from './commands/optimize.js';
 import { authCommand } from './commands/auth.js';
 import { connectCommand } from './commands/connect.js';
 import { verifyEmailCommand } from './commands/verify-email.js';
+import { migrateAuthentication } from './utils/migrate-auth.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -18,6 +19,11 @@ const packageJson = JSON.parse(
 );
 
 const program = new Command();
+
+// Run authentication migration on startup (silent)
+migrateAuthentication().catch(() => {
+  // Ignore migration errors to not disrupt CLI usage
+});
 
 // Setup CLI metadata
 program
