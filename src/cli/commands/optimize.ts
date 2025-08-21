@@ -13,7 +13,7 @@ import { optimizeNextjsComponents } from './optimize-next.js';
 import inquirer from 'inquirer';
 import { execSync } from 'child_process';
 import axios from 'axios'; // Added for AI optimizations
-import { requiresEmailVerification } from './verify-email.js';
+
 import jsxSyntax from '@babel/plugin-syntax-jsx';
 import typescriptSyntax from '@babel/plugin-syntax-typescript';
 import { text } from 'stream/consumers';
@@ -461,14 +461,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         return;
       }
 
-      // Check email verification for AI features
-      const needsVerification = await requiresEmailVerification();
-      if (needsVerification) {
-        console.log(chalk.yellow('\n⚠️  Email verification required for AI features'));
-        console.log(chalk.cyan('Please verify your email first:'));
-        console.log(chalk.gray('  cliseo verify-email\n'));
-        return;
-      }
+
 
       // AI MODE: Do AI optimizations AND create SEO files
       if (!spinner.isSpinning) {
@@ -879,9 +872,13 @@ async function getAiAnalysis(projectDir: string): Promise<any> {
     }
 
     // Step 2: Send to backend for AI analysis
-    const response = await axios.post(process.env.API_URL || '', {
-      pages: websiteContext.pages,
-      context: 'seo-optimization'
+    const apiBase = process.env.API_URL || process.env.CLISEO_API_URL;
+    if (!apiBase) {
+      throw new Error('Missing API base URL. Set API_URL or CLISEO_API_URL in your environment.');
+    }
+    const response = await axios.post(`${apiBase}/ask-openai`, {
+      readme: websiteContext.readme,
+      pages: websiteContext.pages
     }, {
       headers: {
         'Authorization': `Bearer ${token}`,

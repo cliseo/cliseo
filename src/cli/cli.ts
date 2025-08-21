@@ -6,7 +6,7 @@ import { scanCommand } from './commands/scan.js';
 import { optimizeCommand } from './commands/optimize.js';
 import { authCommand } from './commands/auth.js';
 import { connectCommand } from './commands/connect.js';
-import { verifyEmailCommand } from './commands/verify-email.js';
+
 import { migrateAuthentication } from './utils/migrate-auth.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -59,10 +59,7 @@ program
   .option('--google-search-console', 'Connect Google Search Console')
   .action(connectCommand);
 
-program
-  .command('verify-email')
-  .description('Verify your email address for AI features')
-  .action(verifyEmailCommand);
+
 
 // Add some color to help text
 program.configureHelp({

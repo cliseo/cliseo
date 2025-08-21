@@ -15,7 +15,7 @@ import fs from 'fs';
 // import { detectFramework, findProjectRoot } from '../utils/detect-framework.js';
 // import { scanReactComponent } from '../frameworks/react.js';
 import axios from 'axios';
-import { requiresEmailVerification } from './verify-email.js';
+
 import readline from 'readline';
 import { exec } from 'child_process';
 
@@ -576,17 +576,7 @@ export async function scanCommand(options: ScanOptions) {
         return;
       }
       
-      // Check email verification for AI features
-      const needsVerification = await requiresEmailVerification();
-      if (needsVerification) {
-        spinner.stop();
-        if (!options.json) {
-          console.log(chalk.yellow('\n⚠️  Email verification required for AI features'));
-          console.log(chalk.cyan('Please verify your email first:'));
-          console.log(chalk.gray('  cliseo verify-email\n'));
-        }
-        return;
-      }
+
     }
 
     const root = findProjectRoot();
@@ -750,8 +740,11 @@ async function performAiScanWithAuth(file: string): Promise<SeoIssue[]> {
     const content = await readFile(file, 'utf-8');
     
     // Make request to backend AI endpoint with enhanced payload
-    const response = await axios.post('https://a8iza6csua.execute-api.us-east-2.amazonaws.com/ask-openai', {
-      prompt: `Analyze this file for SEO issues including non-descriptive link text and provide specific recommendations:\n\nFile: ${file}`,
+    const apiBase = process.env.API_URL || process.env.CLISEO_API_URL;
+    if (!apiBase) throw new Error('Missing API base URL. Set API_URL or CLISEO_API_URL.');
+    const response = await axios.post(`${apiBase}/ask-openai`, {
+      // Minimal trigger; backend constructs the full prompt safely
+      prompt: 'file_scan',
       context: 'seo-analysis',
       file_content: content,
       file_path: file

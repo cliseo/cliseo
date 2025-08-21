@@ -8,11 +8,11 @@ import { setAuthTokens, clearAuthTokens, getAuthTokens } from './config.js';
 import { AuthenticationResult } from '../types/index.js';
 import { createHash, randomBytes } from 'crypto';
 
-// Auth0 and backend configuration
-const AUTH0_DOMAIN = 'auth.cliseo.com';
-const CLIENT_ID = 'kCZh9ll7L7RItLWLc47aOmDbffjQTmNd';
-const REDIRECT_URI = 'http://localhost:8080/callback';
-const API_BASE = 'https://a8iza6csua.execute-api.us-east-2.amazonaws.com';
+// Auth0 and backend configuration (from env)
+const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || 'auth.cliseo.com';
+const CLIENT_ID = process.env.AUTH0_CLIENT_ID || '';
+const REDIRECT_URI = process.env.CLISEO_REDIRECT_URI || 'http://localhost:8080/callback';
+const API_BASE = process.env.API_URL || process.env.CLISEO_API_URL || '';
 
 interface AuthCallbackData {
   code?: string;
@@ -195,21 +195,19 @@ async function exchangeCodeForTokens(code: string, codeVerifier: string): Promis
 /**
  * Verify Auth0 token and get user info directly
  */
-async function verifyAuth0Token(auth0Token: string): Promise<{ email: string; aiAccess: boolean; emailVerified: boolean; requiresVerification: boolean }> {
+async function verifyAuth0Token(auth0Token: string): Promise<{ email: string; aiAccess: boolean }> {
   try {
+    if (!API_BASE) throw new Error('Missing API base URL. Set API_URL or CLISEO_API_URL.');
     const response = await axios.post(`${API_BASE}/auth0-sync`, {}, {
       headers: {
         'Authorization': `Bearer ${auth0Token}`,
         'Content-Type': 'application/json',
       },
     });
-
     const data = response.data;
     return {
       email: data.user.email,
       aiAccess: data.user.ai_access || false,
-      emailVerified: data.user.email_verified || false,
-      requiresVerification: data.user.requires_verification || false,
     };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
@@ -308,8 +306,6 @@ export async function authenticateUser(): Promise<AuthenticationResult> {
       token: tokens.id_token,
       email: userInfo.email,
       aiAccess: userInfo.aiAccess,
-      emailVerified: userInfo.emailVerified,
-      requiresVerification: userInfo.requiresVerification,
     };
 
   } catch (error) {
@@ -346,8 +342,9 @@ export async function verifyAuthentication(): Promise<boolean> {
       return false;
     }
 
-    // Verify token with Auth0 by making a test API call
-    const response = await axios.post(`${API_BASE}/auth0-sync`, {}, {
+  // Verify token with Auth0 by making a test API call
+  if (!API_BASE) return false;
+  const response = await axios.post(`${API_BASE}/auth0-sync`, {}, {
       headers: {
         'Authorization': `Bearer ${authData.idToken}`,
         'Content-Type': 'application/json',
