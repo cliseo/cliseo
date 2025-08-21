@@ -8,9 +8,9 @@ import { setAuthTokens, clearAuthTokens, getAuthTokens } from './config.js';
 import { AuthenticationResult } from '../types/index.js';
 import { createHash, randomBytes } from 'crypto';
 
-// Auth0 and backend configuration (from env)
+// Auth0 and backend configuration
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || 'auth.cliseo.com';
-const CLIENT_ID = process.env.AUTH0_CLIENT_ID || '';
+const CLIENT_ID = process.env.AUTH0_CLIENT_ID || 'kCZh9ll7L7RItLWLc47aOmDbffjQTmNd';
 const REDIRECT_URI = process.env.CLISEO_REDIRECT_URI || 'http://localhost:8080/callback';
 const API_BASE = process.env.API_URL || process.env.CLISEO_API_URL || '';
 
