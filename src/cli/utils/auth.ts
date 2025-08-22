@@ -12,7 +12,7 @@ import { createHash, randomBytes } from 'crypto';
 const AUTH0_DOMAIN = 'auth.cliseo.com'
 const CLIENT_ID = 'kCZh9ll7L7RItLWLc47aOmDbffjQTmNd'
 const REDIRECT_URI = 'http://localhost:8080/callback'
-const API_BASE = 'https://api.cliseo.com'
+const API_BASE = process.env.CLISEO_API_URL || process.env.API_URL || 'https://a8iza6csua.execute-api.us-east-2.amazonaws.com'
 
 interface AuthCallbackData {
   code?: string;
