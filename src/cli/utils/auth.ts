@@ -9,10 +9,10 @@ import { AuthenticationResult } from '../types/index.js';
 import { createHash, randomBytes } from 'crypto';
 
 // Auth0 and backend configuration
-const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || 'auth.cliseo.com';
-const CLIENT_ID = process.env.AUTH0_CLIENT_ID || 'kCZh9ll7L7RItLWLc47aOmDbffjQTmNd';
-const REDIRECT_URI = process.env.CLISEO_REDIRECT_URI || 'http://localhost:8080/callback';
-const API_BASE = process.env.API_URL || process.env.CLISEO_API_URL || '';
+const AUTH0_DOMAIN = 'auth.cliseo.com'
+const CLIENT_ID = 'kCZh9ll7L7RItLWLc47aOmDbffjQTmNd'
+const REDIRECT_URI = 'http://localhost:8080/callback'
+const API_BASE = 'https://api.cliseo.com'
 
 interface AuthCallbackData {
   code?: string;
@@ -198,7 +198,7 @@ async function exchangeCodeForTokens(code: string, codeVerifier: string): Promis
 async function verifyAuth0Token(auth0Token: string): Promise<{ email: string; aiAccess: boolean }> {
   try {
     if (!API_BASE) throw new Error('Missing API base URL. Set API_URL or CLISEO_API_URL.');
-    const response = await axios.post(`${API_BASE}/auth0-sync`, {}, {
+    const response = await axios.post(`${API_BASE}/auth/sync`, {}, {
       headers: {
         'Authorization': `Bearer ${auth0Token}`,
         'Content-Type': 'application/json',
@@ -344,7 +344,7 @@ export async function verifyAuthentication(): Promise<boolean> {
 
   // Verify token with Auth0 by making a test API call
   if (!API_BASE) return false;
-  const response = await axios.post(`${API_BASE}/auth0-sync`, {}, {
+  const response = await axios.post(`${API_BASE}/auth/sync`, {}, {
       headers: {
         'Authorization': `Bearer ${authData.idToken}`,
         'Content-Type': 'application/json',
