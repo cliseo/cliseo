@@ -76,7 +76,7 @@ async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | '
 }
 
 /**
- * Scans project for required SEO files (robots.txt, sitemap.xml).
+ * Scans project for required SEO files (robots.txt, sitemap.xml, llms.txt).
  * 
  * @returns List of SEO issues found.
  */
@@ -86,12 +86,13 @@ async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
   
   // Check in both root and public directories for SEO files
   const possiblePaths = [
-    { robots: join(root, 'robots.txt'), sitemap: join(root, 'sitemap.xml') },
-    { robots: join(root, 'public', 'robots.txt'), sitemap: join(root, 'public', 'sitemap.xml') }
+    { robots: join(root, 'robots.txt'), sitemap: join(root, 'sitemap.xml'), llms: join(root, 'llms.txt') },
+    { robots: join(root, 'public', 'robots.txt'), sitemap: join(root, 'public', 'sitemap.xml'), llms: join(root, 'public', 'llms.txt') }
   ];
 
   let robotsFound = false;
   let sitemapFound = false;
+  let llmsFound = false;
 
   // Check all possible locations
   for (const paths of possiblePaths) {
@@ -108,6 +109,16 @@ async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
     try {
       await readFile(paths.sitemap, 'utf-8');
       sitemapFound = true;
+      break;
+    } catch {
+      // Continue checking other locations
+    }
+  }
+
+  for (const paths of possiblePaths) {
+    try {
+      await readFile(paths.llms, 'utf-8');
+      llmsFound = true;
       break;
     } catch {
       // Continue checking other locations
@@ -132,6 +143,15 @@ async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
     });
   }
 
+  if (!llmsFound) {
+    issues.push({
+      type: 'warning',
+      message: 'Missing llms.txt file',
+      file: 'llms.txt',
+      fix: 'Run `cliseo optimize` to generate an llms.txt file for AI model guidance',
+    });
+  }
+
   return issues;
 }
 
@@ -144,6 +164,14 @@ const basicSeoRules = {
   missingRobotsTxt: async (projectRoot: string) => {
     try {
       await readFile(join(projectRoot, 'robots.txt'));
+      return false;
+    } catch {
+      return true;
+    }
+  },
+  missingLlmsTxt: async (projectRoot: string) => {
+    try {
+      await readFile(join(projectRoot, 'llms.txt'));
       return false;
     } catch {
       return true;
