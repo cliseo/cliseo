@@ -740,7 +740,7 @@ async function performAiScanWithAuth(file: string): Promise<SeoIssue[]> {
     const content = await readFile(file, 'utf-8');
     
     // Make request to backend AI endpoint with enhanced payload
-    const apiBase = process.env.API_URL || process.env.CLISEO_API_URL;
+    const apiBase = process.env.API_URL || process.env.CLISEO_API_URL || 'https://a8iza6csua.execute-api.us-east-2.amazonaws.com';
     if (!apiBase) throw new Error('Missing API base URL. Set API_URL or CLISEO_API_URL.');
     const response = await axios.post(`${apiBase}/ask-openai`, {
       // Minimal trigger; backend constructs the full prompt safely
