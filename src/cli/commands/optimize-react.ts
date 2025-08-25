@@ -2,14 +2,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import * as fs from 'fs/promises';
 import path from 'path';
 import { glob } from 'glob';
-import * as babel from '@babel/core';
 import * as t from '@babel/types';
-import jsxSyntax from '@babel/plugin-syntax-jsx';
-import typescriptSyntax from '@babel/plugin-syntax-typescript';
-import reactJsx from '@babel/plugin-transform-react-jsx';
-import typescriptTransform from '@babel/plugin-transform-typescript';
-import reactPreset from '@babel/preset-react';
-import typescriptPreset from '@babel/preset-typescript';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
 

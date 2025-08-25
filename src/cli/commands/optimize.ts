@@ -15,8 +15,7 @@ import { execSync } from 'child_process';
 import axios from 'axios'; // Added for AI optimizations
 import { fileURLToPath } from 'url';
 
-import jsxSyntax from '@babel/plugin-syntax-jsx';
-import typescriptSyntax from '@babel/plugin-syntax-typescript';
+// JSX and TypeScript syntax support is handled by @babel/preset-react and @babel/preset-typescript
 import { text } from 'stream/consumers';
 
 // Get package.json for version info
