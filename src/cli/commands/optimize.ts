@@ -454,13 +454,12 @@ export async function optimizeCommand(directory: string | undefined, options: { 
           ]);
 
           if (shouldAuth) {
-            console.log(chalk.cyan('\n🌐 Starting authentication...'));
+            console.log(chalk.cyan('\nStarting authentication...'));
             try {
               const { authenticateUser } = await import('../utils/auth.js');
               const authResult = await authenticateUser();
 
               if (authResult.success) {
-                console.log(chalk.green('\n✅ Authentication successful!'));
                 console.log(chalk.cyan(`👤 ${formatEmailDisplay(authResult.email || '')}`));
                 console.log(chalk.gray(`🤖 AI Access: ${authResult.aiAccess ? 'Enabled' : 'Disabled'}`));
 
@@ -568,13 +567,12 @@ export async function optimizeCommand(directory: string | undefined, options: { 
             ]);
 
             if (shouldAuth) {
-              console.log(chalk.cyan('\n🌐 Starting authentication...'));
+              console.log(chalk.cyan('\nStarting authentication...'));
               try {
                 const { authenticateUser } = await import('../utils/auth.js');
                 const authResult = await authenticateUser();
 
                 if (authResult.success) {
-                  console.log(chalk.green('\n✅ Authentication successful!'));
                   console.log(chalk.cyan(`👤 ${formatEmailDisplay(authResult.email || '')}`));
                   console.log(chalk.gray(`🤖 AI Access: ${authResult.aiAccess ? 'Enabled' : 'Disabled'}`));
 

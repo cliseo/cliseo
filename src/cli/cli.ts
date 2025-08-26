@@ -35,7 +35,6 @@ program
 program
   .command('scan')
   .description('Scan project for SEO issues')
-  .option('--ai', 'Enable AI-powered deep analysis (requires authentication)')
   .option('--verbose', 'Show detailed output')
   .option('--json', 'Output results in JSON format')
   .action(scanCommand);

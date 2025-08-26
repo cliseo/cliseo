@@ -101,7 +101,6 @@ async function performAuthentication() {
     if (result.aiAccess) {
       console.log(chalk.magentaBright(`🤖 AI Access: Enabled`));
       console.log(chalk.green('\n🎉 You can now use AI-powered features with the --ai flag:'));
-      console.log(chalk.cyan('  cliseo scan --ai'));
       console.log(chalk.cyan('  cliseo optimize --ai'));
     } else {
       console.log(chalk.magentaBright(`🤖 AI Access: Disabled`));

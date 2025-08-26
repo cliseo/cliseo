@@ -1,6 +1,5 @@
 // Command Options
 export interface ScanOptions {
-  ai?: boolean;
   verbose?: boolean;
   json?: boolean;
 }

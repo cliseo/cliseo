@@ -568,7 +568,7 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
 /**
  * Main function to scan project for SEO issues.
  * 
- * @param options - Scan options including AI flag and JSON output
+ * @param options - Scan options including verbose and JSON output
  */
 export async function scanCommand(options: ScanOptions) {
   const spinner = options.json 
@@ -579,33 +579,6 @@ export async function scanCommand(options: ScanOptions) {
   let framework = 'unknown';
   
   try {
-    // Check authentication if AI is requested
-    if (options.ai) {
-      const { isAuthenticated, hasAiAccess } = await import('../utils/config.js');
-      const isAuth = await isAuthenticated();
-      const hasAi = await hasAiAccess();
-      
-      if (!isAuth) {
-        spinner.stop();
-        if (!options.json) {
-          console.log(chalk.yellow('\n⚠️  Authentication required for AI features'));
-          console.log(chalk.cyan('Please authenticate first:'));
-          console.log(chalk.gray('  cliseo auth\n'));
-        }
-        return;
-      }
-      
-      if (!hasAi) {
-        spinner.stop();
-        if (!options.json) {
-          console.log(chalk.yellow('\n⚠️  AI features are not enabled for your account'));
-          console.log(chalk.gray('Upgrade your plan to access AI features.\n'));
-        }
-        return;
-      }
-      
-
-    }
 
     const root = findProjectRoot();
     const files = await glob('**/*.{html,jsx,tsx,ts,js,vue}', {
@@ -660,12 +633,7 @@ export async function scanCommand(options: ScanOptions) {
       });
     }
 
-    // AI features use backend integration only
-    if (options.ai) {
-      if ('text' in spinner) {
-        spinner.text = 'Running AI-powered deep analysis...';
-      }
-    }
+
 
     const fileScanPromises = filteredFiles.map(async (file) => {
       const basicIssues = await performBasicScan(file);
@@ -679,16 +647,10 @@ export async function scanCommand(options: ScanOptions) {
         frameworkIssues = await scanVueComponent(file);
       }
 
-      // Perform AI analysis if enabled
-      let aiIssues: SeoIssue[] = [];
-      if (options.ai) {
-        aiIssues = await performAiScanWithAuth(file);
-      }
-
-      if (basicIssues.length > 0 || frameworkIssues.length > 0 || aiIssues.length > 0) {
+      if (basicIssues.length > 0 || frameworkIssues.length > 0) {
         results.push({
           file,
-          issues: [...basicIssues, ...frameworkIssues, ...aiIssues],
+          issues: [...basicIssues, ...frameworkIssues],
         });
       }
     });
@@ -704,7 +666,7 @@ export async function scanCommand(options: ScanOptions) {
     if (options.json) {
       console.log(JSON.stringify(results, null, 2));
     } else {
-      displayScanResults(results, framework, options.ai);
+      displayScanResults(results, framework);
     }
 
   } catch (error) {
@@ -734,7 +696,7 @@ export async function scanCommand(options: ScanOptions) {
 
   rl.question(chalk.greenBright('\nFix these changes? (y/n) '), (answer) => {
     if (answer.toLowerCase() === 'y') {
-      const optimizeCommand = options.ai ? 'cliseo optimize --ai' : 'cliseo optimize';
+      const optimizeCommand = 'cliseo optimize';
       console.log(chalk.cyan(`\nRunning ${optimizeCommand}...`));
       exec(optimizeCommand, (error, stdout, stderr) => {
         if (error) {
@@ -752,107 +714,15 @@ export async function scanCommand(options: ScanOptions) {
   });
 }
 
-/**
- * Perform AI scan using authenticated backend request
- */
-async function performAiScanWithAuth(file: string): Promise<SeoIssue[]> {
-  try {
-    const { getAuthToken } = await import('../utils/config.js');
-    const token = await getAuthToken();
-    
-    if (!token) {
-      return [];
-    }
 
-    // Read file content
-    const content = await readFile(file, 'utf-8');
-    
-    // Make request to backend AI endpoint with enhanced payload
-    const apiBase = process.env.API_URL || process.env.CLISEO_API_URL || 'https://a8iza6csua.execute-api.us-east-2.amazonaws.com';
-    if (!apiBase) throw new Error('Missing API base URL. Set API_URL or CLISEO_API_URL.');
-    const response = await axios.post(`${apiBase}/ask-openai`, {
-      // Minimal trigger; backend constructs the full prompt safely
-      prompt: 'file_scan',
-      context: 'seo-analysis',
-      file_content: content,
-      file_path: file
-    }, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Parse enhanced AI response into issues
-    const issues: SeoIssue[] = [];
-    const responseData = response.data;
-    
-    // Handle structured analysis if available
-    if (responseData.structured_analysis && responseData.structured_analysis.issues) {
-      responseData.structured_analysis.issues.forEach((issue: any) => {
-        issues.push({
-          type: issue.type === 'link_text' ? 'ai-link-fix' : 'ai-suggestion',
-          message: issue.message,
-          file,
-          element: issue.original,
-          fix: issue.suggested_fix,
-          explanation: issue.explanation
-        });
-      });
-    }
-    
-    // Handle link issues detected by regex
-    if (responseData.link_issues && responseData.link_issues.length > 0) {
-      responseData.link_issues.forEach((linkIssue: any) => {
-        issues.push({
-          type: 'warning',
-          message: `Non-descriptive link text: "${linkIssue.text}" linking to ${linkIssue.href}`,
-          file,
-          element: linkIssue.full_element,
-          fix: 'Replace with descriptive text that explains the link destination',
-        });
-      });
-    }
-    
-    // Fallback: parse text response for general recommendations
-    if (issues.length === 0 && responseData.response) {
-      const aiResponse = responseData.response;
-      if (aiResponse.includes('SEO') || aiResponse.includes('link')) {
-        const recommendations = aiResponse.split('\n').filter(line => 
-          line.includes('Recommendation:') || 
-          line.includes('Fix:') || 
-          line.includes('Issue:')
-        );
-        recommendations.forEach(rec => {
-          issues.push({
-            type: 'ai-suggestion',
-            message: rec.replace(/^(Recommendation:|Fix:|Issue:)\s*/i, ''),
-            file,
-            fix: 'Consider implementing the AI recommendation',
-          });
-        });
-      }
-    }
-    
-    return issues;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 503) {
-      console.error(chalk.yellow('AI service is temporarily unavailable. Please try again later.'));
-    } else if (axios.isAxiosError(error)) {
-      console.error(chalk.yellow(`AI analysis failed: ${error.response?.data?.error || error.message}`));
-    }
-    return [];
-  }
-}
 
 /**
  * Helper function to display scan results.
  * 
  * @param results - Array of ScanResult objects.
  * @param framework - Detected framework.
- * @param aiEnabled - Boolean indicating if AI is enabled.
  */
-function displayScanResults(results: ScanResult[], framework: string, aiEnabled: boolean) {
+function displayScanResults(results: ScanResult[], framework: string) {
   const frameWorkColor = framework === 'react' ? chalk.blue : framework === 'vue' ? chalk.green : chalk.gray;
   console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
 
@@ -860,9 +730,7 @@ function displayScanResults(results: ScanResult[], framework: string, aiEnabled:
     if (result.issues.length > 0) {
       console.log(chalk.underline('\nFile:', result.file));
       result.issues.forEach(issue => {
-        const icon = issue.type === 'error' ? '❌' : 
-                    issue.type === 'ai-link-fix' ? '🔗' :
-                    issue.type === 'ai-suggestion' ? '🤖' : '⚠️';
+        const icon = issue.type === 'error' ? '❌' : '⚠️';
         console.log(`${icon} ${chalk.bold(issue.message)}`);
         console.log(`   ${chalk.gray('Fix:')} ${issue.fix}`);
         if (issue.element) {
@@ -877,16 +745,10 @@ function displayScanResults(results: ScanResult[], framework: string, aiEnabled:
 
   const totalIssues = results.reduce((sum, r) => sum + r.issues.length, 0);
   const filesWithIssues = results.filter(r => r.issues.length > 0).length;
-  const linkIssues = results.reduce((sum, r) => sum + r.issues.filter(i => i.type === 'ai-link-fix').length, 0);
-  
   console.log(chalk.bold('\nSummary:'));
   console.log(`Found ${totalIssues} issue${totalIssues === 1 ? '' : 's'} in ${filesWithIssues} file${filesWithIssues === 1 ? '' : 's'}.`);
   
-  if (linkIssues > 0) {
-    console.log(chalk.cyan(`🔗 ${linkIssues} non-descriptive link${linkIssues === 1 ? '' : 's'} detected by AI analysis`));
-  }
-  
-  if (aiEnabled && totalIssues > 0) {
-    console.log(chalk.gray('\n💡 Run `cliseo optimize --ai` to automatically apply AI-generated fixes'));
+  if (totalIssues > 0) {
+    console.log(chalk.gray('\n💡 Run `cliseo optimize` to automatically apply fixes'));
   }
 } 
