@@ -161,6 +161,11 @@ const basicSeoRules = {
   missingMetaDescription: (doc: cheerio.CheerioAPI) => !doc('meta[name="description"]').length,
   missingAltTags: (doc: cheerio.CheerioAPI) => doc('img:not([alt])').length > 0,
   missingViewport: (doc: cheerio.CheerioAPI) => !doc('meta[name="viewport"]').length,
+  missingLangAttribute: (doc: cheerio.CheerioAPI) => !doc('html').attr('lang'),
+  invalidH1Count: (doc: cheerio.CheerioAPI) => {
+    const h1Count = doc('h1').length;
+    return h1Count === 0 || h1Count > 1;
+  },
   missingRobotsTxt: async (projectRoot: string) => {
     try {
       await readFile(join(projectRoot, 'robots.txt'));
@@ -372,6 +377,25 @@ async function scanReactComponent(filePath: string): Promise<SeoIssue[]> {
   const schemaIssues = await checkSchemaMarkup(filePath);
   issues.push(...schemaIssues);
 
+  // Check for H1 tag issues in React components
+  const h1Regex = /<h1[^>]*>/g;
+  const h1Matches = content.match(h1Regex) || [];
+  if (h1Matches.length === 0) {
+    issues.push({
+      type: 'warning',
+      message: 'No H1 tag found in component',
+      file: filePath,
+      fix: 'Add exactly one H1 tag to define the main page heading',
+    });
+  } else if (h1Matches.length > 1) {
+    issues.push({
+      type: 'warning',
+      message: `Multiple H1 tags found (${h1Matches.length})`,
+      file: filePath,
+      fix: 'Use only one H1 tag per page, convert others to H2-H6',
+    });
+  }
+
   // Check for canonical tags
   if (!content.includes('rel="canonical"')) {
     issues.push({
@@ -434,6 +458,30 @@ async function scanVueComponent(filePath: string): Promise<SeoIssue[]> {
     
   }
 
+  // Check for H1 tag issues in Vue templates
+  const templateMatch = content.match(/<template>([\s\S]*?)<\/template>/);
+  if (templateMatch) {
+    const templateContent = templateMatch[1];
+    const h1Regex = /<h1[^>]*>/g;
+    const h1Matches = templateContent.match(h1Regex) || [];
+    
+    if (h1Matches.length === 0) {
+      issues.push({
+        type: 'warning',
+        message: 'No H1 tag found in Vue template',
+        file: filePath,
+        fix: 'Add exactly one H1 tag to define the main page heading',
+      });
+    } else if (h1Matches.length > 1) {
+      issues.push({
+        type: 'warning',
+        message: `Multiple H1 tags found (${h1Matches.length}) in Vue template`,
+        file: filePath,
+        fix: 'Use only one H1 tag per page, convert others to H2-H6',
+      });
+    }
+  }
+
   // Check for schema markup
   const schemaIssues = await checkSchemaMarkup(filePath);
   issues.push(...schemaIssues);
@@ -494,7 +542,26 @@ async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
       file: filePath,
       fix: 'Consider using next/image, to optimize images for SEO',
     });
-  } 
+  }
+
+  // Check for H1 tag issues in Next.js components
+  const h1Regex = /<h1[^>]*>/g;
+  const h1Matches = content.match(h1Regex) || [];
+  if (h1Matches.length === 0) {
+    issues.push({
+      type: 'warning',
+      message: 'No H1 tag found in component',
+      file: filePath,
+      fix: 'Add exactly one H1 tag to define the main page heading',
+    });
+  } else if (h1Matches.length > 1) {
+    issues.push({
+      type: 'warning',
+      message: `Multiple H1 tags found (${h1Matches.length})`,
+      file: filePath,
+      fix: 'Use only one H1 tag per page, convert others to H2-H6',
+    });
+  }
 
   console.error('Next.js component scan complete:', filePath);
 
@@ -558,6 +625,34 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
       file: filePath,
       fix: 'Add viewport meta tag for responsive design',
     });
+  }
+
+  if (basicSeoRules.missingLangAttribute($)) {
+    issues.push({
+      type: 'warning',
+      message: 'Missing language attribute on html element',
+      file: filePath,
+      fix: 'Add lang="en" (or appropriate language) to <html> tag',
+    });
+  }
+
+  if (basicSeoRules.invalidH1Count($)) {
+    const h1Count = $('h1').length;
+    if (h1Count === 0) {
+      issues.push({
+        type: 'warning',
+        message: 'Missing H1 tag',
+        file: filePath,
+        fix: 'Add exactly one H1 tag to define the main page heading',
+      });
+    } else if (h1Count > 1) {
+      issues.push({
+        type: 'warning',
+        message: `Multiple H1 tags found (${h1Count})`,
+        file: filePath,
+        fix: 'Use only one H1 tag per page, convert others to H2-H6',
+      });
+    }
   }
 
   return issues;

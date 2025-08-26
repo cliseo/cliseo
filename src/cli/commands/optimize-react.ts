@@ -252,6 +252,38 @@ ${indentation}`;
     }
   }
 
+  // Fix H1 tag issues in React components
+  const h1Regex = /<h1[^>]*>/g;
+  const h1Matches = [...modifiedSource.matchAll(h1Regex)];
+  
+  if (h1Matches.length === 0) {
+    // No H1 found - convert first H2 to H1 if it exists
+    const h2Match = modifiedSource.match(/<h2([^>]*)>/);
+    if (h2Match) {
+      modifiedSource = modifiedSource.replace(/<h2([^>]*)>/, '<h1$1>');
+      modifiedSource = modifiedSource.replace(/<\/h2>/, '</h1>');
+      modified = true;
+    }
+  } else if (h1Matches.length > 1) {
+    // Multiple H1s found - convert extras to H2 (skip the first one)
+    let replacements = 0;
+    modifiedSource = modifiedSource.replace(/<h1([^>]*)>/g, (match, attrs) => {
+      replacements++;
+      return replacements === 1 ? match : `<h2${attrs}>`;
+    });
+    
+    // Fix closing tags - count how many H1 opens we've seen to determine which closes to change
+    let h1Opens = 0;
+    modifiedSource = modifiedSource.replace(/<\/h1>/g, (match) => {
+      h1Opens++;
+      return h1Opens === 1 ? match : '</h2>';
+    });
+    
+    if (replacements > 1) {
+      modified = true;
+    }
+  }
+
   if (modified) {
     if (process.env.CLISEO_VERBOSE === 'true') {
       console.log(`[cliseo debug] Modifications made in file: ${file}, writing changes...`);

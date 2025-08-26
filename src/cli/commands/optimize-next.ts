@@ -510,6 +510,38 @@ export async function transformFile(file: string): Promise<void> {
   let modifiedCode = code;
   let modified = false;
 
+  // Fix H1 tag issues in Next.js components
+  const h1Regex = /<h1[^>]*>/g;
+  const h1Matches = [...modifiedCode.matchAll(h1Regex)];
+  
+  if (h1Matches.length === 0) {
+    // No H1 found - convert first H2 to H1 if it exists
+    const h2Match = modifiedCode.match(/<h2([^>]*)>/);
+    if (h2Match) {
+      modifiedCode = modifiedCode.replace(/<h2([^>]*)>/, '<h1$1>');
+      modifiedCode = modifiedCode.replace(/<\/h2>/, '</h1>');
+      modified = true;
+    }
+  } else if (h1Matches.length > 1) {
+    // Multiple H1s found - convert extras to H2 (skip the first one)
+    let replacements = 0;
+    modifiedCode = modifiedCode.replace(/<h1([^>]*)>/g, (match, attrs) => {
+      replacements++;
+      return replacements === 1 ? match : `<h2${attrs}>`;
+    });
+    
+    // Fix closing tags
+    let h1Opens = 0;
+    modifiedCode = modifiedCode.replace(/<\/h1>/g, (match) => {
+      h1Opens++;
+      return h1Opens === 1 ? match : '</h2>';
+    });
+    
+    if (replacements > 1) {
+      modified = true;
+    }
+  }
+
   const metadataExport = `export const metadata = {
   title: 'Replace with your page title',
   description: 'Replace with your page description - describe what this page is about',

@@ -63,6 +63,47 @@ async function injectSeoIntoVueFiles(projectRoot: string) {
 
   for (const file of files) {
     let content = readFileSync(file, 'utf-8');
+    let modified = false;
+
+    // Fix H1 tag issues in Vue templates
+    const templateMatch = content.match(/<template>([\s\S]*?)<\/template>/);
+    if (templateMatch) {
+      let templateContent = templateMatch[1];
+      const h1Regex = /<h1[^>]*>/g;
+      const h1Matches = [...templateContent.matchAll(h1Regex)];
+      
+      if (h1Matches.length === 0) {
+        // No H1 found - convert first H2 to H1 if it exists
+        const h2Match = templateContent.match(/<h2([^>]*)>/);
+        if (h2Match) {
+          templateContent = templateContent.replace(/<h2([^>]*)>/, '<h1$1>');
+          templateContent = templateContent.replace(/<\/h2>/, '</h1>');
+          modified = true;
+        }
+      } else if (h1Matches.length > 1) {
+        // Multiple H1s found - convert extras to H2 (skip the first one)
+        let replacements = 0;
+        templateContent = templateContent.replace(/<h1([^>]*)>/g, (match, attrs) => {
+          replacements++;
+          return replacements === 1 ? match : `<h2${attrs}>`;
+        });
+        
+        // Fix closing tags
+        let h1Opens = 0;
+        templateContent = templateContent.replace(/<\/h1>/g, (match) => {
+          h1Opens++;
+          return h1Opens === 1 ? match : '</h2>';
+        });
+        
+        if (replacements > 1) {
+          modified = true;
+        }
+      }
+      
+      if (modified) {
+        content = content.replace(/<template>([\s\S]*?)<\/template>/, `<template>${templateContent}</template>`);
+      }
+    }
 
     if (!content.includes('<script setup')) {
         // No script setup tag: add one at the end with import and useHead
@@ -88,7 +129,13 @@ link: [
         continue
     }
 
-    if (content.includes('useHead({')) continue;
+    if (content.includes('useHead({')) {
+      if (modified) {
+        writeFileSync(file, content, 'utf-8');
+        console.log(`✅ Fixed H1 tags in ${file}`);
+      }
+      continue;
+    }
 
     if (!content.includes('import { useHead }')) {
       content = content.replace(
