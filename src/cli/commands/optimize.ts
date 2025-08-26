@@ -250,9 +250,7 @@ async function getFilesToOptimize(projectRoot: string, framework: string): Promi
     return files;
   }
 
-  if (process.env.CLISEO_VERBOSE === 'true') {
-    console.log(chalk.cyan(`📁 Found pages directories: ${pagesDirectories.map(dir => path.relative(projectRoot, dir)).join(', ')}`));
-  }
+
 
   // Get framework-specific file extensions
   const extensions = getFrameworkFileExtensions(framework);
@@ -268,9 +266,7 @@ async function getFilesToOptimize(projectRoot: string, framework: string): Promi
     }
   }
 
-  if (process.env.CLISEO_VERBOSE === 'true') {
-    console.log(chalk.cyan(`📄 Found ${files.length} files to optimize`));
-  }
+
   return files;
 }
 
@@ -284,9 +280,6 @@ async function addMetaTagsToHtmlFiles(projectRoot: string, framework: string) {
   const htmlFiles = files.filter(file => file.endsWith('.html'));
 
   if (htmlFiles.length === 0) {
-    if (process.env.CLISEO_VERBOSE === 'true') {
-      console.log(chalk.gray(`No HTML files found in pages directory. Component files will be handled by ${framework} optimizer.`));
-    }
     return;
   }
 
@@ -325,9 +318,6 @@ async function addImagesAltAttributes(projectRoot: string, framework: string) {
   const htmlFiles = files.filter(file => file.endsWith('.html'));
 
   if (htmlFiles.length === 0) {
-    if (process.env.CLISEO_VERBOSE === 'true') {
-      console.log(chalk.gray(`No HTML files found in pages directory. Image alt attributes will be handled by framework-specific optimizers.`));
-    }
     return;
   }
 
@@ -412,7 +402,7 @@ function showNextSteps(robotsCreated: boolean, sitemapCreated: boolean, llmsCrea
 /**
  * * Main function to optimize SEO for the project.
  */
-export async function optimizeCommand(directory: string | undefined, options: { ai?: boolean; yes?: boolean; dryRun?: boolean }) {
+export async function optimizeCommand(directory: string | undefined, options: { ai?: boolean }) {
   const dir = resolve(directory || '.');
   const spinner = ora('Starting SEO optimization...').start();
   try {
@@ -440,8 +430,8 @@ export async function optimizeCommand(directory: string | undefined, options: { 
         console.log(chalk.yellow('\n⚠️  Authentication required for AI features'));
         console.log(chalk.gray('You need to sign in to use AI-powered optimizations.'));
 
-        // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
-        const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
+        // Skip interactive prompts in CI/non-TTY environments
+        const skipPrompts = process.env.CI === 'true' || !process.stdin.isTTY;
 
         if (!skipPrompts) {
           const { shouldAuth } = await inquirer.prompt([
@@ -553,8 +543,8 @@ export async function optimizeCommand(directory: string | undefined, options: { 
           console.log(chalk.yellow('\n🔒 Authentication expired'));
           console.log(chalk.gray('Your session has expired and you need to sign in again.'));
 
-          // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
-          const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
+          // Skip interactive prompts in CI/non-TTY environments
+          const skipPrompts = process.env.CI === 'true' || !process.stdin.isTTY;
 
           if (!skipPrompts) {
             const { shouldAuth } = await inquirer.prompt([
@@ -606,8 +596,8 @@ export async function optimizeCommand(directory: string | undefined, options: { 
           console.log(chalk.yellow('\n⚠️  AI features not available'));
           console.log(chalk.gray('There\'s a permission mismatch with your account.'));
 
-          // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
-          const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
+          // Skip interactive prompts in CI/non-TTY environments
+          const skipPrompts = process.env.CI === 'true' || !process.stdin.isTTY;
 
           if (!skipPrompts) {
             const { action } = await inquirer.prompt([
@@ -675,16 +665,9 @@ export async function optimizeCommand(directory: string | undefined, options: { 
 
     const { robotsCreated, sitemapCreated, llmsCreated } = await ensureSeoFiles(framework, dir);
 
-    if (process.env.CLISEO_VERBOSE === 'true') {
-      spinner.succeed('SEO file check complete!');
-    } else { spinner.stop(); }
+    spinner.stop();
 
-    if (process.env.CLISEO_VERBOSE === 'true') {
-      if (robotsCreated) console.log(chalk.green('✔ Created robots.txt'));
-      if (sitemapCreated) console.log(chalk.green('✔ Created sitemap.xml'));
-      if (llmsCreated) console.log(chalk.green('✔ Created llms.txt'));
-      if (!robotsCreated && !sitemapCreated && !llmsCreated) console.log(chalk.gray('robots.txt, sitemap.xml, and llms.txt already exist.'));
-    }
+
 
     spinner.text = 'Adding proper tags to HTML files...';
 
@@ -694,7 +677,7 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       await addImagesAltAttributes(dir, framework);
     }
 
-    if (process.env.CLISEO_VERBOSE === 'true') { spinner.succeed('Tags added to HTML files!'); } else { spinner.stop(); }
+    spinner.stop();
 
     const frameWorkColor = framework === 'react' ? chalk.blue : chalk.gray;
     console.log(chalk.bold('\nDetected Framework: ' + frameWorkColor(framework.toUpperCase())));
@@ -704,27 +687,19 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       spinner.text = 'Optimizing React components...';
       try {
         await optimizeReactComponents(dir);
-        if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('React components optimized successfully!'); else spinner.stop();
+        spinner.stop();
       } catch (err) {
         spinner.fail('Failed to optimize React components');
-        if (process.env.CLISEO_VERBOSE === 'true') {
-          console.error(err);
-        } else {
-          console.log(chalk.yellow('⚠️  Could not optimize some React components'));
-        }
+        console.log(chalk.yellow('⚠️  Could not optimize some React components'));
       }
     } else if (framework === 'next.js') {
       spinner.text = 'Optimizing Next.js components...';
       try {
         await optimizeNextjsComponents(dir);
-        if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('Next.js components optimized successfully!'); else spinner.stop();
+        spinner.stop();
       } catch (err) {
         spinner.fail('Failed to optimize Next.js components');
-        if (process.env.CLISEO_VERBOSE === 'true') {
-          console.error(err);
-        } else {
-          console.log(chalk.yellow('⚠️  Could not optimize some Next.js components'));
-        }
+        console.log(chalk.yellow('⚠️  Could not optimize some Next.js components'));
       }
     } else if (framework === 'angular') {
       spinner.text = 'Running Angular HTML SEO enhancements...';
@@ -734,14 +709,10 @@ export async function optimizeCommand(directory: string | undefined, options: { 
       spinner.text = 'Optimizing Vue components...';
       try {
         await optimizeVueComponents(dir);
-        if (process.env.CLISEO_VERBOSE === 'true') spinner.succeed('Vue components optimized successfully!'); else spinner.stop();
+        spinner.stop();
       } catch (err) {
         spinner.fail('Failed to optimize Vue components');
-        if (process.env.CLISEO_VERBOSE === 'true') {
-          console.error(err);
-        } else {
-          console.log(chalk.yellow('⚠️  Could not optimize some Vue components'));
-        }
+        console.log(chalk.yellow('⚠️  Could not optimize some Vue components'));
       }
     }
     else if (framework === 'unknown') {
@@ -753,8 +724,8 @@ export async function optimizeCommand(directory: string | undefined, options: { 
     // Show next steps guidance
     showNextSteps(robotsCreated, sitemapCreated, llmsCreated, options.ai || false);
 
-    // Skip interactive prompts in CI/non-TTY environments or when --yes flag is provided
-    const skipPrompts = options.yes || process.env.CI === 'true' || !process.stdin.isTTY;
+    // Skip interactive prompts in CI/non-TTY environments
+    const skipPrompts = process.env.CI === 'true' || !process.stdin.isTTY;
 
     if (!skipPrompts) {
       // --- PR creation functionality temporarily disabled ---
@@ -809,19 +780,13 @@ export async function optimizeCommand(directory: string | undefined, options: { 
     console.log(chalk.yellow('\n⚠️  An unexpected error occurred'));
 
     if (error instanceof Error) {
-      if (process.env.CLISEO_VERBOSE === 'true') {
-        console.error(chalk.red(error.message));
-        console.error(error.stack);
-      } else {
-        console.log(chalk.gray(`Error: ${error.message}`));
-        console.log(chalk.gray('Run with CLISEO_VERBOSE=true for more details'));
-      }
+      console.log(chalk.gray(`Error: ${error.message}`));
     }
 
     console.log(chalk.cyan('\nTroubleshooting:'));
     console.log(chalk.white('  • Check that you\'re in a valid project directory'));
     console.log(chalk.white('  • Ensure you have write permissions'));
-    console.log(chalk.white('  • Try running in verbose mode: CLISEO_VERBOSE=true cliseo optimize'));
+    console.log(chalk.white('  • Check the project structure and try again'));
     console.log('');
     process.exit(1);
   }
@@ -1091,11 +1056,7 @@ async function gatherComprehensiveContext(projectDir: string): Promise<{
     // Continue without components if glob fails
   }
 
-  // Debug info in verbose mode
-  if (process.env.CLISEO_VERBOSE === 'true') {
-    const totalSize = context.readme.length + context.pages.join('').length;
-    console.log(chalk.gray(`Context gathered: README (${context.readme.length} chars), Pages (${context.pages.length} files), Components (${context.components.length} files), Total: ${totalSize} chars`));
-  }
+
 
   return context;
 }
@@ -1183,11 +1144,7 @@ async function gatherWebsiteContext(projectDir: string): Promise<{ readme: strin
     }
   }
 
-  // Debug info in verbose mode
-  if (process.env.CLISEO_VERBOSE === 'true') {
-    const totalSize = context.readme.length + context.pages.join('').length;
-    console.log(chalk.gray(`Context gathered: README (${context.readme.length} chars), Pages (${context.pages.length} files, ${context.pages.join('').length} chars), Total: ${totalSize} chars`));
-  }
+
 
   return context;
 }
@@ -1206,19 +1163,11 @@ async function applyComprehensiveAiOptimizations(projectDir: string, aiData: any
         if (Array.isArray(fixes) && fixes.length > 0) {
           try {
             // Apply fixes to the specific file
-            // For now, we'll just count them and show in verbose mode
-            if (process.env.CLISEO_VERBOSE === 'true') {
-              console.log(chalk.gray(`  ${filePath}: ${fixes.length} fixes suggested`));
-              fixes.forEach((fix, index) => {
-                console.log(chalk.gray(`    ${index + 1}. ${fix}`));
-              });
-            }
+            // For now, we'll just count them
             totalFixes += fixes.length;
             filesModified++;
           } catch (error) {
-            if (process.env.CLISEO_VERBOSE === 'true') {
-              console.log(chalk.yellow(`    Warning: Could not apply fixes to ${filePath}`));
-            }
+
           }
         }
       }
@@ -1239,9 +1188,6 @@ async function applyComprehensiveAiOptimizations(projectDir: string, aiData: any
     return { totalFixes, filesModified };
 
   } catch (error) {
-    if (process.env.CLISEO_VERBOSE === 'true') {
-      console.log(chalk.yellow(`Warning: Some AI optimizations could not be applied: ${error}`));
-    }
     return { totalFixes, filesModified };
   }
 }
@@ -1261,13 +1207,7 @@ async function applyAiOptimizationsToComponents(projectDir: string, aiSuggestion
       aiData = aiSuggestions;
     }
 
-    // Only show metadata in verbose mode
-    if (process.env.CLISEO_VERBOSE === 'true') {
-      console.log(chalk.blue('AI-Generated SEO Metadata:'));
-      console.log(chalk.gray(`Title: ${aiData.title}`));
-      console.log(chalk.gray(`Description: ${aiData.description}`));
-      console.log(chalk.gray(`Keywords: ${aiData.keywords}`));
-    }
+
 
     // Detect framework and get page files
     const framework = await detectFramework(projectDir);
@@ -1292,18 +1232,13 @@ async function applyAiOptimizationsToComponents(projectDir: string, aiSuggestion
           modifiedCount++;
         }
       } catch (error) {
-        if (process.env.CLISEO_VERBOSE === 'true') {
-          console.warn(chalk.yellow(`Failed to optimize ${file}: ${error}`));
-        }
+
       }
     }
 
     console.log(chalk.green(`✅ Applied AI metadata to ${modifiedCount} component(s)`));
 
   } catch (error) {
-    if (process.env.CLISEO_VERBOSE === 'true') {
-      console.error(chalk.red('Failed to parse AI response:'), error);
-    }
     throw new Error('Invalid AI response format');
   }
 }
@@ -1327,9 +1262,6 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
     const hasHelmetUsage = /<Helmet[\s>]/.test(source);
 
     if (hasHelmetUsage) {
-      if (process.env.CLISEO_VERBOSE === 'true') {
-        console.log(`[cliseo debug] File already has Helmet usage: ${filePath}`);
-      }
       return false;
     }
 
@@ -1374,18 +1306,12 @@ async function injectAiMetadata(filePath: string, aiData: any): Promise<boolean>
     }
 
     if (modified) {
-      if (process.env.CLISEO_VERBOSE === 'true') {
-        console.log(`[cliseo debug] Applied AI metadata to: ${filePath}`);
-      }
       await fs.promises.writeFile(filePath, modifiedSource, 'utf-8');
       return true;
     }
 
     return false;
   } catch (error) {
-    if (process.env.CLISEO_VERBOSE === 'true') {
-      console.warn(`Error processing ${filePath}:`, error);
-    }
     return false;
   }
 }
@@ -1468,9 +1394,6 @@ async function applyLinkTextFixes(projectDir: string): Promise<{ totalFixes: num
     const token = await getAuthToken();
 
     if (!token) {
-      if (process.env.CLISEO_VERBOSE === 'true') {
-        console.log(chalk.yellow('No auth token available for link text fixes'));
-      }
       return null;
     }
 
@@ -1486,9 +1409,6 @@ async function applyLinkTextFixes(projectDir: string): Promise<{ totalFixes: num
     );
 
     if (linkFiles.length === 0) {
-      if (process.env.CLISEO_VERBOSE === 'true') {
-        console.log(chalk.gray('No files found that could contain links'));
-      }
       return null;
     }
 
@@ -1508,7 +1428,7 @@ async function applyLinkTextFixes(projectDir: string): Promise<{ totalFixes: num
           }
           return null;
         } catch (error) {
-          if (process.env.CLISEO_VERBOSE === 'true') {
+          if (false) {
             console.warn(chalk.yellow(`Failed to fix links in ${file}: ${error}`));
           }
           return null;
@@ -1536,7 +1456,7 @@ async function applyLinkTextFixes(projectDir: string): Promise<{ totalFixes: num
     };
 
   } catch (error) {
-    if (process.env.CLISEO_VERBOSE === 'true') {
+    if (false) {
       console.error(chalk.red('Error applying link text fixes:'), error);
     }
     // Don't throw - this is a non-critical enhancement
@@ -1556,7 +1476,7 @@ async function fixLinksInFile(filePath: string, authToken: string): Promise<numb
 
     // Skip files that are too large to avoid token limits
     if (originalContent.length > 10000) {
-      if (process.env.CLISEO_VERBOSE === 'true') {
+      if (false) {
         console.log(chalk.gray(`Skipping large file: ${filePath}`));
       }
       return 0;
@@ -1591,7 +1511,7 @@ async function fixLinksInFile(filePath: string, authToken: string): Promise<numb
 
           if (beforeCount > afterCount) {
             fixesApplied += (beforeCount - afterCount);
-            if (process.env.CLISEO_VERBOSE === 'true') {
+            if (false) {
               console.log(chalk.cyan(`  Fixed: "${issue.original}" → "${issue.suggested_fix}"`));
             }
           }
@@ -1614,7 +1534,7 @@ async function fixLinksInFile(filePath: string, authToken: string): Promise<numb
 
           if (beforeCount > afterCount) {
             fixesApplied += (beforeCount - afterCount);
-            if (process.env.CLISEO_VERBOSE === 'true') {
+            if (false) {
               console.log(chalk.cyan(`  Fixed: "${linkIssue.text}" → "${betterText}"`));
             }
           }
@@ -1625,7 +1545,7 @@ async function fixLinksInFile(filePath: string, authToken: string): Promise<numb
     // Write back the modified content if changes were made
     if (fixesApplied > 0) {
       await fs.promises.writeFile(filePath, modifiedContent, 'utf-8');
-      if (process.env.CLISEO_VERBOSE === 'true') {
+      if (false) {
         console.log(chalk.green(`✅ Applied ${fixesApplied} link fix${fixesApplied === 1 ? '' : 'es'} to ${filePath}`));
       }
     }
@@ -1635,13 +1555,13 @@ async function fixLinksInFile(filePath: string, authToken: string): Promise<numb
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 503) {
-        if (process.env.CLISEO_VERBOSE === 'true') {
+        if (false) {
           console.log(chalk.yellow('AI service temporarily unavailable for link fixes'));
         }
-      } else if (process.env.CLISEO_VERBOSE === 'true') {
+      } else if (false) {
         console.log(chalk.yellow(`AI request failed for ${filePath}: ${error.response?.data?.error || error.message}`));
       }
-    } else if (process.env.CLISEO_VERBOSE === 'true') {
+    } else if (false) {
       console.log(chalk.yellow(`Error fixing links in ${filePath}: ${error}`));
     }
     return 0;

@@ -1,20 +1,13 @@
 // Command Options
 export interface ScanOptions {
-  verbose?: boolean;
   json?: boolean;
 }
 
 export interface OptimizeOptions {
   ai?: boolean;
-  model?: string;
-  gitPr?: boolean;
-  dryRun?: boolean;
-  yes?: boolean;
 }
 
-export interface ConnectOptions {
-  googleSearchConsole?: boolean;
-}
+
 
 // SEO Types
 export type IssueType = 'error' | 'warning' | 'ai-suggestion' | 'ai-link-fix';

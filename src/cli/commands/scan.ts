@@ -568,7 +568,7 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
 /**
  * Main function to scan project for SEO issues.
  * 
- * @param options - Scan options including verbose and JSON output
+ * @param options - Scan options including JSON output
  */
 export async function scanCommand(options: ScanOptions) {
   const spinner = options.json 
@@ -612,9 +612,7 @@ export async function scanCommand(options: ScanOptions) {
       return;
     }
 
-    if (!options.json && (options.verbose || process.env.CLISEO_VERBOSE === 'true')) {
-      console.log(chalk.cyan(`📁 Found ${files.length} files to scan`));
-    }
+
 
     // Limit files for performance
     const MAX_FILES = 500;

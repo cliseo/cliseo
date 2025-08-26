@@ -5,9 +5,6 @@ import chalk from 'chalk';
 import { scanCommand } from './commands/scan.js';
 import { optimizeCommand } from './commands/optimize.js';
 import { authCommand } from './commands/auth.js';
-import { connectCommand } from './commands/connect.js';
-
-import { migrateAuthentication } from './utils/migrate-auth.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -20,11 +17,6 @@ const packageJson = JSON.parse(
 
 const program = new Command();
 
-// Run authentication migration on startup (fully silent to not pollute JSON output)
-migrateAuthentication(true).catch(() => {
-  // Ignore migration errors to not disrupt CLI usage
-});
-
 // Setup CLI metadata
 program
   .name('cliseo')
@@ -35,7 +27,6 @@ program
 program
   .command('scan')
   .description('Scan project for SEO issues')
-  .option('--verbose', 'Show detailed output')
   .option('--json', 'Output results in JSON format')
   .action(scanCommand);
 
@@ -43,8 +34,6 @@ program
   .command('optimize [directory]')
   .description('Apply SEO optimizations to codebase')
   .option('--ai', 'Use AI for generating improvements (requires authentication)')
-  .option('--dry-run', 'Preview changes without applying')
-  .option('--yes', 'Skip confirmation prompts')
   .action(optimizeCommand);
 
 program
@@ -52,11 +41,7 @@ program
   .description('Authenticate with cliseo for AI features')
   .action(authCommand);
 
-program
-  .command('connect')
-  .description('Connect external services')
-  .option('--google-search-console', 'Connect Google Search Console')
-  .action(connectCommand);
+
 
 
 
