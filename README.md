@@ -71,61 +71,39 @@ cliseo scan
 cliseo optimize
 ```
 
-3. **Use AI features** (requires authentication):
-```bash
-cliseo scan --ai
-cliseo optimize --ai
-```
-
 ## 🛠️ Command Reference
 
 ### `cliseo scan [options]`
-Performs a comprehensive SEO audit of your project.
+Performs an SEO audit of your project.
 
 **Options:**
-- `--ai`: Enable AI-powered deep analysis (requires authentication)
-- `--verbose`: Show detailed output and debugging information
-- `--json`: Output results in JSON format for automation
+- `--json`: Output results in JSON format
 
-**Example output:**
-```
-Detected Framework: REACT
-✅ Found 12 files to scan
-⚠️  Missing meta description in src/pages/About.tsx
-🤖 AI Suggestion: Add product schema markup for better e-commerce visibility
+**Examples:**
+```bash
+cliseo scan
+cliseo scan --json
 ```
 
-### `cliseo optimize [directory] [options]`
-Automatically applies SEO improvements to your codebase.
+### `cliseo optimize [options]`
+Automatically applies SEO fixes to your codebase.
 
 **Options:**
-- `--ai`: Use AI for intelligent, context-aware optimizations (requires authentication)
-- `--dry-run`: Preview changes without applying them
-- `--yes`: Skip confirmation prompts (useful for CI/CD)
+- `--ai`: Use AI for generating improvements (requires authentication)
 
-**What it does:**
-- Creates/updates `robots.txt` and `sitemap.xml`
-- Injects framework-appropriate meta tags
-- Adds missing alt attributes to images
-- Installs and configures SEO libraries (react-helmet, vue-meta)
+**Examples:**
+```bash
+cliseo optimize
+cliseo optimize --ai
+```
 
 ### `cliseo auth`
-Manage authentication for AI-powered features.
+Authenticate with cliseo for AI features.
 
-**Features:**
-- Sign in with Google or GitHub
-- View account status and AI access
-- Manage email verification
-- Upgrade to premium plans
-
-### `cliseo verify-email`
-Send or check email verification status for AI features.
-
-### `cliseo connect [options]`
-Connect external services (Coming Soon).
-
-**Options:**
-- `--google-search-console`: Connect Google Search Console
+**Example:**
+```bash
+cliseo auth
+```
 
 ## 🤝 Contribute
 
