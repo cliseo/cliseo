@@ -28,17 +28,18 @@ The goal isn’t to guarantee search rankings, but to ensure your site meets bas
 - **Detailed Issue Reporting**: Clear, actionable feedback with specific fix recommendations
 
 ### 🛠️ Intelligent Optimizations
-- **SEO File Generation**: Creates optimized `robots.txt` and `sitemap.xml` files
-- **Meta Tag Injection**: Automatically adds title, description, viewport, and Open Graph tags
-- **Schema.org Markup**: Injects JSON-LD structured data for better search results
-- **Image Alt Text**: Adds descriptive alt attributes to images
-- **Semantic HTML**: Suggests improvements for better accessibility and SEO
+- **SEO File Generation**: Creates `robots.txt`, `sitemap.xml`, and `llms.txt` with sensible placeholders
+- **Baseline Head Bundle**: Ensures title, meta description, robots, canonical, Open Graph, and Twitter tags across HTML, React, Next.js, and Vue
+- **Image Alt Text**: Adds descriptive alt attributes to images when missing
+- **Accessible Headings**: Adds a fallback `<h1>` when a page has none
+- **Semantic Suggestions**: Highlights opportunities to improve structural markup during scans
 
 ### 🤖 AI-Powered Features (Premium)
-- **AI Content Analysis**: Advanced project understanding and context-aware optimizations
-- **Smart Metadata Generation**: AI-generated titles, descriptions, and keywords based on your content
-- **Custom SEO Recommendations**: Personalized suggestions tailored to your specific project
-- **Enhanced Schema Markup**: AI-driven structured data optimization
+- **Context-Aware Metadata**: Generates titles, descriptions, canonical URLs, and social tags that reflect each page
+- **Framework-Aware Injection**: Writes metadata into React Helmet, Next.js metadata/head blocks, and Vue Teleport sections
+- **Adaptive Image Alt Text**: Suggests descriptive alt attributes based on the surrounding content
+- **Structured Data Guidance**: Provides JSON-LD blocks when enough context exists for safe inference
+- **Actionable Summaries**: Highlights remaining manual opportunities after AI optimizations run
 
 ### 🎯 Framework-Specific Support
 - **React**: React Helmet integration with JSX-aware optimization
@@ -60,6 +61,20 @@ npm install -g cliseo
 ```
 
 ## 🎯 Quick Start
+
+**What `cliseo optimize` Adds**
+- `robots.txt`, `sitemap.xml`, and `llms.txt` if missing, using safe placeholders you can customize later
+- A baseline head bundle (title, meta description, robots, canonical, Open Graph, Twitter) across HTML, React, Next.js, and Vue
+- Alt attributes for images without descriptions
+- A fallback `<h1>` near the top of each page when none exists
+
+**What `cliseo scan` Reports**
+- Missing meta descriptions, language attributes, and H1s that still need attention
+- Images that are still missing alt text
+- Missing SEO files (`robots.txt`, `sitemap.xml`, `llms.txt`)
+- Framework-specific warnings that the optimizer cannot auto-fix
+
+Run `cliseo scan` first to see the current gaps, then `cliseo optimize` (with or without `--ai`) to apply fixes.
 
 1. **Scan your project** for SEO issues:
 ```bash

@@ -1,162 +1,130 @@
-// optimizeVueComponents.ts
-import { readFileSync, writeFileSync } from 'fs';
-import path, { join } from 'path';
+import { promises as fs } from 'fs';
+import { existsSync } from 'fs';
+import { join, relative } from 'path';
 import { glob } from 'glob';
-import { execSync } from 'child_process';
+import chalk from 'chalk';
+import { BASIC_PLACEHOLDERS, buildHeadTagStrings } from '../utils/seoTemplates.js';
 
-const SEO_HEAD_BLOCK = `
-useHead({
-  title: 'Your Page Title',
-  meta: [
-    { name: 'description', content: 'Default description for this page' },
-    { property: 'og:title', content: 'Your OG Title' }
-  ],
-  link: [
-    { rel: 'canonical', href: 'https://yourdomain.com/current-page' }
-  ]
-})
-`;
+const IMG_WITHOUT_ALT = /<img\b(?![^>]*\balt\s*=)([^>]*?)(\/?>)/gi;
 
-function isLikelyVuePageFile(filePath: string): boolean {
-
-  const normalized = filePath.replace(/\\/g, '/');
-  const base = path.basename(filePath);
-
-  // Must be in a relevant directory like pages, views, or routes
-  if (!/\/(pages|views|routes)\//.test(normalized)) {
+function isLikelyVuePage(filePath: string): boolean {
+  const normalised = filePath.replace(/\\/g, '/');
+  if (!normalised.endsWith('.vue')) {
     return false;
   }
-
-  // Must be a .vue file
-  if (!base.endsWith('.vue')) {
-    return false;
-  }
-
-  // Exclude generic files like App.vue, main.vue, index.vue
-  if (/^(App|main|index)\.vue$/i.test(base)) {
-    return false;
-  }
-
-  return true;
+  return /\/(pages|views|routes)\//.test(normalised);
 }
 
+async function collectVuePages(projectRoot: string): Promise<string[]> {
+  const candidates = await glob('src/{pages,views,routes}/**/*.vue', {
+    cwd: projectRoot,
+    absolute: true,
+    ignore: ['**/node_modules/**'],
+  });
 
-async function ensureVueMetaInstalled(projectRoot: string) {
-  const pkgPath = join(projectRoot, 'package.json');
-  const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-  const hasVueMeta = pkg.dependencies?.['vue-meta'] || pkg.devDependencies?.['vue-meta'];
-
-  if (!hasVueMeta) {
-    console.log('📦 Installing vue-meta...');
-    execSync('npm install vue-meta', { cwd: projectRoot, stdio: 'inherit' });
-  }
+  return candidates.filter(isLikelyVuePage);
 }
 
-async function injectSeoIntoVueFiles(projectRoot: string) {
-  const allFiles = await glob('src/{pages,views,routes}/**/*.vue', { cwd: projectRoot, absolute: true });
-  const files = allFiles.filter(isLikelyVuePageFile);
-
-  if (files.length === 0) {
-    console.warn('⚠️ No Vue files found in src/pages/. Skipping.');
-    return;
+function ensureTemplateHeading(template: string, placeholder: string) {
+  if (/<h1\b/i.test(template)) {
+    return { updated: template, added: false };
   }
 
-  for (const file of files) {
-    let content = readFileSync(file, 'utf-8');
-    let modified = false;
+  const lines = template.split('\n');
+  const firstContentIndex = lines.findIndex((line) => line.trim().length > 0);
+  const indent = firstContentIndex >= 0 ? lines[firstContentIndex].match(/^\s*/)?.[0] ?? '' : '';
+  const headingLine = `${indent}<h1>${placeholder}</h1>`;
 
-    // Fix H1 tag issues in Vue templates
-    const templateMatch = content.match(/<template>([\s\S]*?)<\/template>/);
-    if (templateMatch) {
-      let templateContent = templateMatch[1];
-      const h1Regex = /<h1[^>]*>/g;
-      const h1Matches = [...templateContent.matchAll(h1Regex)];
-      
-      if (h1Matches.length === 0) {
-        // No H1 found - convert first H2 to H1 if it exists
-        const h2Match = templateContent.match(/<h2([^>]*)>/);
-        if (h2Match) {
-          templateContent = templateContent.replace(/<h2([^>]*)>/, '<h1$1>');
-          templateContent = templateContent.replace(/<\/h2>/, '</h1>');
-          modified = true;
-        }
-      } else if (h1Matches.length > 1) {
-        // Multiple H1s found - convert extras to H2 (skip the first one)
-        let replacements = 0;
-        templateContent = templateContent.replace(/<h1([^>]*)>/g, (match, attrs) => {
-          replacements++;
-          return replacements === 1 ? match : `<h2${attrs}>`;
-        });
-        
-        // Fix closing tags
-        let h1Opens = 0;
-        templateContent = templateContent.replace(/<\/h1>/g, (match) => {
-          h1Opens++;
-          return h1Opens === 1 ? match : '</h2>';
-        });
-        
-        if (replacements > 1) {
-          modified = true;
-        }
-      }
-      
-      if (modified) {
-        content = content.replace(/<template>([\s\S]*?)<\/template>/, `<template>${templateContent}</template>`);
-      }
-    }
-
-    if (!content.includes('<script setup')) {
-        // No script setup tag: add one at the end with import and useHead
-        content += `
-
-<script setup>
-import { useHead } from 'vue-meta'
-
-useHead({
-title: 'Your Page Title',
-meta: [
-    { name: 'description', content: 'Default description for this page' },
-    { property: 'og:title', content: 'Your OG Title' }
-],
-link: [
-    { rel: 'canonical', href: 'https://yourdomain.com/current-page' }
-]
-})
-</script>
-`
-        writeFileSync(file, content, 'utf-8')
-        console.log(`✅ Added <script setup> and injected SEO into ${file}`)
-        continue
-    }
-
-    if (content.includes('useHead({')) {
-      if (modified) {
-        writeFileSync(file, content, 'utf-8');
-        console.log(`✅ Fixed H1 tags in ${file}`);
-      }
-      continue;
-    }
-
-    if (!content.includes('import { useHead }')) {
-      content = content.replace(
-        /<script setup.*?>/,
-        match => `${match}\nimport { useHead } from 'vue-meta'`
-      );
-    }
-
-    const lines = content.split('\n');
-    const scriptStartIndex = lines.findIndex(l => l.trim().startsWith('<script setup'));
-    const scriptEndIndex = lines.findIndex((l, i) => i > scriptStartIndex && l.trim().startsWith('</script>'));
-
-    const insertIndex = scriptEndIndex === -1 ? lines.length : scriptEndIndex;
-    lines.splice(insertIndex, 0, SEO_HEAD_BLOCK);
-
-    writeFileSync(file, lines.join('\n'), 'utf-8');
-    console.log(`✅ Injected SEO metadata into ${file}`);
+  if (firstContentIndex >= 0) {
+    lines.splice(firstContentIndex, 0, headingLine);
+  } else {
+    lines.push(headingLine);
   }
+
+  return { updated: lines.join('\n'), added: true };
+}
+
+function ensureTemplateImageAlt(template: string, placeholder: string) {
+  let replacements = 0;
+  const updated = template.replace(IMG_WITHOUT_ALT, (_match, attrs: string, closing: string) => {
+    replacements += 1;
+    const paddedAttrs = attrs.endsWith(' ') || attrs.length === 0 ? attrs : `${attrs} `;
+    return `<img${paddedAttrs}alt="${placeholder}"${closing}`;
+  });
+  return { updated, replacements };
 }
 
 export async function optimizeVueComponents(projectRoot: string) {
-  await ensureVueMetaInstalled(projectRoot);
-  await injectSeoIntoVueFiles(projectRoot);
+  if (!existsSync(projectRoot)) {
+    return;
+  }
+
+  const files = await collectVuePages(projectRoot);
+  if (files.length === 0) {
+    return;
+  }
+
+  let filesChanged = 0;
+  let altUpdates = 0;
+  let headingsAdded = 0;
+  let headBlocksAdded = 0;
+
+  for (const file of files) {
+    try {
+      const original = await fs.readFile(file, 'utf8');
+      const templateMatch = original.match(/<template>([\s\S]*?)<\/template>/);
+      if (!templateMatch) {
+        continue;
+      }
+
+      const templateContent = templateMatch[1];
+      let updatedTemplate = templateContent;
+
+      const altResult = ensureTemplateImageAlt(updatedTemplate, BASIC_PLACEHOLDERS.imageAlt);
+      updatedTemplate = altResult.updated;
+      altUpdates += altResult.replacements;
+
+      const headingResult = ensureTemplateHeading(updatedTemplate, BASIC_PLACEHOLDERS.h1);
+      updatedTemplate = headingResult.updated;
+      if (headingResult.added) {
+        headingsAdded += 1;
+      }
+
+      const { title, meta, links } = buildHeadTagStrings();
+      const needsTitle = !/<title>.*<\/title>/.test(updatedTemplate);
+      const missingMeta = meta.filter((tag) => !updatedTemplate.includes(tag));
+      const missingLinks = links.filter((tag) => !updatedTemplate.includes(tag));
+
+      if ((needsTitle || missingMeta.length || missingLinks.length) && !updatedTemplate.includes('<Teleport to="head"')) {
+        const headBlockLines = [
+          '<Teleport to="head">',
+          `  <title>${title}</title>`,
+          ...missingMeta.map((tag) => `  ${tag}`),
+          ...missingLinks.map((tag) => `  ${tag}`),
+          '</Teleport>',
+        ];
+        updatedTemplate = headBlockLines.join('\n') + '\n' + updatedTemplate;
+        headBlocksAdded += 1;
+      }
+
+      if (updatedTemplate === templateContent) {
+        continue;
+      }
+
+      const updatedFile = original.replace(templateContent, updatedTemplate);
+      await fs.writeFile(file, updatedFile, 'utf8');
+      filesChanged += 1;
+      console.log(chalk.gray(`• Updated ${relative(projectRoot, file)}`));
+    } catch (error) {
+      console.log(chalk.yellow(`⚠️  Skipped ${relative(projectRoot, file)} (could not update)`));
+    }
+  }
+
+  if (filesChanged > 0) {
+    console.log(
+      chalk.cyan(
+        `Vue pages updated: ${filesChanged}. Alt tags added: ${altUpdates}. H1 inserted: ${headingsAdded}. Head blocks added: ${headBlocksAdded}.`,
+      ),
+    );
+  }
 }

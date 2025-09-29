@@ -25,7 +25,7 @@ import { exec } from 'child_process';
  * @param startDir - Directory to start search from
  * @returns Path to project root directory
  */
-function findProjectRoot(startDir = process.cwd()): string {
+export function findProjectRoot(startDir = process.cwd()): string {
   let dir = resolve(startDir);
   while (dir !== dirname(dir)) {
     if (fs.existsSync(join(dir, 'package.json'))) return dir;
@@ -38,7 +38,7 @@ function findProjectRoot(startDir = process.cwd()): string {
  * Scans all package.json files in the project for framework dependencies.
  * Returns the first framework found, or 'unknown' if none found.
  */
-async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | 'next.js' | 'unknown'> {
+export async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | 'next.js' | 'unknown'> {
   // Find all package.json files, excluding node_modules and common build/test dirs
   const packageJsonFiles = await glob('**/package.json', {
     cwd: projectRoot,
@@ -80,50 +80,26 @@ async function detectFramework(projectRoot: string): Promise<'react' | 'vue' | '
  * 
  * @returns List of SEO issues found.
  */
-async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
+export async function checkSeoFileExists(projectRoot: string, filename: string) {
+  const searchPaths = [join(projectRoot, filename), join(projectRoot, 'public', filename)];
+  for (const p of searchPaths) {
+    try {
+      await readFile(p, 'utf-8');
+      return true;
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
+export async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
   const issues: SeoIssue[] = [];
   const root = findProjectRoot();
-  
-  // Check in both root and public directories for SEO files
-  const possiblePaths = [
-    { robots: join(root, 'robots.txt'), sitemap: join(root, 'sitemap.xml'), llms: join(root, 'llms.txt') },
-    { robots: join(root, 'public', 'robots.txt'), sitemap: join(root, 'public', 'sitemap.xml'), llms: join(root, 'public', 'llms.txt') }
-  ];
 
-  let robotsFound = false;
-  let sitemapFound = false;
-  let llmsFound = false;
-
-  // Check all possible locations
-  for (const paths of possiblePaths) {
-    try {
-      await readFile(paths.robots, 'utf-8');
-      robotsFound = true;
-      break;
-    } catch {
-      // Continue checking other locations
-    }
-  }
-
-  for (const paths of possiblePaths) {
-    try {
-      await readFile(paths.sitemap, 'utf-8');
-      sitemapFound = true;
-      break;
-    } catch {
-      // Continue checking other locations
-    }
-  }
-
-  for (const paths of possiblePaths) {
-    try {
-      await readFile(paths.llms, 'utf-8');
-      llmsFound = true;
-      break;
-    } catch {
-      // Continue checking other locations
-    }
-  }
+  const robotsFound = await checkSeoFileExists(root, 'robots.txt');
+  const sitemapFound = await checkSeoFileExists(root, 'sitemap.xml');
+  const llmsFound = await checkSeoFileExists(root, 'llms.txt');
 
   if (!robotsFound) {
     issues.push({
@@ -156,32 +132,17 @@ async function checkRequiredSeoFiles(): Promise<SeoIssue[]> {
 }
 
 /* Basic SEO rules for scan */
-const basicSeoRules = {
-  missingTitle: (doc: cheerio.CheerioAPI) => !doc('title').length,
+export const basicSeoRules = {
   missingMetaDescription: (doc: cheerio.CheerioAPI) => !doc('meta[name="description"]').length,
   missingAltTags: (doc: cheerio.CheerioAPI) => doc('img:not([alt])').length > 0,
-  missingViewport: (doc: cheerio.CheerioAPI) => !doc('meta[name="viewport"]').length,
   missingLangAttribute: (doc: cheerio.CheerioAPI) => !doc('html').attr('lang'),
   invalidH1Count: (doc: cheerio.CheerioAPI) => {
     const h1Count = doc('h1').length;
     return h1Count === 0 || h1Count > 1;
   },
-  missingRobotsTxt: async (projectRoot: string) => {
-    try {
-      await readFile(join(projectRoot, 'robots.txt'));
-      return false;
-    } catch {
-      return true;
-    }
-  },
-  missingLlmsTxt: async (projectRoot: string) => {
-    try {
-      await readFile(join(projectRoot, 'llms.txt'));
-      return false;
-    } catch {
-      return true;
-    }
-  },
+  missingRobotsTxt: async (projectRoot: string) => !(await checkSeoFileExists(projectRoot, 'robots.txt')),
+  missingSitemap: async (projectRoot: string) => !(await checkSeoFileExists(projectRoot, 'sitemap.xml')),
+  missingLlmsTxt: async (projectRoot: string) => !(await checkSeoFileExists(projectRoot, 'llms.txt')),
 };
 
 /**
@@ -190,7 +151,7 @@ const basicSeoRules = {
  * @param filePath - Path to file to scan
  * @returns True if the file is a page component, false otherwise.
 */
-function isPageComponent(filePath: string): boolean {
+export function isPageComponent(filePath: string): boolean {
   // Skip entry point files
   if (filePath.endsWith('main.tsx') || filePath.endsWith('index.tsx') || filePath.endsWith('App.tsx')) {
     return false;
@@ -563,8 +524,6 @@ async function scanNextComponent(filePath: string): Promise<SeoIssue[]> {
     });
   }
 
-  console.error('Next.js component scan complete:', filePath);
-
   return issues;
 }
 
@@ -586,16 +545,6 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
   const content = await readFile(filePath, 'utf-8');
   const $ = cheerio.load(content);
 
-  // Check basic SEO rules
-  if (basicSeoRules.missingTitle($)) {
-    issues.push({
-      type: 'error',
-      message: 'Missing title tag',
-      file: filePath,
-      fix: 'Add a descriptive title tag',
-    });
-  }
-
   if (basicSeoRules.missingMetaDescription($)) {
     issues.push({
       type: 'warning',
@@ -615,15 +564,6 @@ async function performBasicScan(filePath: string): Promise<SeoIssue[]> {
         element: $.html(img),
         fix: 'Add descriptive alt text to the image',
       });
-    });
-  }
-
-  if (basicSeoRules.missingViewport($)) {
-    issues.push({
-      type: 'warning',
-      message: 'Missing viewport meta tag',
-      file: filePath,
-      fix: 'Add viewport meta tag for responsive design',
     });
   }
 
@@ -845,3 +785,4 @@ function displayScanResults(results: ScanResult[], framework: string) {
     console.log(chalk.gray('\n💡 Run `cliseo optimize` to automatically apply fixes'));
   }
 } 
+
